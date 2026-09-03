@@ -475,8 +475,9 @@ async function loadPerfTab() {
 
   // 1. ALL golden crosses in the period — no activeSet pre-filter.
   //    Closed trades (death cross happened after) are just as valid as open ones.
+  //    Fetch date_of_listing via stocks join to filter pre-listing signals.
   const { data: goldenCrosses, error: gcErr } = await db.from('signals')
-    .select('symbol, signal_date, price, sector, stocks(name)')
+    .select('symbol, signal_date, price, sector, stocks(name, date_of_listing)')
     .eq('strategy_name', 'ema_crossover')
     .eq('signal_type', 'golden_cross')
     .gte('signal_date', cutoffOld)
@@ -498,36 +499,35 @@ async function loadPerfTab() {
     return
   }
 
-  const symbols = [...new Set(cleanCrosses.map(r => r.symbol))]
-
-  // 2a. Warmup filter: require ≥52 weeks of data before the golden cross.
-  //     Stocks whose DB history starts within a year of the signal have unreliable EMAs
-  //     (often due to incorrect pre-listing historical data being imported).
   const CHUNK = 200
   const mkChunks = arr => { const c = []; for (let i = 0; i < arr.length; i += CHUNK) c.push(arr.slice(i, i + CHUNK)); return c }
   const addDays = (d, n) => { const dt = new Date(d); dt.setDate(dt.getDate() + n); return dt.toISOString().slice(0, 10) }
 
-  const allFirstObs = (await Promise.all(mkChunks(symbols).map(chunk =>
-    db.rpc('symbol_first_obs', { syms: chunk }).then(r => r.data || [])
-  ))).flat()
-  const firstObsMap = {}
-  for (const r of allFirstObs) firstObsMap[r.symbol] = r.first_obs
+  // 2a. Listing-date filter: discard crosses that predate the stock's NSE listing
+  //     (catches bad historical data imported before a stock actually existed).
+  //     Also require ≥26 weeks after listing for EMA to stabilise post-IPO.
+  const parseListingDate = s => {
+    if (!s) return null
+    // Format from stocks table: "17-AUG-2026" → standard ISO date
+    const d = new Date(s.replace(/-([A-Z]{3})-/, ' $1 '))
+    return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
+  }
 
-  const warmupCrosses = cleanCrosses.filter(gc => {
-    const fo = firstObsMap[gc.symbol]
-    if (!fo) return true  // can't determine — keep
-    return gc.signal_date >= addDays(fo, 365)  // signal must be ≥52 weeks after first data point
+  const validCrosses = cleanCrosses.filter(gc => {
+    const ld = parseListingDate(gc.stocks?.date_of_listing)
+    if (!ld) return true  // no listing date — keep (can't determine)
+    return gc.signal_date >= addDays(ld, 182)  // cross must be ≥26 weeks after listing
   })
 
-  if (!warmupCrosses.length) {
-    empty(container, 'No qualifying crossovers found.', 'No crosses passed the data-quality warmup filter.')
+  if (!validCrosses.length) {
+    empty(container, 'No qualifying crossovers found.', 'No crosses passed the listing-date quality filter.')
     return
   }
 
   // 2. Death crosses for those symbols — chunk to avoid URL length limit.
-  const warmupSymbols = [...new Set(warmupCrosses.map(r => r.symbol))]
+  const validSymbols = [...new Set(validCrosses.map(r => r.symbol))]
 
-  const allDCs = (await Promise.all(mkChunks(warmupSymbols).map(chunk =>
+  const allDCs = (await Promise.all(mkChunks(validSymbols).map(chunk =>
     db.from('signals')
       .select('symbol, signal_date, price')
       .eq('strategy_name', 'ema_crossover')
@@ -546,7 +546,7 @@ async function loadPerfTab() {
   }
 
   // 3. Current prices for symbols still in activeSet (open trades only).
-  const openSyms = warmupSymbols.filter(s => activeSet.has(s))
+  const openSyms = validSymbols.filter(s => activeSet.has(s))
   const cmpMap = {}
   if (openSyms.length) {
     const cmpRows = (await Promise.all(mkChunks(openSyms).map(chunk =>
@@ -569,7 +569,7 @@ async function loadPerfTab() {
   const daysBetween = (d1, d2) => Math.round((new Date(d2) - new Date(d1)) / 86400000)
 
   const trades = []
-  for (const gc of warmupCrosses) {
+  for (const gc of validCrosses) {
     const dcs    = dcIndex[gc.symbol] || []
     const exitDC = dcs.find(dc => dc.signal_date > gc.signal_date)
 
