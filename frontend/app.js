@@ -19,6 +19,7 @@ let historyAllRows = []   // accumulates all fetched history rows across pages
 let sortState      = {}
 let loaded         = {}
 let globalFilters  = { returnPct: null, watchlistOnly: false }
+let perfPeriodDays = 365  // default: 1 year; 0 = all-time
 
 // ── Watchlist (localStorage) ──────────────────────────────────────
 function getWatchlist() {
@@ -61,6 +62,24 @@ function daysAgo(date, n) {
   const d = new Date(date)
   d.setDate(d.getDate() - n)
   return d.toISOString().slice(0, 10)
+}
+
+// ── Exclusion list: circuit stocks + recently listed (<3 months) ──
+// Populated once via two Supabase RPCs; gracefully empty if RPCs
+// don't exist yet (run the SQL in README to create them).
+let _excludedSet = null
+
+async function getExcludedSet() {
+  if (_excludedSet) return _excludedSet
+  const [circuitRes, newListedRes] = await Promise.all([
+    db.rpc('circuit_symbols'),
+    db.rpc('recently_listed_symbols', { cutoff_days: 90 }),
+  ])
+  _excludedSet = new Set([
+    ...(circuitRes.data  || []).map(r => r.symbol),
+    ...(newListedRes.data || []).map(r => r.symbol),
+  ])
+  return _excludedSet
 }
 
 // ── Shared: latest obs date + active symbol set ───────────────────
@@ -129,7 +148,9 @@ async function loadSummary() {
     ])
 
     // Fresh EMA = crossed in window AND still above (EMA9 > EMA20 today)
-    const crossedSymbols = new Set((emaRes.data || []).map(r => r.symbol))
+    // Exclude circuit + recently-listed stocks from the KPI count
+    const excluded = await getExcludedSet()
+    const crossedSymbols = new Set((emaRes.data || []).map(r => r.symbol).filter(s => !excluded.has(s)))
     freshEmaCount = [...crossedSymbols].filter(s => activeSet.has(s)).length
     freshBrkCount = brkRes.count || 0
   }
@@ -177,13 +198,15 @@ async function loadCrossoverTab() {
   }
 
   // Only keep symbols where EMA9 is still above EMA20 right now
+  // Exclude circuit + recently-listed stocks
   // Deduplicate: keep earliest signal per symbol (first cross in window)
+  const excluded = await getExcludedSet()
   const seen = new Set()
   const filtered = []
   for (const row of [...data].sort((a, b) => a.signal_date.localeCompare(b.signal_date))) {
     if (seen.has(row.symbol)) continue
     seen.add(row.symbol)
-    if (activeSet.has(row.symbol)) filtered.push(row)
+    if (activeSet.has(row.symbol) && !excluded.has(row.symbol)) filtered.push(row)
   }
 
   if (!filtered.length) {
@@ -241,9 +264,10 @@ async function loadBreakoutTab() {
     return
   }
 
-  // Fetch CMP for each breakout symbol
-  const { obsDate: brkObs } = await getObsContext()
-  const brkSyms = [...new Set(data.map(r => r.symbol))]
+  // Exclude circuit + recently-listed stocks, then fetch CMPs
+  const excluded = await getExcludedSet()
+  const cleanData = data.filter(r => !excluded.has(r.symbol))
+  const brkSyms = [...new Set(cleanData.map(r => r.symbol))]
   const brkCmpMap = brkSyms.length ? await fetchCmp(brkSyms) : {}
 
   const cols = [
@@ -259,7 +283,7 @@ async function loadBreakoutTab() {
     { label: 'Sector',       key: 'sector',            cls: 'muted',       fmt: v => esc(v) },
     { label: 'Industry',     key: 'industry',          cls: 'muted',       fmt: v => esc(v) },
   ]
-  const brkRows = data.map(r => {
+  const brkRows = cleanData.map(r => {
     const cmp = brkCmpMap[r.symbol] ?? null
     const ret = (cmp != null && r.price) ? (cmp / r.price - 1) * 100 : null
     return { ...r, _star: r.symbol, _name: r.stocks?.name || '', _cmp: cmp, _return_pct: ret }
@@ -290,9 +314,12 @@ async function loadActiveTab() {
   for (const row of (rawInds || [])) {
     if (!_seenActive.has(row.symbol)) { _seenActive.add(row.symbol); inds.push(row) }
   }
-  inds.sort((a, b) => (b.ema_difference_pct ?? 0) - (a.ema_difference_pct ?? 0))
+  // Exclude circuit + recently-listed before sorting
+  const excluded = await getExcludedSet()
+  const indsFiltered = inds.filter(r => !excluded.has(r.symbol))
+  indsFiltered.sort((a, b) => (b.ema_difference_pct ?? 0) - (a.ema_difference_pct ?? 0))
 
-  if (!inds.length) { empty(container, 'No stocks currently above EMA9 > EMA20.'); return }
+  if (!indsFiltered.length) { empty(container, 'No stocks currently above EMA9 > EMA20.'); return }
 
   // Get latest golden-cross signal per active symbol (last 2 years)
   const cutoff = daysAgo(obsDate, 730)
@@ -309,7 +336,7 @@ async function loadActiveTab() {
   const sigPriceMap = {}
   for (const s of (sigs || [])) { if (!sigPriceMap[s.symbol]) sigPriceMap[s.symbol] = s.price }
 
-  const rows = inds.map(ind => {
+  const rows = indsFiltered.map(ind => {
     const sig       = sigMap[ind.symbol] || {}
     const sigPrice  = sig.price ?? null
     const cmp       = ind.weekly_close
@@ -380,7 +407,9 @@ async function loadHistoryTab(reset = false) {
   historyTotal = count || 0
   el('meta-history').textContent = `${fmt.num(historyTotal)} total signals`
 
-  const syms = [...new Set(data.map(r => r.symbol))]
+  const excluded = await getExcludedSet()
+  const cleanData = data.filter(r => !excluded.has(r.symbol))
+  const syms = [...new Set(cleanData.map(r => r.symbol))]
   const cmpMap = syms.length ? await fetchCmp(syms) : {}
 
   const cols = [
@@ -398,7 +427,7 @@ async function loadHistoryTab(reset = false) {
     { label: 'Sector',       key: 'sector',             cls: 'muted',       fmt: v => esc(v) },
   ]
 
-  const newRows = data.map(r => {
+  const newRows = cleanData.map(r => {
     const cmp = cmpMap[r.symbol] ?? null
     const ret = (cmp != null && r.price) ? (cmp / r.price - 1) * 100 : null
     return { ...r, _star: r.symbol, _name: r.stocks?.name || '', _cmp: cmp, _return_pct: ret }
@@ -421,10 +450,11 @@ async function loadHistoryTab(reset = false) {
   el('load-more-history').hidden = hasGlobalFilter || historyOffset >= historyTotal
 }
 
-// ── Tab 5: Crossover Returns (holds aged ≥ 2 weeks) ───────────────
-// Shows golden crosses that happened AT LEAST 2 weeks ago (up to 6 months)
-// and are still holding (EMA9 > EMA20 right now). Tracks "if I bought at
-// crossover and held till today, what return would I have?"
+// ── Tab 5: Crossover Returns ────────────────────────────────────────
+// Each row = one trade: golden cross entry + exit at death cross (closed)
+// or current CMP (open, EMA9 > EMA20 still holds).
+// Return is NEVER from golden cross to today blindly — it always uses the
+// actual exit price if a death cross occurred between entry and now.
 async function loadPerfTab() {
   const container = el('body-perf')
   loading(container)
@@ -432,84 +462,184 @@ async function loadPerfTab() {
   const { obsDate, activeSet } = await getObsContext()
   if (!obsDate) { empty(container, 'No indicator data yet.', 'Run the scanner first.'); return }
 
-  // Crossover must have happened at least 2 weeks ago (≥14 days old).
-  // No cap on how old — any crossover still holding (EMA9 > EMA20) is shown.
-  const cutoffRecent = daysAgo(obsDate, 14)   // upper bound: at least 14 days old
-  const cutoffOld    = daysAgo(obsDate, 730)  // lower bound: up to 2 years back
-  el('meta-perf').textContent = `All golden crosses ≥ 2 weeks old · still EMA9 > EMA20 · held to ${fmt.date(obsDate)}`
+  const cutoffRecent = daysAgo(obsDate, 14)
+  const lookbackDays = perfPeriodDays === 0 ? 7300 : perfPeriodDays
+  const cutoffOld    = daysAgo(obsDate, lookbackDays)
+  const periodLabel  = perfPeriodDays === 0 ? 'All time' :
+                       perfPeriodDays === 90 ? 'Last 3 months' :
+                       perfPeriodDays === 180 ? 'Last 6 months' :
+                       perfPeriodDays === 365 ? 'Last 1 year' :
+                       perfPeriodDays === 1095 ? 'Last 3 years' :
+                       perfPeriodDays === 1825 ? 'Last 5 years' : 'Last 10 years'
+  el('meta-perf').textContent = `${periodLabel} · entry at golden cross · exit at death cross or still holding`
 
-  const { data, error } = await db.from('signals')
-    .select('symbol, signal_date, price, ema_difference_pct, sector, stocks(name)')
+  // 1. ALL golden crosses in the period — no activeSet pre-filter.
+  //    Closed trades (death cross happened after) are just as valid as open ones.
+  const { data: goldenCrosses, error: gcErr } = await db.from('signals')
+    .select('symbol, signal_date, price, sector, stocks(name)')
     .eq('strategy_name', 'ema_crossover')
     .eq('signal_type', 'golden_cross')
     .gte('signal_date', cutoffOld)
     .lte('signal_date', cutoffRecent)
-    .order('signal_date', { ascending: false })
+    .order('signal_date', { ascending: true })
+    .limit(5000)
 
-  if (error || !data?.length) {
-    empty(container, 'No qualifying crossovers found.', 'No golden crosses older than 2 weeks are currently active.')
+  if (gcErr || !goldenCrosses?.length) {
+    empty(container, 'No qualifying crossovers found.', 'No golden crosses found in this period.')
     return
   }
 
-  // Deduplicate: keep earliest cross per symbol, then keep only still-active ones
-  const seen = new Set()
-  const candidates = []
-  for (const row of [...data].sort((a, b) => a.signal_date.localeCompare(b.signal_date))) {
-    if (seen.has(row.symbol)) continue
-    seen.add(row.symbol)
-    if (activeSet.has(row.symbol)) candidates.push(row)
-  }
+  // Strip circuit stocks and recently-listed stocks before any further processing
+  const excluded = await getExcludedSet()
+  const cleanCrosses = goldenCrosses.filter(r => !excluded.has(r.symbol))
 
-  if (!candidates.length) {
-    empty(container, 'All older crossovers have since reversed.', 'No stocks from this period are still above EMA9 > EMA20.')
+  if (!cleanCrosses.length) {
+    empty(container, 'No qualifying crossovers found.', 'All crosses in this period belong to excluded stocks.')
     return
   }
 
-  // Sort by signal_date desc for display
-  candidates.sort((a, b) => b.signal_date.localeCompare(a.signal_date))
+  const symbols = [...new Set(cleanCrosses.map(r => r.symbol))]
 
-  const syms = candidates.map(r => r.symbol)
-  const cmpMap = await fetchCmp(syms)
+  // 2a. Warmup filter: require ≥52 weeks of data before the golden cross.
+  //     Stocks whose DB history starts within a year of the signal have unreliable EMAs
+  //     (often due to incorrect pre-listing historical data being imported).
+  const CHUNK = 200
+  const mkChunks = arr => { const c = []; for (let i = 0; i < arr.length; i += CHUNK) c.push(arr.slice(i, i + CHUNK)); return c }
+  const addDays = (d, n) => { const dt = new Date(d); dt.setDate(dt.getDate() + n); return dt.toISOString().slice(0, 10) }
 
-  const rows = candidates.map(r => {
-    const cmp = cmpMap[r.symbol] ?? null
-    const ret = (cmp != null && r.price) ? (cmp / r.price - 1) * 100 : null
-    return { ...r, _star: r.symbol, _name: r.stocks?.name || '', _cmp: cmp, _return_pct: ret }
+  const allFirstObs = (await Promise.all(mkChunks(symbols).map(chunk =>
+    db.rpc('symbol_first_obs', { syms: chunk }).then(r => r.data || [])
+  ))).flat()
+  const firstObsMap = {}
+  for (const r of allFirstObs) firstObsMap[r.symbol] = r.first_obs
+
+  const warmupCrosses = cleanCrosses.filter(gc => {
+    const fo = firstObsMap[gc.symbol]
+    if (!fo) return true  // can't determine — keep
+    return gc.signal_date >= addDays(fo, 365)  // signal must be ≥52 weeks after first data point
   })
 
-  // ── Summary stats ──────────────────────────────────────────────
-  const withRet = rows.filter(r => r._return_pct != null)
+  if (!warmupCrosses.length) {
+    empty(container, 'No qualifying crossovers found.', 'No crosses passed the data-quality warmup filter.')
+    return
+  }
+
+  // 2. Death crosses for those symbols — chunk to avoid URL length limit.
+  const warmupSymbols = [...new Set(warmupCrosses.map(r => r.symbol))]
+
+  const allDCs = (await Promise.all(mkChunks(warmupSymbols).map(chunk =>
+    db.from('signals')
+      .select('symbol, signal_date, price')
+      .eq('strategy_name', 'ema_crossover')
+      .eq('signal_type', 'death_cross')
+      .in('symbol', chunk)
+      .gte('signal_date', cutoffOld)
+      .order('signal_date', { ascending: true })
+      .limit(2000)
+      .then(r => r.data || [])
+  ))).flat()
+
+  const dcIndex = {}
+  for (const dc of allDCs) {
+    if (!dcIndex[dc.symbol]) dcIndex[dc.symbol] = []
+    dcIndex[dc.symbol].push(dc)   // already sorted asc
+  }
+
+  // 3. Current prices for symbols still in activeSet (open trades only).
+  const openSyms = warmupSymbols.filter(s => activeSet.has(s))
+  const cmpMap = {}
+  if (openSyms.length) {
+    const cmpRows = (await Promise.all(mkChunks(openSyms).map(chunk =>
+      db.from('weekly_indicators')
+        .select('symbol, weekly_close, observation_date')
+        .in('symbol', chunk)
+        .gte('observation_date', daysAgo(obsDate, 7))
+        .order('observation_date', { ascending: false })
+        .limit(500)
+        .then(r => r.data || [])
+    ))).flat()
+    for (const row of cmpRows) {
+      if (!(row.symbol in cmpMap)) cmpMap[row.symbol] = row.weekly_close
+    }
+  }
+
+  // 4. Build one trade row per golden cross.
+  //    Closed = death cross found after entry  → return vs death cross price
+  //    Open   = no death cross + still EMA9>20 → return vs current weekly_close
+  const daysBetween = (d1, d2) => Math.round((new Date(d2) - new Date(d1)) / 86400000)
+
+  const trades = []
+  for (const gc of warmupCrosses) {
+    const dcs    = dcIndex[gc.symbol] || []
+    const exitDC = dcs.find(dc => dc.signal_date > gc.signal_date)
+
+    if (exitDC) {
+      const ret = gc.price > 0 ? (exitDC.price / gc.price - 1) * 100 : null
+      trades.push({
+        _star: gc.symbol, symbol: gc.symbol, _name: gc.stocks?.name || '',
+        signal_date: gc.signal_date, price: gc.price, sector: gc.sector,
+        _status: 'closed', _exit_date: exitDC.signal_date,
+        _cmp: exitDC.price, _return_pct: ret,
+        _held: daysBetween(gc.signal_date, exitDC.signal_date),
+      })
+    } else if (activeSet.has(gc.symbol)) {
+      const cmp = cmpMap[gc.symbol] ?? null
+      const ret = (cmp != null && gc.price > 0) ? (cmp / gc.price - 1) * 100 : null
+      trades.push({
+        _star: gc.symbol, symbol: gc.symbol, _name: gc.stocks?.name || '',
+        signal_date: gc.signal_date, price: gc.price, sector: gc.sector,
+        _status: 'open', _exit_date: null,
+        _cmp: cmp, _return_pct: ret,
+        _held: daysBetween(gc.signal_date, obsDate),
+      })
+    }
+    // else: death cross happened before our window started → skip (no clean exit available)
+  }
+
+  if (!trades.length) {
+    empty(container, 'No qualifying trades found.', 'All crossovers in this period either had no exit data or are no longer active.')
+    return
+  }
+
+  // trades already sorted oldest-first (golden cross query ordered asc)
+
+  // ── KPIs ──────────────────────────────────────────────────────────
+  function retStr(v) { return v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%' }
+
+  const withRet    = trades.filter(r => r._return_pct != null)
+  const openCount  = trades.filter(r => r._status === 'open').length
+  const closedCount = trades.filter(r => r._status === 'closed').length
   const avgRet  = withRet.length ? withRet.reduce((s, r) => s + r._return_pct, 0) / withRet.length : null
   const best    = withRet.length ? Math.max(...withRet.map(r => r._return_pct)) : null
   const worst   = withRet.length ? Math.min(...withRet.map(r => r._return_pct)) : null
   const nPos    = withRet.filter(r => r._return_pct > 0).length
   const hitRate = withRet.length ? (nPos / withRet.length * 100).toFixed(0) : null
 
-  function retStr(v) { return v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%' }
-
   const summaryHtml = `<div class="perf-summary">
     <div class="perf-kpi">
-      <div class="perf-kpi-val neutral">${rows.length}</div>
-      <div class="perf-kpi-label">Stocks tracked</div>
-      <div class="perf-kpi-sub">Golden X · still active</div>
+      <div class="perf-kpi-val neutral">${trades.length}</div>
+      <div class="perf-kpi-label">Total Trades</div>
+      <div class="perf-kpi-sub">${openCount} open · ${closedCount} closed · ${periodLabel}</div>
     </div>
     <div class="perf-kpi">
       <div class="perf-kpi-val ${avgRet == null ? '' : avgRet >= 0 ? 'pos' : 'neg'}">${retStr(avgRet)}</div>
-      <div class="perf-kpi-label">Avg return</div>
-      <div class="perf-kpi-sub">Equal-weight basket</div>
+      <div class="perf-kpi-label">Avg Return</div>
+      <div class="perf-kpi-sub">Equal-weight · open + closed · ${periodLabel}</div>
     </div>
     <div class="perf-kpi">
       <div class="perf-kpi-val pos">${retStr(best)}</div>
-      <div class="perf-kpi-label">Best performer</div>
+      <div class="perf-kpi-label">Best Trade</div>
+      <div class="perf-kpi-sub">${periodLabel}</div>
     </div>
     <div class="perf-kpi">
       <div class="perf-kpi-val ${worst != null && worst < 0 ? 'neg' : 'pos'}">${retStr(worst)}</div>
-      <div class="perf-kpi-label">Worst performer</div>
+      <div class="perf-kpi-label">Worst Trade</div>
+      <div class="perf-kpi-sub">${periodLabel}</div>
     </div>
     <div class="perf-kpi">
       <div class="perf-kpi-val neutral">${hitRate == null ? '—' : hitRate + '%'}</div>
-      <div class="perf-kpi-label">Win rate</div>
-      <div class="perf-kpi-sub">${nPos} of ${withRet.length} profitable</div>
+      <div class="perf-kpi-label">Win Rate</div>
+      <div class="perf-kpi-sub">${nPos} of ${withRet.length} profitable · ${periodLabel}</div>
     </div>
   </div>
   <div id="perf-table-wrap"></div>`
@@ -517,18 +647,21 @@ async function loadPerfTab() {
   container.innerHTML = summaryHtml
 
   const cols = [
-    { label: '★',            key: '_star',              cls: 'star-col',    fmt: v => starCell(v) },
-    { label: 'Symbol',       key: 'symbol',             cls: 'sym',         fmt: v => esc(v) },
-    { label: 'Name',         key: '_name',              cls: 'name',        fmt: v => esc(v) },
-    { label: 'Cross Date',   key: 'signal_date',        cls: 'mono',        fmt: v => fmt.date(v) },
-    { label: 'Held',         key: 'signal_date',        cls: 'mono',        fmt: v => fmt.days(v) },
-    { label: 'Buy Price',    key: 'price',              cls: 'num r',       fmt: v => fmt.price(v) },
-    { label: 'CMP',          key: '_cmp',               cls: 'num r',       fmt: v => fmt.price(v) },
-    { label: 'Return%',      key: '_return_pct',        cls: 'pct r',       fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'EMA Diff%',    key: 'ema_difference_pct', cls: 'pct r',      fmt: v => v != null ? `<span class="pos">${fmt.pct(v)}</span>` : '—' },
-    { label: 'Sector',       key: 'sector',             cls: 'muted',       fmt: v => esc(v) },
+    { label: '★',           key: '_star',       cls: 'star-col', fmt: v => starCell(v) },
+    { label: 'Symbol',      key: 'symbol',       cls: 'sym',      fmt: v => esc(v) },
+    { label: 'Name',        key: '_name',        cls: 'name',     fmt: v => esc(v) },
+    { label: 'Status',      key: '_status',      cls: '',         fmt: v => v === 'open'
+        ? '<span class="badge badge-green">Open</span>'
+        : '<span class="badge badge-red">Closed</span>' },
+    { label: 'Entry Date',  key: 'signal_date',  cls: 'mono',     fmt: v => fmt.date(v) },
+    { label: 'Exit Date',   key: '_exit_date',   cls: 'mono',     fmt: v => v ? fmt.date(v) : '<span class="muted">Holding</span>' },
+    { label: 'Held',        key: '_held',        cls: 'num r',    fmt: v => v == null ? '—' : v + 'd' },
+    { label: 'Buy Price',   key: 'price',        cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Exit/CMP',    key: '_cmp',         cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Return%',     key: '_return_pct',  cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
+    { label: 'Sector',      key: 'sector',       cls: 'muted',    fmt: v => esc(v) },
   ]
-  renderTable(el('perf-table-wrap'), 'perf', cols, rows)
+  renderTable(el('perf-table-wrap'), 'perf', cols, trades)
 }
 
 // ── Watchlist Tab ─────────────────────────────────────────────────
@@ -728,6 +861,16 @@ document.addEventListener('click', e => {
   saveWatchlist(wl)
   updateWlCount()
   loaded.watchlist = false   // force watchlist to reload on next visit
+})
+
+// ── Perf Period Filter ────────────────────────────────────────────
+document.querySelectorAll('.perf-period-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    perfPeriodDays = parseInt(btn.dataset.days, 10)
+    document.querySelectorAll('.perf-period-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    loadPerfTab()   // call directly — bypasses the loaded cache so KPIs always refresh
+  })
 })
 
 // ── Global Filters ────────────────────────────────────────────────
