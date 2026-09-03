@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+stock_data/
+*.log
+.matplotlib/
+.vercel
+audit_ema_full.csv
+TaskComplete.md
+.claude/

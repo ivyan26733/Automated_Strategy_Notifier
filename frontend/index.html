@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSE Stock Screener</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <div class="brand-icon">NSE</div>
+    <span class="brand-name">Stock Screener</span>
+    <span class="brand-tag">V1</span>
+  </div>
+  <div class="header-right">
+    <div class="scanner-status">
+      <span class="dot" id="run-dot"></span>
+      <span id="run-text">Connecting…</span>
+    </div>
+    <span class="last-scan" id="last-scan"></span>
+  </div>
+</header>
+
+<div class="kpi-bar">
+  <div class="kpi-chip" id="kpi-universe">
+    <div class="kpi-label">Universe</div>
+    <div class="kpi-value">—</div>
+    <div class="kpi-sub">NSE EQ stocks</div>
+  </div>
+  <div class="kpi-chip" id="kpi-crossovers">
+    <div class="kpi-label">EMA Crossovers</div>
+    <div class="kpi-value">—</div>
+    <div class="kpi-sub">Fresh &amp; active · last 4 weeks</div>
+  </div>
+  <div class="kpi-chip" id="kpi-breakouts">
+    <div class="kpi-label">6M Breakouts</div>
+    <div class="kpi-value">—</div>
+    <div class="kpi-sub">Last 30 days</div>
+  </div>
+  <div class="kpi-chip" id="kpi-signals">
+    <div class="kpi-label">Total Signals</div>
+    <div class="kpi-value">—</div>
+    <div class="kpi-sub">All time</div>
+  </div>
+</div>
+
+<!-- Global Filter Bar -->
+<div class="global-filter-bar">
+  <span class="gf-label">Filter</span>
+  <select class="filter-select" id="gf-return" style="width:160px">
+    <option value="">Return%: Any</option>
+    <option value="0">Profitable (&gt; 0%)</option>
+    <option value="5">&gt; 5%</option>
+    <option value="10">&gt; 10%</option>
+    <option value="20">&gt; 20%</option>
+    <option value="50">&gt; 50%</option>
+  </select>
+  <div class="gf-sep"></div>
+  <button class="btn btn-secondary" id="gf-watchlist-only">☆ Watchlist only</button>
+  <span class="gf-reset" id="gf-reset">Clear filters</span>
+</div>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="crossovers">Fresh EMA Crossovers</button>
+  <button class="tab-btn"        data-tab="breakouts">6M Breakouts</button>
+  <button class="tab-btn"        data-tab="active">Active EMA</button>
+  <button class="tab-btn"        data-tab="history">Signal History</button>
+  <button class="tab-btn"        data-tab="perf">📈 Returns</button>
+  <button class="tab-btn"        data-tab="watchlist">☆ Watchlist<span class="wl-count" id="wl-count"></span></button>
+</nav>
+
+<!-- Fresh EMA Crossovers -->
+<div class="tab-panel active" id="panel-crossovers">
+  <div class="panel-header">
+    <span class="panel-title">Fresh EMA Crossovers</span>
+    <span class="panel-meta" id="meta-crossovers">—</span>
+  </div>
+  <div id="body-crossovers"><div class="state-box"><div class="spinner"></div></div></div>
+</div>
+
+<!-- 6-Month Breakouts -->
+<div class="tab-panel" id="panel-breakouts">
+  <div class="panel-header">
+    <span class="panel-title">6-Month Breakouts</span>
+    <span class="panel-meta" id="meta-breakouts">—</span>
+  </div>
+  <div id="body-breakouts"><div class="state-box"><div class="spinner"></div></div></div>
+</div>
+
+<!-- Active EMA -->
+<div class="tab-panel" id="panel-active">
+  <div class="panel-header">
+    <span class="panel-title">Active EMA Signals</span>
+    <span class="panel-meta" id="meta-active">Stocks currently above EMA9 &gt; EMA20</span>
+  </div>
+  <div id="body-active"><div class="state-box"><div class="spinner"></div></div></div>
+</div>
+
+<!-- Signal History -->
+<div class="tab-panel" id="panel-history">
+  <div class="panel-header">
+    <span class="panel-title">Signal History</span>
+    <span class="panel-meta" id="meta-history">—</span>
+  </div>
+  <div class="filters">
+    <select class="filter-select" id="filter-strategy">
+      <option value="">All Strategies</option>
+      <option value="ema_crossover">EMA Crossover</option>
+      <option value="breakout_6m">6M Breakout</option>
+    </select>
+    <input class="filter-input" id="filter-symbol" type="text" placeholder="Symbol…"  style="width:110px">
+    <input class="filter-input" id="filter-sector" type="text" placeholder="Sector…"  style="width:130px">
+    <input class="filter-input" id="filter-from"   type="date" style="width:138px">
+    <input class="filter-input" id="filter-to"     type="date" style="width:138px">
+    <button class="btn btn-primary"   id="filter-apply">Apply</button>
+    <button class="btn btn-secondary" id="filter-reset">Reset</button>
+  </div>
+  <div id="body-history"><div class="state-box"><div class="spinner"></div></div></div>
+  <div class="load-more-bar">
+    <button class="load-more-btn" id="load-more-history" hidden>Load more</button>
+  </div>
+</div>
+
+<!-- Crossover Returns -->
+<div class="tab-panel" id="panel-perf">
+  <div class="panel-header">
+    <span class="panel-title">📈 Crossover Returns</span>
+    <span class="panel-meta" id="meta-perf">Golden crosses ≥2 weeks old · still holding (EMA9 &gt; EMA20)</span>
+  </div>
+  <div id="body-perf"><div class="state-box"><div class="spinner"></div></div></div>
+</div>
+
+<!-- Watchlist -->
+<div class="tab-panel" id="panel-watchlist">
+  <div class="panel-header">
+    <span class="panel-title">⭐ My Watchlist</span>
+    <span class="panel-meta" id="meta-watchlist">—</span>
+  </div>
+  <div id="body-watchlist"><div class="state-box"><div class="spinner"></div></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
