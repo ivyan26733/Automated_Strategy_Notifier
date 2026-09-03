@@ -1,0 +1,278 @@
+======================================================================
+  NSE STOCK SCREENER — EMA CROSSOVER AUDIT
+  Run date : 2026-09-02
+  Universe : 2,287 stocks
+  EMA window: 28 days (fresh crossover definition)
+======================================================================
+
+STOCK STATUS BREAKDOWN
+----------------------------------------
+  ok                            2035
+  too_short_for_ema20            251
+  insufficient_weekly              1
+
+EMA COMPUTATION COMPARISON
+----------------------------------------
+  OK stocks (valid EMA)         :  2035
+  Currently above EMA9>EMA20
+    Python (SMA-seeded)          :  1030
+    TradingView (1st-close-seed) :  1030
+  Seed disagrees on above/below  :     2  ← potential misdetections
+  Borderline (|diff%| < 0.5%)    :   129  ← sensitive to seed method
+
+FRESH CROSSOVER COUNT (last 28 days, still active)
+----------------------------------------
+  Python fresh signals  :   157
+  TradingView fresh sigs:   158
+  Signals TV has, Py misses:     1  ← SIGNAL LOSSES
+  Latest crossover date mismatch:    39
+
+STOCKS WHERE SEED METHOD FLIPS ABOVE/BELOW (biggest risk)
+------------------------------------------------------------
+  Symbol            Weekly   pyDiff%   tvDiff%      Δema9%  tvFresh
+  ICICIAMC              38     0.032    -0.156   -0.002179    False
+  GKENERGY              50    -0.234     0.275    0.000267     True
+
+SIGNAL LOSSES — TV shows fresh cross, Python does NOT
+--------------------------------------------------------------------------------
+  Symbol          tvGCDate       tDays   tvDiff%   pyDiff%Reason
+  GKENERGY        2026-08-28         5     0.275    -0.234  seed_disagrees
+
+BORDERLINE STOCKS (|pyDiff%| < 0.5%, EMA9 ≈ EMA20)  — top 30
+----------------------------------------------------------------------
+  Symbol            Weekly   pyDiff%   tvDiff%      Δema9%  pyAbove
+  INDUSINDBK           292   -0.0031   -0.0031    0.000000    False
+  ALICON              1040    0.0119    0.0119    0.000000     True
+  BORORENEW            433   -0.0170   -0.0170    0.000000    False
+  DENTA                 84    0.0172    0.0165    0.000000     True
+  CENTURYPLY          1068    0.0233    0.0233    0.000000     True
+  BHARTIARTL          1262   -0.0264   -0.0264    0.000000    False
+  INTLCONV             261   -0.0311   -0.0311    0.000000    False
+  ICICIAMC              38    0.0315   -0.1559   -0.002179     True
+  SREEL                154    0.0364    0.0364    0.000000     True
+  ATGL                 409    0.0420    0.0420    0.000000     True
+  CEATLTD              971    0.0434    0.0434    0.000000     True
+  BOROLTD              320   -0.0458   -0.0458    0.000000    False
+  SUYOG                108    0.0508    0.0500   -0.000000     True
+  ATUL                1262   -0.0525   -0.0525    0.000000    False
+  SALONA               194   -0.0526   -0.0526    0.000000    False
+  NITCO                247   -0.0573   -0.0573    0.000000    False
+  MRF                  292    0.0603    0.0603    0.000000     True
+  FINKURVE              48    0.0637    0.2733    0.000255     True
+  EUROPRATIK            50    0.0651    0.3027   -0.000419     True
+  CANTABIL             830   -0.0721   -0.0721    0.000000    False
+  JSWCEMENT             56    0.0936    0.1829    0.000039     True
+  KIRLPNU              177    0.0963    0.0963    0.000000     True
+  CCAVENUE             544    0.0997    0.0997    0.000000     True
+  HARRMALAYA          1262    0.1001    0.1001    0.000000     True
+  RPSGVENT             399    0.1024    0.1024    0.000000     True
+  NUVOCO               264   -0.1035   -0.1035    0.000000    False
+  ASTRAL              1016   -0.1038   -0.1038    0.000000    False
+  EMKAY               1063   -0.1101   -0.1101    0.000000    False
+  BHARTIHEXA           126    0.1139    0.1139   -0.000000     True
+  OBCL                 232   -0.1151   -0.1151    0.000000    False
+
+PYTHON FRESH CROSSOVERS (last 28d, still active) — all 157
+--------------------------------------------------------------------------------
+  Symbol          GCDate        DaysAgo   pyDiff%   tvDiff%  tvFresh
+  21STCENMGM      2026-08-07         26     4.942     4.942     True
+  ALBERTDAVD      2026-08-07         26     5.684     5.684     True
+  ARCHIDPLY       2026-08-07         26     6.230      6.23     True
+  ARIS            2026-08-07         26     4.952     4.905     True
+  BALKRISIND      2026-08-07         26     1.185     1.185     True
+  BASF            2026-08-07         26     1.729     1.729     True
+  BECTORFOOD      2026-08-07         26     5.106     5.106     True
+  BIL             2026-08-07         26     3.471     3.471     True
+  BOSCH-HCIL      2026-08-07         26     6.027     6.027     True
+  BRIGADE         2026-08-07         26     4.125     4.125     True
+  BTML            2026-08-07         26     6.423     6.423     True
+  CASTROLIND      2026-08-07         26     0.187     0.187     True
+  CEATLTD         2026-08-07         26     0.043     0.043     True
+  CINELINE        2026-08-07         26     1.936     1.936     True
+  COHANCE         2026-08-07         26     1.308     1.308     True
+  CRISIL          2026-08-07         26     3.104     3.104     True
+  DEVYANI         2026-08-07         26     5.219     5.219     True
+  DIGJAMLMTD      2026-08-07         26     3.114     3.114     True
+  DVL             2026-08-07         26     3.215     3.215     True
+  ELLEN           2026-08-07         26     4.248     4.315     True
+  EXCELINDUS      2026-08-07         26     2.954     2.954     True
+  GARUDA          2026-08-07         26     0.338     0.337     True
+  GRAPHITE        2026-08-07         26     1.767     1.767     True
+  HEROMOTOCO      2026-08-07         26     2.276     2.276     True
+  HINDALCO        2026-08-07         26     1.358     1.358     True
+  LGEINDIA        2026-08-07         26     2.388     2.422     True
+  MAMATA          2026-08-07         26     0.979     0.978     True
+  MANOMAY         2026-08-09         24     3.087     3.087     True
+  MANYAVAR        2026-08-09         24     6.445     6.445     True
+  MATRIMONY       2026-08-09         24     5.009     5.009     True
+  MAXESTATES      2026-08-09         24     6.477     6.477     True
+  MOL             2026-08-09         24     5.004     5.004     True
+  MUKKA           2026-08-09         24     2.191     2.191     True
+  ORIENTELEC      2026-08-09         24     0.220      0.22     True
+  POLICYBZR       2026-08-09         24     3.551     3.551     True
+  SYNCOMF         2026-08-09         24     8.852     8.852     True
+  TEMBO           2026-08-09         24     0.493     0.493     True
+  TOTAL           2026-08-09         24     6.040      6.04     True
+  AARTIPHARM      2026-08-14         19     4.507     4.507     True
+  ADROITINFO      2026-08-14         19     2.006     2.006     True
+  APLAPOLLO       2026-08-14         19     3.791     3.791     True
+  APOLLOTYRE      2026-08-14         19     0.636     0.636     True
+  ARIES           2026-08-14         19     8.191     8.191     True
+  ASHOKLEY        2026-08-14         19     1.637     1.637     True
+  BESTAGRO        2026-08-14         19     0.120      0.12     True
+  BHARTIHEXA      2026-08-14         19     0.114     0.114     True
+  BIRLANU         2026-08-14         19     0.434     0.434     True
+  CENTEXT         2026-08-14         19     1.845     1.845     True
+  DHUNINV         2026-08-14         19     2.329     2.329     True
+  DICIND          2026-08-14         19     3.268     3.268     True
+  DOLPHIN         2026-08-14         19    11.089    11.089     True
+  EMUDHRA         2026-08-14         19     3.419     3.419     True
+  ESABINDIA       2026-08-14         19     1.083     1.083     True
+  GFLLIMITED      2026-08-14         19     3.385     3.385     True
+  GMMPFAUDLR      2026-08-14         19     4.437     4.437     True
+  HALDER          2026-08-14         19     4.701     4.949     True
+  HAPPSTMNDS      2026-08-14         19     1.967     1.967     True
+  HINDCOPPER      2026-08-14         19     1.188     1.188     True
+  JUBLCPL         2026-08-14         19     4.400     4.392     True
+  KFINTECH        2026-08-16         17     1.302     1.302     True
+  MAZDOCK         2026-08-16         17     0.561     0.561     True
+  MODIRUBBER      2026-08-16         17     0.963     0.963     True
+  SOLARA          2026-08-16         17     4.202     4.202     True
+  ALICON          2026-08-21         12     0.012     0.012     True
+  BAJAJHIND       2026-08-21         12     4.551     4.551     True
+  BALUFORGE       2026-08-21         12     5.791      5.79     True
+  BANARISUG       2026-08-21         12     1.694     1.694     True
+  BLACKBUCK       2026-08-21         12     1.158     1.159     True
+  CRAMC           2026-08-21         12     0.133     0.358     True
+  CYBERMEDIA      2026-08-21         12     2.631     2.631     True
+  DCMFINSERV      2026-08-21         12     0.365     0.365     True
+  DWARKESH        2026-08-21         12     4.891     4.891     True
+  GOKUL           2026-08-21         12     1.045     1.045     True
+  GROBTEA         2026-08-21         12     1.504     1.504     True
+  HATSUN          2026-08-21         12     4.817     4.817     True
+  HCLTECH         2026-08-21         12     0.515     0.515     True
+  HERITGFOOD      2026-08-21         12     1.403     1.403     True
+  PRABHA          2026-08-21         12     5.644     5.624     True
+  RUDRA           2026-08-21         12     1.671     1.413     True
+  SINGERIND       2026-08-21         12     2.002     2.742     True
+  STYLEBAAZA      2026-08-21         12     5.658     5.658     True
+  SURAKSHA        2026-08-21         12     4.668      4.67     True
+  KAYNES          2026-08-23         10     0.756     0.756     True
+  NEWGEN          2026-08-23         10     1.060      1.06     True
+  NSLNISP         2026-08-23         10     2.442     2.442     True
+  SBFC            2026-08-23         10     1.139     1.139     True
+  SHREDIGCEM      2026-08-23         10     0.700       0.7     True
+  SIRCA           2026-08-23         10     0.460      0.46     True
+  TREL            2026-08-23         10     0.904     0.904     True
+  A2ZINFRA        2026-08-27          6     1.399     1.399     True
+  ALMONDZ         2026-08-27          6     2.213     2.213     True
+  ANUHPHR         2026-08-27          6     0.690     0.691     True
+  ARVEE           2026-08-27          6     0.420      0.42     True
+  DTIL            2026-08-27          6     2.965     2.965     True
+  EPIGRAL         2026-08-27          6     0.741     0.741     True
+  EXPLEOSOL       2026-08-27          6     0.649     0.649     True
+  FMNL            2026-08-27          6     0.983     0.983     True
+  GENCON          2026-08-27          6     1.380      1.38     True
+  GILLANDERS      2026-08-27          6     2.092     2.092     True
+  NATCAPSUQ       2026-08-27          6     4.903     4.894     True
+  ALEMBICLTD      2026-08-28          5     1.660      1.66     True
+  ALLCARGO        2026-08-28          5     4.109     4.109     True
+  ATL             2026-08-28          5     0.647     0.647     True
+  AVONMORE        2026-08-28          5     1.887     1.887     True
+  BPCL            2026-08-28          5     0.396     0.396     True
+  CLEAN           2026-08-28          5     0.850      0.85     True
+  CYIENT          2026-08-28          5     3.580      3.58     True
+  GPPL            2026-08-28          5     1.080      1.08     True
+  GVPTECH         2026-08-28          5     4.132     4.132     True
+  HCC             2026-08-28          5     1.812     1.812     True
+  HINDZINC        2026-08-28          5     1.219     1.219     True
+  IDBI            2026-08-28          5     1.667     1.667     True
+  IGPL            2026-08-28          5     3.140      3.14     True
+  JKPAPER         2026-08-28          5     1.228     1.228     True
+  JMA             2026-08-28          5     0.964     0.964     True
+  KMSUGAR         2026-08-28          5     1.647     1.647     True
+  LATTEYS         2026-08-28          5     0.367     0.367     True
+  LOYALTEX        2026-08-28          5     0.573     0.573     True
+  MANALIPETC      2026-08-28          5     3.237     3.237     True
+  NILKAMAL        2026-08-28          5     4.059     4.059     True
+  NIRAJISPAT      2026-08-28          5     8.237     8.237     True
+  ORIENTHOT       2026-08-28          5     1.518     1.518     True
+  PGEL            2026-08-28          5     0.314     0.314     True
+  POLYPLEX        2026-08-28          5     1.543     1.543     True
+  PONNIERODE      2026-08-28          5     2.775     2.775     True
+  RGL             2026-08-28          5     2.139     2.139     True
+  RKFORGE         2026-08-28          5     3.358     3.358     True
+  SAGILITY        2026-08-28          5     1.782     1.784     True
+  SINCLAIR        2026-08-28          5     0.763     0.763     True
+  SUNDRMFAST      2026-08-28          5     3.109     3.109     True
+  THEJO           2026-08-28          5     1.616     1.616     True
+  UFLEX           2026-08-28          5     4.266     4.266     True
+  VISAKAIND       2026-08-28          5     1.349     1.349     True
+  VRAJ            2026-08-28          5     0.205     0.204     True
+  VRLLOG          2026-08-28          5     1.540      1.54     True
+  ADL             2026-08-31          2     0.288     0.288     True
+  AFSL            2026-08-31          2     0.494     0.494     True
+  AMBER           2026-08-31          2     0.161     0.161     True
+  BVCL            2026-08-31          2     0.518     0.518     True
+  CARRARO         2026-08-31          2     0.325     0.323     True
+  ELECTCAST       2026-08-31          2     0.125     0.125     True
+  FINKURVE        2026-08-31          2     0.064     0.273     True
+  GODREJAGRO      2026-08-31          2     0.635     0.635     True
+  HINDCON         2026-08-31          2     0.479     0.479     True
+  JUNIPER         2026-08-31          2     0.130      0.13     True
+  KECL            2026-08-31          2     0.224     0.224     True
+  MAHSEAMLES      2026-08-31          2     0.327     0.327     True
+  MANORG          2026-08-31          2     0.356     0.356     True
+  MOLDTKPAC       2026-08-31          2     0.349     0.349     True
+  PETRONET        2026-08-31          2     0.118     0.118     True
+  PLATIND         2026-08-31          2     0.161     0.161     True
+  SHANTIGEAR      2026-08-31          2     0.341     0.341     True
+  SOMANYCERA      2026-08-31          2     0.873     0.873     True
+  SREEL           2026-08-31          2     0.036     0.036     True
+  UNICHEMLAB      2026-08-31          2     0.388     0.388     True
+  UTTAMSUGAR      2026-08-31          2     1.163     1.163     True
+  VISHWARAJ       2026-08-31          2     0.727     0.727     True
+
+======================================================================
+KEY FINDINGS
+======================================================================
+
+FINDING 1: EMA SEED METHOD
+  Python uses  : SMA of first [period] weekly closes as seed
+  TradingView  : first weekly close = seed (Pine Script ta.ema)
+  Impact       : negligible for stocks with 200+ weekly bars (>4yr data)
+  Stocks where seed FLIPS above/below: 2
+  These stocks have borderline EMA9≈EMA20 AND short history.
+
+FINDING 2: DEVELOPING WEEK CONSTRUCTION
+  Python build_weekly() correctly uses latest daily close as
+  developing week Close — matching TradingView's developing bar.
+  Week keyed by ISO Monday → correct for NSE Mon-Fri sessions.
+
+FINDING 3: CROSSOVER STATE VARIABLE
+  EmaCrossoverStrategy.above starts as False each scan, which
+  correctly prevents emitting a signal when EMA9 was already >
+  EMA20 at the first valid EMA20 bar (bar index 19).
+  No false positives from state initialization. ✓
+
+FINDING 4: SIGNAL DEDUPLICATION KEY
+  Upsert key: (strategy_name, symbol, signal_date, signal_type)
+  signal_date = observation_date (latest DAILY close, not Mon)
+  Risk: If the scanner runs on Mon and records a developing-week
+  golden cross, then on Tue prices reverse → Mon signal stays in DB.
+  Frontend's activeSet check filters this out correctly. ✓
+
+FINDING 5: SCANNER MUST RUN DAILY POST-MARKET
+  The developing-week EMA is recalculated each day using that
+  day's close. A crossover occurring on any day Mon-Fri is only
+  captured if the scanner runs on that day (or later the same week).
+  Crossovers that appear intra-week and reverse before Friday are
+  captured with the day's signal_date but persist in DB unless
+  you implement signal invalidation.
+
+FINDING 6: STALE DEVELOPING-WEEK SIGNALS IN DB
+  Each day the scanner runs, the developing week's obs_date changes.
+  Upsert key includes signal_date, so Mon's cross (date=Mon) and
+  Tue's cross (date=Tue if still active) are SEPARATE DB rows.
+  Old developing-week signal rows (e.g. Mon) are never deleted.
+  Frontend's 28-day + activeSet filter handles this correctly. ✓
