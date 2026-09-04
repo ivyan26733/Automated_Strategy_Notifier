@@ -1,33 +1,35 @@
-const { db, daysAgo, getObsContext, getExcluded, fetchCmp, send, sendErr, EMA_WINDOW_DAYS } = require('./_utils')
+const { db, getObsContext, getExcluded, fetchCmp, send, sendErr } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
     const { obsDate, activeSet } = await getObsContext()
-    if (!obsDate) return send(res, { obsDate: null, cutoff: null, rows: [] })
+    if (!obsDate) return send(res, { obsDate: null, freshDate: null, rows: [] })
 
-    const cutoff = daysAgo(obsDate, EMA_WINDOW_DAYS)
+    // Find the latest scanner run date (MAX signal_date from ema_crossover golden_cross)
+    const { data: latestRow } = await db.from('signals')
+      .select('signal_date')
+      .eq('strategy_name', 'ema_crossover')
+      .eq('signal_type', 'golden_cross')
+      .order('signal_date', { ascending: false })
+      .limit(1)
 
+    const freshDate = latestRow?.[0]?.signal_date
+    if (!freshDate) return send(res, { obsDate, freshDate: null, rows: [] })
+
+    // Fetch only signals from that exact scan date
     const { data, error } = await db.from('signals')
       .select('symbol, signal_date, price, ema9, ema20, ema_difference_pct, sector, industry, stocks(name)')
       .eq('strategy_name', 'ema_crossover')
       .eq('signal_type', 'golden_cross')
-      .gte('signal_date', cutoff)
-      .lte('signal_date', obsDate)
-      .order('signal_date', { ascending: false })
+      .eq('signal_date', freshDate)
+      .order('ema_difference_pct', { ascending: false })
 
-    if (error || !data?.length) return send(res, { obsDate, cutoff, rows: [] })
+    if (error || !data?.length) return send(res, { obsDate, freshDate, rows: [] })
 
     const excluded = await getExcluded()
 
-    // Keep earliest signal per symbol, only if still active and not excluded
-    const seen = new Set()
-    const filtered = []
-    for (const row of [...data].sort((a, b) => a.signal_date.localeCompare(b.signal_date))) {
-      if (seen.has(row.symbol)) continue
-      seen.add(row.symbol)
-      if (activeSet.has(row.symbol) && !excluded.has(row.symbol)) filtered.push(row)
-    }
-    filtered.sort((a, b) => b.signal_date.localeCompare(a.signal_date))
+    // Keep only stocks still in uptrend (EMA9 > EMA20) and not excluded
+    const filtered = data.filter(r => activeSet.has(r.symbol) && !excluded.has(r.symbol))
 
     const cmpMap = await fetchCmp(filtered.map(r => r.symbol))
 
@@ -45,7 +47,7 @@ module.exports = async (req, res) => {
       industry:           r.industry,
     }))
 
-    send(res, { obsDate, cutoff, rows })
+    send(res, { obsDate, freshDate, rows })
   } catch (e) {
     sendErr(res, e.message)
   }

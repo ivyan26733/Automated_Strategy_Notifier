@@ -67,7 +67,7 @@ async function loadSummary() {
 
   const obsSub = d.obsDate ? 'As of ' + fmt.date(d.obsDate) : 'No scanner data yet'
   el('kpi-universe').innerHTML   = `<div class="kpi-label">Universe</div><div class="kpi-value">${fmt.num(d.universeCount)}</div><div class="kpi-sub">NSE EQ stocks</div>`
-  el('kpi-crossovers').innerHTML = `<div class="kpi-label">EMA Crossovers</div><div class="kpi-value">${fmt.num(d.freshEmaCount)}</div><div class="kpi-sub">Fresh &amp; active · last 4 weeks</div>`
+  el('kpi-crossovers').innerHTML = `<div class="kpi-label">EMA Crossovers</div><div class="kpi-value">${fmt.num(d.freshEmaCount)}</div><div class="kpi-sub">Fresh from latest scanner run</div>`
   el('kpi-breakouts').innerHTML  = `<div class="kpi-label">6M Breakouts</div><div class="kpi-value">${fmt.num(d.freshBrkCount)}</div><div class="kpi-sub">Last 30 days</div>`
   el('kpi-signals').innerHTML    = `<div class="kpi-label">Total Signals</div><div class="kpi-value">${fmt.num(d.totalSignals)}</div><div class="kpi-sub">All time · ${obsSub}</div>`
 }
@@ -83,7 +83,7 @@ async function loadCrossoverTab() {
     return
   }
 
-  el('meta-crossovers').textContent = `Golden crosses in last 4 weeks still active · ${fmt.date(d.cutoff)} → ${fmt.date(d.obsDate)}`
+  el('meta-crossovers').textContent = `Fresh Golden Crosses · Scanner run ${fmt.date(d.freshDate)} · Still active (EMA9 > EMA20)`
 
   const cols = [
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },
