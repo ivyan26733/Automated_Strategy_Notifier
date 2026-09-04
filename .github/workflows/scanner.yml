@@ -11,6 +11,10 @@ on:
         type: boolean
         default: true
 
+concurrency:
+  group: nse-scanner
+  cancel-in-progress: false
+
 jobs:
   scan:
     name: Run NSE Scanner
