@@ -1,12 +1,21 @@
-.env
+# Python
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
-stock_data/
+scanner/stock_data/
+scanner/sector_data/
+scanner/logs/
+scanner/.env
 *.log
 .matplotlib/
+
+# Node / Vercel
+web/node_modules/
 .vercel
+web/.vercel
+
+# Misc
 audit_ema_full.csv
 TaskComplete.md
 .claude/
