@@ -2,7 +2,7 @@
 
 A daily technical screener and signal dashboard for NSE-listed equities.
 
-**Live dashboard:** https://frontend-livid-five-89.vercel.app
+**Live dashboard:** https://web-8pbed5upq-ivyan26733s-projects.vercel.app/
 
 ---
 
