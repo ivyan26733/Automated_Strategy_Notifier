@@ -143,12 +143,14 @@ async function loadActiveTab() {
     return
   }
 
-  el('meta-active').textContent = `${d.activeCount} stocks above EMA9 > EMA20 · as of ${fmt.date(d.obsDate)}`
+  const freshCount = d.rows.filter(r => r.is_fresh).length
+  el('meta-active').textContent = `${d.activeCount} stocks above EMA9 > EMA20 · ${freshCount} fresh from latest scan · as of ${fmt.date(d.obsDate)}`
 
   const cols = [
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },
     { label: 'Symbol',       key: 'symbol',            cls: 'sym',      fmt: v => esc(v) },
     { label: 'Name',         key: 'name',              cls: 'name',     fmt: v => esc(v) },
+    { label: 'Status',       key: 'is_fresh',          cls: '',         fmt: v => v ? '<span class="badge badge-green">Fresh</span>' : '<span class="badge badge-blue">Active</span>' },
     { label: 'Cross Date',   key: 'signal_date',       cls: 'mono',     fmt: v => fmt.date(v) },
     { label: 'Held',         key: 'signal_date',       cls: 'mono',     fmt: v => fmt.days(v) },
     { label: 'Signal Price', key: 'signal_price',      cls: 'num r',    fmt: v => fmt.price(v) },

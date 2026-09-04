@@ -5,26 +5,6 @@ module.exports = async (req, res) => {
     const { obsDate } = await getObsContext()
     if (!obsDate) return send(res, { obsDate: null, activeCount: 0, rows: [] })
 
-    // Find the fresh scan date so we can exclude those stocks (they show in Fresh tab)
-    const { data: latestRow } = await db.from('signals')
-      .select('signal_date')
-      .eq('strategy_name', 'ema_crossover')
-      .eq('signal_type', 'golden_cross')
-      .order('signal_date', { ascending: false })
-      .limit(1)
-    const freshDate = latestRow?.[0]?.signal_date
-
-    // Symbols from the latest scan — they belong in Fresh tab, not Active
-    const freshSet = new Set()
-    if (freshDate) {
-      const { data: freshSigs } = await db.from('signals')
-        .select('symbol')
-        .eq('strategy_name', 'ema_crossover')
-        .eq('signal_type', 'golden_cross')
-        .eq('signal_date', freshDate)
-      for (const s of (freshSigs || [])) freshSet.add(s.symbol)
-    }
-
     const { data: rawInds, error } = await db.from('weekly_indicators')
       .select('symbol, ema9, ema20, ema_difference_pct, weekly_close, observation_date')
       .gte('observation_date', daysAgo(obsDate, 7))
@@ -41,22 +21,30 @@ module.exports = async (req, res) => {
       if (!seen.has(row.symbol)) { seen.add(row.symbol); inds.push(row) }
     }
 
-    // Exclude: circuit/recently-listed + stocks that just crossed (those are in Fresh tab)
+    // Exclude circuit + recently-listed
     const excluded = await getExcluded()
-    const clean = inds.filter(r => !excluded.has(r.symbol) && !freshSet.has(r.symbol))
+    const clean = inds.filter(r => !excluded.has(r.symbol))
     clean.sort((a, b) => (b.ema_difference_pct ?? 0) - (a.ema_difference_pct ?? 0))
 
-    // Latest golden-cross signal per symbol in the last 2 years (excluding fresh scan signals)
+    // Latest golden-cross signal per symbol in the last 2 years
     const { data: sigs } = await db.from('signals')
       .select('symbol, signal_date, price, stocks(name, sector, industry)')
       .eq('strategy_name', 'ema_crossover')
       .eq('signal_type', 'golden_cross')
       .gte('signal_date', daysAgo(obsDate, 730))
-      .lt('signal_date', freshDate || obsDate)   // exclude the fresh scan date
       .order('signal_date', { ascending: false })
 
     const sigMap = {}
     for (const s of (sigs || [])) { if (!sigMap[s.symbol]) sigMap[s.symbol] = s }
+
+    // Also get the fresh scan date so the frontend can distinguish fresh vs older
+    const { data: latestRow } = await db.from('signals')
+      .select('signal_date')
+      .eq('strategy_name', 'ema_crossover')
+      .eq('signal_type', 'golden_cross')
+      .order('signal_date', { ascending: false })
+      .limit(1)
+    const freshDate = latestRow?.[0]?.signal_date
 
     const rows = clean.map(ind => {
       const sig = sigMap[ind.symbol] || {}
@@ -73,10 +61,11 @@ module.exports = async (req, res) => {
         ema20:              ind.ema20,
         ema_difference_pct: ind.ema_difference_pct,
         sector:             sig.stocks?.sector || '',
+        is_fresh:           sig.signal_date === freshDate,
       }
     })
 
-    send(res, { obsDate, activeCount: clean.length, rows })
+    send(res, { obsDate, freshDate, activeCount: clean.length, rows })
   } catch (e) {
     sendErr(res, e.message)
   }
