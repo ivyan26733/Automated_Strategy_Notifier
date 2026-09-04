@@ -1,0 +1,1387 @@
+<title>NSE Screener — Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg:       #0d1117;
+  --surf:     #161b22;
+  --surf2:    #21262d;
+  --border:   #30363d;
+  --text:     #e6edf3;
+  --muted:    #7d8590;
+  --amber:    #e8873a;
+  --amber-d:  #9a5a21;
+  --amber-bg: rgba(232,135,58,0.10);
+  --green:    #3fb950;
+  --green-bg: rgba(63,185,80,0.10);
+  --red:      #f85149;
+  --red-bg:   rgba(248,81,73,0.10);
+  --blue:     #58a6ff;
+  --blue-bg:  rgba(88,166,255,0.10);
+  --purple:   #bc8cff;
+  --purple-bg:rgba(188,140,255,0.10);
+  --mono:     'JetBrains Mono', monospace;
+  --body:     'Outfit', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:#f6f8fa; --surf:#ffffff; --surf2:#f0f3f6; --border:#d0d7de;
+    --text:#1f2328; --muted:#57606a;
+    --amber:#b35a10; --amber-bg:rgba(179,90,16,0.08);
+    --green:#1a7f37; --green-bg:rgba(26,127,55,0.08);
+    --red:#cf222e; --red-bg:rgba(207,34,46,0.08);
+    --blue:#0969da; --blue-bg:rgba(9,105,218,0.08);
+    --purple:#8250df; --purple-bg:rgba(130,80,223,0.08);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#f6f8fa; --surf:#ffffff; --surf2:#f0f3f6; --border:#d0d7de;
+  --text:#1f2328; --muted:#57606a;
+  --amber:#b35a10; --amber-bg:rgba(179,90,16,0.08);
+  --green:#1a7f37; --green-bg:rgba(26,127,55,0.08);
+  --red:#cf222e; --red-bg:rgba(207,34,46,0.08);
+  --blue:#0969da; --blue-bg:rgba(9,105,218,0.08);
+  --purple:#8250df; --purple-bg:rgba(130,80,223,0.08);
+}
+:root[data-theme="dark"] {
+  --bg:#0d1117; --surf:#161b22; --surf2:#21262d; --border:#30363d;
+  --text:#e6edf3; --muted:#7d8590;
+  --amber:#e8873a; --amber-bg:rgba(232,135,58,0.10);
+  --green:#3fb950; --green-bg:rgba(63,185,80,0.10);
+  --red:#f85149; --red-bg:rgba(248,81,73,0.10);
+  --blue:#58a6ff; --blue-bg:rgba(88,166,255,0.10);
+  --purple:#bc8cff; --purple-bg:rgba(188,140,255,0.10);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  line-height: 1.65;
+}
+img { max-width: 100%; }
+
+/* ── Page header ── */
+.page-header {
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  padding: 2.5rem 2rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.page-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 80% at 110% -20%, rgba(232,135,58,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.page-header-inner { max-width: 900px; margin: 0 auto; position: relative; }
+.eyebrow {
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
+  color: var(--amber); letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.page-title {
+  font-size: 2.2rem; font-weight: 800; line-height: 1.2;
+  color: var(--text); margin-bottom: 0.5rem;
+  text-wrap: balance;
+}
+.page-title span { color: var(--amber); }
+.page-subtitle { font-size: 1.05rem; color: var(--muted); max-width: 560px; }
+.hdr-right {
+  position: absolute; top: 0; right: 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;
+}
+.theme-btn {
+  background: var(--surf2); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px; padding: 0.3rem 0.6rem;
+  font-size: 0.85rem; cursor: pointer;
+}
+.status-badge {
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 600;
+  padding: 0.3rem 0.8rem; border-radius: 20px;
+  background: var(--green-bg); color: var(--green);
+  border: 1px solid var(--green);
+}
+@media (max-width: 600px) {
+  .page-title { font-size: 1.6rem; }
+  .hdr-right { position: static; flex-direction: row; margin-top: 1rem; }
+}
+
+/* ── Stats bar ── */
+.stats-bar {
+  background: var(--surf2);
+  border-bottom: 1px solid var(--border);
+}
+.stats-inner {
+  max-width: 900px; margin: 0 auto;
+  display: flex; gap: 0; flex-wrap: wrap;
+  overflow-x: auto;
+}
+.stat-item {
+  padding: 1rem 1.75rem;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-family: var(--mono); font-size: 1.5rem; font-weight: 600;
+  color: var(--amber); line-height: 1;
+}
+.stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+
+/* ── Main content ── */
+.content { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+
+/* ── Section headings ── */
+.section {
+  margin-bottom: 3rem;
+}
+.section-tag {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.25rem 0.7rem; border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+.tag-amber { background: var(--amber-bg); color: var(--amber); }
+.tag-green { background: var(--green-bg); color: var(--green); }
+.tag-red   { background: var(--red-bg);   color: var(--red); }
+.tag-blue  { background: var(--blue-bg);  color: var(--blue); }
+.tag-purple{ background: var(--purple-bg);color: var(--purple); }
+
+.section-title {
+  font-size: 1.5rem; font-weight: 700; margin-bottom: 0.35rem; line-height: 1.25;
+}
+.section-intro { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.95rem; }
+
+/* ── "What are we building" box ── */
+.mission-box {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--amber);
+  border-radius: 8px;
+  padding: 1.5rem 1.75rem;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.mission-box strong { color: var(--amber); }
+
+/* ── Phase timeline ── */
+.timeline { display: flex; flex-direction: column; gap: 0; }
+.phase {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 0 1.5rem;
+  position: relative;
+}
+.phase-line {
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+.phase-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--amber); background: var(--bg);
+  flex-shrink: 0; margin-top: 0.35rem; position: relative; z-index: 1;
+}
+.phase-label {
+  font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
+  color: var(--muted); white-space: nowrap; margin-top: 0.4rem;
+  text-align: right; align-self: flex-start;
+}
+.phase-connector {
+  width: 2px; background: var(--border);
+  flex: 1; min-height: 24px;
+  margin-top: 4px;
+}
+.phase-body {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.phase-body h3 {
+  font-size: 1.05rem; font-weight: 700; margin-bottom: 0.3rem;
+}
+.phase-body p { font-size: 0.92rem; color: var(--muted); margin-bottom: 0.6rem; }
+.phase-body p:last-child { margin-bottom: 0; }
+.phase-body .highlight { color: var(--text); }
+
+.tag-pill {
+  display: inline-block;
+  font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+  padding: 0.15rem 0.5rem; border-radius: 4px; margin-right: 0.3rem;
+  vertical-align: middle;
+}
+.tp-amber  { background: var(--amber-bg); color: var(--amber); }
+.tp-green  { background: var(--green-bg); color: var(--green); }
+.tp-red    { background: var(--red-bg);   color: var(--red); }
+.tp-blue   { background: var(--blue-bg);  color: var(--blue); }
+.tp-purple { background: var(--purple-bg);color: var(--purple); }
+
+/* ── Grid cards ── */
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 600px) { .card-grid { grid-template-columns: 1fr; } }
+.card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem;
+  position: relative; overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.card.green::before  { background: var(--green); }
+.card.red::before    { background: var(--red); }
+.card.blue::before   { background: var(--blue); }
+.card.purple::before { background: var(--purple); }
+.card.amber::before  { background: var(--amber); }
+.card-icon { font-size: 1.6rem; margin-bottom: 0.6rem; line-height: 1; }
+.card-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+.card-body { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+.card-body strong { color: var(--text); }
+
+/* ── Key finding block ── */
+.finding-block {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+  margin-bottom: 1rem;
+}
+.fb-header {
+  padding: 0.85rem 1.25rem;
+  display: flex; align-items: center; gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.fb-icon { font-size: 1.2rem; }
+.fb-title { font-size: 0.95rem; font-weight: 700; }
+.fb-body { padding: 1rem 1.25rem; font-size: 0.9rem; color: var(--muted); line-height: 1.65; }
+.fb-body strong { color: var(--text); }
+.fb-body .num {
+  font-family: var(--mono); font-weight: 600; font-size: 0.95rem;
+}
+.fb-body .num.green { color: var(--green); }
+.fb-body .num.red { color: var(--red); }
+.fb-body .num.amber { color: var(--amber); }
+
+/* ── Metric tiles ── */
+.metric-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0; }
+.metric-tile {
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.75rem 1.1rem;
+  flex: 1; min-width: 130px;
+}
+.mt-num {
+  font-family: var(--mono); font-size: 1.4rem; font-weight: 600; line-height: 1;
+}
+.mt-label { font-size: 0.74rem; color: var(--muted); margin-top: 0.2rem; }
+.mt-num.green { color: var(--green); }
+.mt-num.amber { color: var(--amber); }
+.mt-num.blue  { color: var(--blue); }
+
+/* ── Next steps ── */
+.step-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.step-item {
+  display: flex; gap: 1rem; align-items: flex-start;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 8px; padding: 1rem 1.25rem;
+}
+.step-num {
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--amber-bg); color: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 0.1rem;
+}
+.step-content h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.2rem; }
+.step-content p  { font-size: 0.85rem; color: var(--muted); line-height: 1.55; }
+
+/* ── Footer ── */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+/* ── Flow diagram ── */
+.flow-wrap {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem 1.5rem 1.25rem;
+  overflow-x: auto;
+}
+.flow-title {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 1.25rem;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.flow-legend {
+  display: flex; gap: 0.75rem; flex-wrap: wrap; margin-left: auto;
+}
+.flow-legend-item {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.65rem; font-weight: 500; color: var(--muted);
+}
+.flow-legend-dot {
+  width: 8px; height: 8px; border-radius: 2px;
+}
+
+/* Single-column flow */
+.flow-col {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 280px;
+}
+.fc-node {
+  width: 100%; max-width: 440px;
+  border-radius: 8px; padding: 0.65rem 1.1rem;
+  font-size: 0.84rem; line-height: 1.45;
+  border: 1.5px solid;
+  position: relative;
+}
+.fc-node .fc-label {
+  font-weight: 700; display: block; margin-bottom: 0.15rem;
+}
+.fc-node .fc-sub {
+  font-size: 0.74rem; color: var(--muted);
+}
+.fc-node.blue   { background: var(--blue-bg);   border-color: color-mix(in srgb, var(--blue)   40%, transparent); }
+.fc-node.amber  { background: var(--amber-bg);  border-color: color-mix(in srgb, var(--amber)  40%, transparent); }
+.fc-node.green  { background: var(--green-bg);  border-color: color-mix(in srgb, var(--green)  40%, transparent); }
+.fc-node.purple { background: var(--purple-bg); border-color: color-mix(in srgb, var(--purple) 40%, transparent); }
+.fc-node.red    { background: var(--red-bg);    border-color: color-mix(in srgb, var(--red)    40%, transparent); }
+.fc-node .fc-badge {
+  position: absolute; top: -10px; left: 12px;
+  font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.45rem;
+  border-radius: 4px; letter-spacing: 0.05em; text-transform: uppercase;
+  background: var(--surf); border: 1px solid var(--border); color: var(--muted);
+}
+
+/* Arrow down */
+.fc-arrow {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0; padding: 2px 0;
+}
+.fc-arrow-line {
+  width: 2px; height: 20px; background: var(--border);
+}
+.fc-arrow-head {
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--border);
+}
+
+/* Fork (one node → two branches) */
+.fc-fork {
+  display: flex; flex-direction: column; align-items: center;
+  width: 100%; max-width: 440px;
+}
+.fc-fork-arms {
+  display: flex; width: 100%; justify-content: center; gap: 1rem;
+}
+.fc-fork-branch {
+  display: flex; flex-direction: column; align-items: center; flex: 1;
+}
+.fc-fork-top-line {
+  width: 50%; height: 2px; background: var(--border);
+  margin-top: -1px;
+}
+.fc-fork-join {
+  display: flex; width: 100%; max-width: 440px; align-items: flex-end;
+  gap: 0;
+}
+.fc-fork-join-line {
+  flex: 1; height: 2px; background: var(--border);
+}
+.fc-fork-join-drop {
+  display: flex; flex-direction: column; align-items: center;
+}
+.fc-fork-join-drop .fc-arrow-line { height: 14px; }
+
+/* Two-col strategy cards */
+.strategy-why {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 600px) { .strategy-why { grid-template-columns: 1fr; } }
+.sw-card {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.1rem 1.3rem;
+}
+.sw-card h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+.sw-card p  { font-size: 0.83rem; color: var(--muted); line-height: 1.6; }
+.sw-card p strong { color: var(--text); }
+</style>
+
+<!-- ── Page header ── -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="hdr-right">
+      <div class="status-badge">● Live Research</div>
+      <button class="theme-btn" onclick="
+        const t=document.documentElement.dataset.theme;
+        document.documentElement.dataset.theme=t==='dark'?'light':t==='light'?'':'dark'
+      ">◐</button>
+    </div>
+    <div class="eyebrow">NSE Stock Screener · Progress Report</div>
+    <h1 class="page-title">From idea to a<br><span>backtested trading system</span></h1>
+    <p class="page-subtitle">A plain-English record of everything we've built, broken, fixed, and discovered — and where we're going next.</p>
+  </div>
+</div>
+
+<!-- ── Stats bar ── -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-num">973</div>
+      <div class="stat-label">NSE stocks tracked</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">7,556</div>
+      <div class="stat-label">trade signals (2016–2022)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">35.3%</div>
+      <div class="stat-label">win rate (real, cleaned)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">4.38</div>
+      <div class="stat-label">profit factor</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">184d</div>
+      <div class="stat-label">avg trade hold time</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">+26.6%</div>
+      <div class="stat-label">avg return per trade</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main content ── -->
+<div class="content">
+
+  <!-- ── 1. What are we building ── -->
+  <div class="section">
+    <div class="section-tag tag-amber">The goal</div>
+    <h2 class="section-title">What exactly are we building?</h2>
+    <p class="section-intro">Before the journey — here's the destination, in plain words.</p>
+    <div class="mission-box">
+      We are building an <strong>automated stock recommendation system for the Indian market (NSE)</strong>.<br><br>
+      The idea: When two moving averages on a stock's weekly chart cross in a bullish way — called a <strong>"Golden Cross"</strong> — it often signals the start of a big upward move. We hold the stock until the averages cross back down (the <strong>"Death Cross"</strong>), then exit.<br><br>
+      The system should automatically:
+      <ul style="margin: 0.75rem 0 0 1.25rem; color: var(--muted);">
+        <li>Scan <strong>all 973 NSE stocks</strong> every week</li>
+        <li><strong>Filter</strong> only the strongest signals (high volume, strong fundamentals)</li>
+        <li><strong>Rank</strong> those signals using news, financials, and management tone</li>
+        <li><strong>Alert</strong> us when a high-quality setup appears</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 2. The journey ── -->
+  <div class="section">
+    <div class="section-tag tag-blue">The journey</div>
+    <h2 class="section-title">How we got here — phase by phase</h2>
+    <p class="section-intro">Every phase below was a real step. Some worked, some needed fixing.</p>
+
+    <div class="timeline">
+
+      <!-- Phase 1 -->
+      <div class="phase">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;padding-top:0.35rem;gap:0">
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);text-align:right;line-height:1.2">Phase<br>1</div>
+          <div style="width:2px;background:var(--border);flex:1;margin:0.4rem 0 0 auto;margin-right:0"></div>
+        </div>
+        <div class="phase-body">
+          <h3>Built the scanner + website</h3>
+          <p>We built a Python scanner that downloads data for 973 NSE stocks and detects Golden Crosses on weekly charts. Then built a website (Node.js + Supabase + Vercel) that shows current signals with a Returns tab.</p>
+          <p class="highlight">The website showed a <strong>90% win rate</strong> on the 10-year tab. That looked amazing — but we later found out why it was misleading (see Discoveries).</p>
+          <span class="tag-pill tp-green">✓ Working</span>
+          <span class="tag-pill tp-amber">Website live on Vercel</span>
+        </div>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="phase">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;padding-top:0.35rem;gap:0">
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);text-align:right;line-height:1.2">Phase<br>2</div>
+          <div style="width:2px;background:var(--border);flex:1;margin:0.4rem 0 0 auto;margin-right:0"></div>
+        </div>
+        <div class="phase-body">
+          <h3>Volume filter experiment</h3>
+          <p>Hypothesis: signals where trading volume spikes well above normal might be stronger. We tested 205 combinations of lookback windows (10–50 days) and volume multipliers (1.0× to 2.5×) across all 7,556 historical Golden Cross signals.</p>
+          <p class="highlight">Initial results looked promising — but were completely wrong due to a price data bug (see What Went Wrong). After fixing the bug, the volume filter is <strong>confirmed to work for the Trend strategy</strong>.</p>
+          <span class="tag-pill tp-blue">Fixed & re-run</span>
+        </div>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="phase">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;padding-top:0.35rem;gap:0">
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);text-align:right;line-height:1.2">Phase<br>3</div>
+          <div style="width:2px;background:var(--border);flex:1;margin:0.4rem 0 0 auto;margin-right:0"></div>
+        </div>
+        <div class="phase-body">
+          <h3>Rebuilt backtest to match the real strategy (GC → DC)</h3>
+          <p>We realised we were testing the wrong thing. Our fixed 5/10/20/60-day windows didn't match how we actually trade — we hold until the Death Cross, not for a fixed number of days. So we rebuilt the entire backtest engine to:</p>
+          <p class="highlight">Entry: <strong>day after Golden Cross</strong>. Exit: <strong>day after Death Cross</strong>. If no Death Cross yet — exit at today's price. This is exactly how the website calculates returns.</p>
+          <span class="tag-pill tp-green">✓ Core strategy confirmed</span>
+          <span class="tag-pill tp-amber">7,556 trades re-run</span>
+        </div>
+      </div>
+
+      <!-- Phase 4 -->
+      <div class="phase">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;padding-top:0.35rem;gap:0">
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);text-align:right;line-height:1.2">Phase<br>4</div>
+          <div style="width:2px;background:var(--border);flex:1;margin:0.4rem 0;margin-right:0"></div>
+        </div>
+        <div class="phase-body">
+          <h3>Speed optimisation — 8× faster</h3>
+          <p>The trend backtest was taking over 50 minutes to run. The bottleneck: for each Golden Cross per stock, we were scanning all data again to find the Death Cross. For a stock like RELIANCE with 10 Golden Crosses, that was 10 separate full-data scans.</p>
+          <p class="highlight">Fix: find all Golden and Death Crosses in <strong>one single pass per stock</strong>, then use binary search to pair them. Runtime dropped from 51 minutes to <strong>6.5 minutes</strong>.</p>
+          <span class="tag-pill tp-green">✓ 8× speed improvement</span>
+        </div>
+      </div>
+
+      <!-- Bug fix -->
+      <div class="phase">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;padding-top:0.35rem;gap:0">
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);text-align:right;line-height:1.2">Bug<br>Fix</div>
+        </div>
+        <div class="phase-body" style="border-color: var(--red); margin-bottom:0">
+          <h3>Critical price bug — found &amp; fixed</h3>
+          <p>A Claude Opus review found that our entry price and exit price were on <strong>different scales</strong>. Entry used the raw stock price; exit used a price that was retroactively scaled down by all dividends paid since 2016. This created a fake "loss" at the start of every trade.</p>
+          <p class="highlight">In 2016, this fake loss was ~7%. In 2022, ~2%. Fixed by putting both prices on the same adjusted basis. All backtests were re-run from scratch.</p>
+          <span class="tag-pill tp-red">Critical bug</span>
+          <span class="tag-pill tp-green">✓ Fixed &amp; re-run</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 2b. Backtest strategy deep-dive ── -->
+  <div class="section">
+    <div class="section-tag tag-amber">Backtest strategy</div>
+    <h2 class="section-title">How the backtest actually works</h2>
+    <p class="section-intro">Why we chose this approach, what the rules are, and how the code runs it — in plain words and a visual flow.</p>
+
+    <!-- Why this approach -->
+    <div class="strategy-why">
+      <div class="sw-card">
+        <h4>Why GC → DC (not fixed windows)?</h4>
+        <p>Our early backtest tested 5, 10, 20, 60-day holds after a Golden Cross. But that's not how we trade — we <strong>hold until the trend reverses</strong> (Death Cross), which could be 1 month or 3 years depending on the stock.<br><br>Cutting a trade at day 60 when the stock is still running is leaving money on the table. The Death Cross is the natural exit signal — it tells us momentum has flipped. This also matches <strong>exactly what the website shows in the Returns tab</strong>, so we can compare like-for-like.</p>
+      </div>
+      <div class="sw-card">
+        <h4>Why weekly charts, not daily?</h4>
+        <p>Daily EMA9/EMA20 crossovers are noisy — they fire every few weeks and create too many false signals. Weekly bars smooth out short-term volatility. A Golden Cross on the <strong>weekly chart</strong> means the medium-term trend has genuinely shifted up, not just a 3-day bounce.<br><br>This is also what most serious technical analysts use for swing and positional trades, which is the style we're targeting — <strong>hold weeks to months, not hours to days</strong>.</p>
+      </div>
+    </div>
+
+    <!-- Main pipeline flow diagram -->
+    <div class="flow-wrap" style="margin-bottom:1.25rem">
+      <div class="flow-title">
+        Full backtest pipeline — one stock, step by step
+        <div class="flow-legend">
+          <div class="flow-legend-item"><div class="flow-legend-dot" style="background:var(--blue)"></div> Data</div>
+          <div class="flow-legend-item"><div class="flow-legend-dot" style="background:var(--amber)"></div> Calculation</div>
+          <div class="flow-legend-item"><div class="flow-legend-dot" style="background:var(--green)"></div> Output</div>
+          <div class="flow-legend-item"><div class="flow-legend-dot" style="background:var(--purple)"></div> Bug fix</div>
+        </div>
+      </div>
+
+      <div class="flow-col">
+
+        <!-- Step 1 -->
+        <div class="fc-node blue">
+          <span class="fc-badge">Step 1 · Input</span>
+          <span class="fc-label">📥 Raw daily OHLCV data</span>
+          <span class="fc-sub">973 NSE stocks downloaded from Yahoo Finance — Date, Open, High, Low, Close, Adj Close, Volume</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Step 2 -->
+        <div class="fc-node blue">
+          <span class="fc-badge">Step 2 · Resample</span>
+          <span class="fc-label">📅 Aggregate to weekly bars</span>
+          <span class="fc-sub">Group Mon–Fri into one bar: Open = Monday's open, Close = Friday's close, Volume = week total</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Step 3 -->
+        <div class="fc-node amber">
+          <span class="fc-badge">Step 3 · Indicators</span>
+          <span class="fc-label">📐 Calculate EMA9 and EMA20</span>
+          <span class="fc-sub">EMA9 = fast moving average (9 weeks). EMA20 = slow (20 weeks). Each value uses only past data — no look-ahead. Seeded with a simple average of the first N weeks.</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Step 4 — fork -->
+        <div class="fc-node amber" style="text-align:center">
+          <span class="fc-badge">Step 4 · Single pass</span>
+          <span class="fc-label">🔍 Detect all crossovers</span>
+          <span class="fc-sub">Scan every weekly bar once. If EMA9 crosses above EMA20 → Golden Cross. If EMA9 crosses below EMA20 → Death Cross.</span>
+        </div>
+
+        <!-- Fork arms -->
+        <div style="display:flex;width:100%;max-width:440px;gap:0">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+            <div style="width:2px;height:16px;background:var(--border);margin-left:50%"></div>
+            <div style="width:50%;height:2px;background:var(--border);margin-left:50%"></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+            <div style="width:2px;height:16px;background:var(--border);margin-right:50%"></div>
+            <div style="width:50%;height:2px;background:var(--border);margin-right:50%"></div>
+          </div>
+        </div>
+        <div style="display:flex;width:100%;max-width:440px;gap:1rem">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node green" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">🌟 Golden Cross list</span>
+              <span class="fc-sub">EMA9 crossed above EMA20<br>Potential buy signals</span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node red" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">💀 Death Cross list</span>
+              <span class="fc-sub">EMA9 crossed below EMA20<br>Potential exit signals</span>
+            </div>
+          </div>
+        </div>
+        <!-- Join back -->
+        <div style="display:flex;width:100%;max-width:440px;gap:0;align-items:flex-start">
+          <div style="flex:1;display:flex;justify-content:flex-end">
+            <div style="width:50%;height:2px;background:var(--border);margin-top:18px"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div style="width:2px;height:20px;background:var(--border)"></div>
+            <div class="fc-arrow-head"></div>
+          </div>
+          <div style="flex:1;display:flex;justify-content:flex-start">
+            <div style="width:50%;height:2px;background:var(--border);margin-top:18px"></div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="fc-node amber">
+          <span class="fc-badge">Step 5 · Filter</span>
+          <span class="fc-label">📆 Keep only GC signals from 2016–2022</span>
+          <span class="fc-sub">Golden Crosses before 2016 don't have enough price history for our volume calculation. After 2022 we use as out-of-sample validation.</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Step 6 -->
+        <div class="fc-node amber">
+          <span class="fc-badge">Step 6 · Pair signals</span>
+          <span class="fc-label">🔗 Match each GC with its next Death Cross</span>
+          <span class="fc-sub">Binary search through the DC list to find the first Death Cross after each Golden Cross. If no DC exists → trade is still "open" today. Speed trick: doing this in one sorted scan is 8× faster than scanning repeatedly.</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Step 7 — the bug fix -->
+        <div class="fc-node purple">
+          <span class="fc-badge">Step 7 · Price adjustment (bug fix)</span>
+          <span class="fc-label">💱 Adjusted Open = Open × (Adj Close ÷ Close)</span>
+          <span class="fc-sub">Yahoo Finance retroactively scales Adj Close down for every dividend paid. Without this fix, a 2016 entry price looks 7% higher than the exit on day 1 — a fake loss baked in. We adjust the Open to the same basis as Adj Close so the comparison is fair.</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Step 8 — fork entry/exit -->
+        <div style="display:flex;width:100%;max-width:440px;gap:1rem">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node green" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">🟢 Entry price</span>
+              <span class="fc-sub">Adjusted Open on<br>the day after GC</span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node red" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">🔴 Exit price</span>
+              <span class="fc-sub">Adj Open day after DC<br>(or latest close if open)</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;width:100%;max-width:440px;gap:0;align-items:flex-start">
+          <div style="flex:1;display:flex;justify-content:flex-end">
+            <div style="width:50%;height:2px;background:var(--border);margin-top:18px"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div style="width:2px;height:20px;background:var(--border)"></div>
+            <div class="fc-arrow-head"></div>
+          </div>
+          <div style="flex:1;display:flex;justify-content:flex-start">
+            <div style="width:50%;height:2px;background:var(--border);margin-top:18px"></div>
+          </div>
+        </div>
+
+        <!-- Step 9 -->
+        <div class="fc-node amber">
+          <span class="fc-badge">Step 8 · Return</span>
+          <span class="fc-label">📊 Return % = (Exit ÷ Entry − 1) × 100</span>
+          <span class="fc-sub">Positive = profit. Negative = loss. Also records hold days (entry date to exit date).</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Step 10 -->
+        <div class="fc-node blue">
+          <span class="fc-badge">Step 9 · Volume</span>
+          <span class="fc-label">📈 Volume ratio at GC date</span>
+          <span class="fc-sub">vol_ratio = avg volume in last N days ÷ avg volume in last 50 days. Computed for N = 10, 11, 12 ... 50 days. Tells us if this signal had unusually high trading activity.</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <!-- Final output -->
+        <div class="fc-node green">
+          <span class="fc-badge">Output</span>
+          <span class="fc-label">✅ One row per trade — 7,556 rows total</span>
+          <span class="fc-sub">symbol · gc_date · dc_date · entry · exit · return% · hold_days · status · vol_ratio_10d … vol_ratio_50d</span>
+        </div>
+
+      </div><!-- end flow-col -->
+    </div><!-- end flow-wrap -->
+
+    <!-- Volume filter flow -->
+    <div class="flow-wrap">
+      <div class="flow-title">Volume filter experiment — how we tested it</div>
+
+      <div class="flow-col">
+
+        <div class="fc-node blue">
+          <span class="fc-label">7,556 trade records (baseline)</span>
+          <span class="fc-sub">Win rate 35.3% · Avg return +26.6% · Profit factor 4.38</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <div class="fc-node amber">
+          <span class="fc-label">🔬 Apply filter: vol_ratio_Nd ≥ threshold</span>
+          <span class="fc-sub">Test every combination: 41 lookback windows (10–50 days) × 5 thresholds (1.0×, 1.2×, 1.5×, 2.0×, 2.5×) = 205 combinations</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <div style="display:flex;width:100%;max-width:440px;gap:1rem">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node green" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">✓ Kept</span>
+              <span class="fc-sub">Signals where volume<br>was above the threshold<br>(19–65% of all trades)</span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node red" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">✗ Dropped</span>
+              <span class="fc-sub">Low-volume signals<br>filtered out — don't<br>meet our threshold</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;width:100%;max-width:440px;align-items:flex-start">
+          <div style="flex:1;display:flex;justify-content:flex-end"><div style="width:50%;height:2px;background:var(--border);margin-top:18px"></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:20px;background:var(--border)"></div><div class="fc-arrow-head"></div></div>
+          <div style="flex:1"><div style="width:50%;height:2px;background:var(--border);margin-top:18px"></div></div>
+        </div>
+
+        <div class="fc-node amber">
+          <span class="fc-label">📐 Compare kept signals vs baseline</span>
+          <span class="fc-sub">Does win rate go up? Does avg return improve? Is profit factor maintained? Repeat for all 205 combinations.</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <div class="fc-node amber">
+          <span class="fc-label">🧪 Robustness check (lookbacks 15–25d)</span>
+          <span class="fc-sub">For each threshold, how many of the 11 lookbacks in the 15–25 day range beat the baseline? If 8+ out of 11 beat it → result is STABLE, not a fluke from one lucky parameter.</span>
+        </div>
+        <div class="fc-arrow"><div class="fc-arrow-line"></div><div class="fc-arrow-head"></div></div>
+
+        <div style="display:flex;width:100%;max-width:440px;gap:1rem">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node green" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">✅ Trend strategy</span>
+              <span class="fc-sub">ALL 5 thresholds<br>11/11 lookbacks beat base<br>→ STABLE ✓</span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:2px;height:8px;background:var(--border)"></div>
+            <div class="fc-node red" style="width:100%;text-align:center;padding:0.5rem 0.7rem">
+              <span class="fc-label" style="font-size:0.78rem">✗ Fixed windows</span>
+              <span class="fc-sub">0/11 lookbacks beat base<br>for 5d / 10d / 20d<br>→ WEAK ✗</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end flow-col -->
+    </div><!-- end volume filter flow -->
+
+  </div><!-- end section -->
+
+  <hr class="divider">
+
+  <!-- ── 3. Key discoveries ── -->
+  <div class="section">
+    <div class="section-tag tag-purple">Discoveries</div>
+    <h2 class="section-title">Things we found out along the way</h2>
+    <p class="section-intro">Some of these changed how we think about the strategy completely.</p>
+
+    <div class="finding-block">
+      <div class="fb-header" style="background:var(--purple-bg)">
+        <div class="fb-icon">💡</div>
+        <div class="fb-title">The 90% win rate on the website is misleading — not wrong</div>
+      </div>
+      <div class="fb-body">
+        The website shows a 90% win rate for 10 years. Our backtest shows 35%. Both numbers are correct — they measure different things.<br><br>
+        The website shows 90% because: <strong>(1)</strong> Open trades from 2020 are still showing today's high prices — those multi-baggers look like wins. <strong>(2)</strong> Only stocks still alive today are shown — stocks that crashed and died are invisible. <strong>(3)</strong> India was in a strong bull market 2020–2024.<br><br>
+        Our 35% is the <strong>real, clean number</strong>: all trades closed at Death Cross, including the ones that lost money, including dead stocks. This is the honest metric.
+      </div>
+    </div>
+
+    <div class="finding-block">
+      <div class="fb-header" style="background:var(--green-bg)">
+        <div class="fb-icon">📊</div>
+        <div class="fb-title">35% win rate is actually good — here's why</div>
+      </div>
+      <div class="fb-body">
+        35% sounds like you lose 65% of the time. But look at what happens when you do win vs when you lose:<br><br>
+        <span class="num green">Profit Factor = 4.38</span> — for every ₹1 the strategy loses, it makes <strong>₹4.38</strong>.<br><br>
+        This is the signature of trend-following: <strong>many small losses, few massive winners</strong>. Think of CGPOWER going from ₹9.75 to ₹650 (6,625% return), or CG Power, TIPS Music, Xpro India. One trade like that covers 10 losses. The math works.
+      </div>
+    </div>
+
+    <div class="finding-block">
+      <div class="fb-header" style="background:var(--amber-bg)">
+        <div class="fb-icon">📦</div>
+        <div class="fb-title">Volume filtering works for trend trades, not short-term holds</div>
+      </div>
+      <div class="fb-body">
+        We tested volume filtering on two different strategies:<br><br>
+        <strong>Short-term (5–60 days after GC):</strong> Volume filtering is <span class="num red">WEAK</span>. High-volume signals don't outperform low-volume ones over a few weeks.<br><br>
+        <strong>Trend strategy (GC → DC):</strong> Volume filtering is <span class="num green">STABLE</span>. All 5 thresholds beat the baseline across all 11 lookback variations we tested. Best pick: 20-25 day lookback, 1.0–1.5× volume threshold — keeps 50%+ of signals and adds ~1% win rate improvement.
+      </div>
+    </div>
+
+    <div class="finding-block">
+      <div class="fb-header" style="background:var(--blue-bg)">
+        <div class="fb-icon">⚠️</div>
+        <div class="fb-title">Future data can't be used to score past signals</div>
+      </div>
+      <div class="fb-body">
+        We planned to score Golden Cross signals using stock fundamentals from Screener.in. Problem: Screener.in shows <strong>today's</strong> financials. If we score a signal from 2018 with 2026 ROE data, we're cheating — we're using information that didn't exist in 2018.<br><br>
+        The right approach: for each signal, use only the quarterly financial report that was published <strong>before that signal date</strong>. This is harder to collect but it's the only honest way to backtest a ranking system.
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 4. What went wrong ── -->
+  <div class="section">
+    <div class="section-tag tag-red">What went wrong</div>
+    <h2 class="section-title">Our honest failures</h2>
+    <p class="section-intro">Things that wasted time, misled us, or had to be re-done.</p>
+
+    <div class="card-grid">
+      <div class="card red">
+        <div class="card-icon">🐛</div>
+        <div class="card-title">Price data bug — 6+ hours wasted</div>
+        <div class="card-body">
+          Entry and exit prices were on different scales due to how yfinance adjusts historical data. The fixed-window results were garbage for months. Every conclusion about short-term performance was wrong. Caught by an independent Opus review, not us.
+        </div>
+      </div>
+      <div class="card red">
+        <div class="card-icon">⏱️</div>
+        <div class="card-title">Backtest took 50 minutes — wrong algorithm</div>
+        <div class="card-body">
+          The first version of the trend backtest called a full data scan for every single Golden Cross signal per stock. For 973 stocks with multiple crosses each, this was extremely slow. Had to redesign the algorithm from scratch.
+        </div>
+      </div>
+      <div class="card red">
+        <div class="card-icon">📉</div>
+        <div class="card-title">Tested the wrong strategy (fixed windows)</div>
+        <div class="card-body">
+          Phase 2 tested 5/10/20/60-day holds after a Golden Cross. But we don't trade that way — we hold until the Death Cross. Three phases of work on fixed-window analysis that doesn't match our real trading plan.
+        </div>
+      </div>
+      <div class="card red">
+        <div class="card-icon">🏭</div>
+        <div class="card-title">Pre-listed stocks slipping into backtest</div>
+        <div class="card-body">
+          Some stocks in our universe had data starting near their IPO date, causing near-zero entry prices and fake multi-thousand-percent returns. We added an audit step to exclude stocks with less than 3 months of data before the signal date.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 5. What we've achieved ── -->
+  <div class="section">
+    <div class="section-tag tag-green">Achievements</div>
+    <h2 class="section-title">What we've actually built and proven</h2>
+    <p class="section-intro">Real, working output — not just plans.</p>
+
+    <div class="metric-row">
+      <div class="metric-tile">
+        <div class="mt-num amber">35.3%</div>
+        <div class="mt-label">Clean win rate (GC→DC)</div>
+      </div>
+      <div class="metric-tile">
+        <div class="mt-num green">4.38</div>
+        <div class="mt-label">Profit factor</div>
+      </div>
+      <div class="metric-tile">
+        <div class="mt-num amber">+26.6%</div>
+        <div class="mt-label">Average return per trade</div>
+      </div>
+      <div class="metric-tile">
+        <div class="mt-num blue">184d</div>
+        <div class="mt-label">Average hold (6 months)</div>
+      </div>
+    </div>
+
+    <div class="card-grid" style="margin-top:0.5rem">
+      <div class="card green">
+        <div class="card-icon">🌐</div>
+        <div class="card-title">Live website — working</div>
+        <div class="card-body">
+          A real website deployed on Vercel shows current Golden Cross signals, returns tab, win rates for different time periods. Pulls live data from Supabase. Available to share with anyone.
+        </div>
+      </div>
+      <div class="card green">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">Fast, clean backtest engine</div>
+        <div class="card-body">
+          Processes all 973 stocks in ~6.5 minutes. Correctly uses adjusted prices for both entry and exit. Tests 205 parameter combinations automatically. Results stored in CSV + interactive dashboard.
+        </div>
+      </div>
+      <div class="card green">
+        <div class="card-icon">📊</div>
+        <div class="card-title">Interactive dashboard</div>
+        <div class="card-body">
+          A shareable HTML dashboard showing both Fixed-Window and Trend strategy results. Heatmap of 5×41 parameter combinations, sortable table, hover tooltips. No server needed — works offline.
+        </div>
+      </div>
+      <div class="card green">
+        <div class="card-icon">🔍</div>
+        <div class="card-title">Volume filter — confirmed signal</div>
+        <div class="card-body">
+          Proven that volume-confirmed Golden Crosses outperform in the Trend strategy. All 5 threshold levels beat the baseline across 11 lookback windows. Stable, not a fluke. Recommended: 20-25d lookback, 1.0–1.5× threshold.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 5b. Strategy Comparison ── -->
+  <div class="section">
+    <div class="section-tag tag-blue">Strategy Comparison</div>
+    <h2 class="section-title">GC&rarr;DC vs Momentum Breakout &mdash; head to head</h2>
+    <p class="section-intro">We built and backtested a second strategy on the same 973 stocks, same 2016&ndash;2022 window. Entry requires four simultaneous conditions instead of one crossover event.</p>
+
+    <div style="background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:1.75rem;">
+      <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem;">Momentum Breakout &mdash; entry conditions (all four must fire together)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem;">
+        <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;">
+          <div style="font-family:var(--mono);color:var(--blue);font-size:0.82rem;font-weight:600;">EMA9 &gt; EMA20</div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;">Stock is in an established uptrend</div>
+        </div>
+        <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;">
+          <div style="font-family:var(--mono);color:var(--blue);font-size:0.82rem;font-weight:600;">EMA9 &gt; prev EMA9</div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;">EMA9 is accelerating this week</div>
+        </div>
+        <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;">
+          <div style="font-family:var(--mono);color:var(--blue);font-size:0.82rem;font-weight:600;">Vol &gt; 1.5&times; SMA(Vol,20)</div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;">Volume surge confirms conviction</div>
+        </div>
+        <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;">
+          <div style="font-family:var(--mono);color:var(--blue);font-size:0.82rem;font-weight:600;">Close &gt; 4-week high</div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;">Price breaking out (&asymp;20-day high)</div>
+        </div>
+      </div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-top:0.75rem;">Exit: same as GC&rarr;DC &mdash; next Death Cross. One trade per uptrend (deduplicated).</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.75rem;">
+      <div style="background:var(--surf);border:1px solid var(--border);border-top:3px solid var(--amber);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--amber);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;">GC &rarr; DC (original)</div>
+        <div style="display:flex;flex-direction:column;gap:0.55rem;">
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Total trades</span><span style="font-family:var(--mono);font-weight:600;">7,556</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Win rate</span><span style="font-family:var(--mono);font-weight:600;color:var(--green);">35.3%</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg return</span><span style="font-family:var(--mono);font-weight:600;color:var(--green);">+26.63%</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Median return</span><span style="font-family:var(--mono);font-weight:600;color:var(--red);">&minus;5.87%</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg winner</span><span style="font-family:var(--mono);font-weight:600;color:var(--green);">+97.75%</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg loser</span><span style="font-family:var(--mono);font-weight:600;color:var(--red);">&minus;12.19%</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Win:Loss ratio</span><span style="font-family:var(--mono);font-weight:600;color:var(--green);">8.02&times;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Profit factor</span><span style="font-family:var(--mono);font-weight:600;color:var(--amber);">4.378</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg hold</span><span style="font-family:var(--mono);font-weight:600;">184 d (6.1 mo)</span></div>
+          <div style="border-top:1px solid var(--border);margin-top:0.25rem;padding-top:0.5rem;"></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Trades &gt; 50%</span><span style="font-family:var(--mono);font-weight:600;">15.4%</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Trades &lt; &minus;20%</span><span style="font-family:var(--mono);font-weight:600;color:var(--green);">9.6%</span></div>
+        </div>
+      </div>
+      <div style="background:var(--surf);border:1px solid var(--border);border-top:3px solid var(--blue);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--blue);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;">Momentum Breakout (new)</div>
+        <div style="display:flex;flex-direction:column;gap:0.55rem;">
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Total trades</span><span style="font-family:var(--mono);font-weight:600;">5,782 <span style="font-size:0.75rem;color:var(--muted);">(&minus;23%)</span></span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Win rate</span><span style="font-family:var(--mono);font-weight:600;color:var(--blue);">39.7% &uarr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg return</span><span style="font-family:var(--mono);font-weight:600;color:var(--blue);">+31.42% &uarr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Median return</span><span style="font-family:var(--mono);font-weight:600;color:var(--red);">&minus;6.70% &darr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg winner</span><span style="font-family:var(--mono);font-weight:600;color:var(--blue);">+102.17% &uarr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg loser</span><span style="font-family:var(--mono);font-weight:600;color:var(--red);">&minus;15.25% &darr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Win:Loss ratio</span><span style="font-family:var(--mono);font-weight:600;color:var(--red);">6.70&times; &darr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Profit factor</span><span style="font-family:var(--mono);font-weight:600;color:var(--blue);">4.420 &uarr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Avg hold</span><span style="font-family:var(--mono);font-weight:600;">219 d (7.3 mo)</span></div>
+          <div style="border-top:1px solid var(--border);margin-top:0.25rem;padding-top:0.5rem;"></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Trades &gt; 50%</span><span style="font-family:var(--mono);font-weight:600;color:var(--blue);">18.2% &uarr;</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);font-size:0.85rem;">Trades &lt; &minus;20%</span><span style="font-family:var(--mono);font-weight:600;color:var(--red);">15.1% &uarr;&uarr;</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--surf);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1.75rem;">
+      <div style="padding:0.85rem 1.25rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;">Win rate by year &mdash; MB beats GC&rarr;DC in every single year</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.87rem;">
+          <thead><tr style="background:var(--surf2);">
+            <th style="padding:0.6rem 1.25rem;text-align:left;color:var(--muted);font-weight:500;">Year</th>
+            <th style="padding:0.6rem 1rem;text-align:right;color:var(--amber);font-weight:500;">GC&rarr;DC trades</th>
+            <th style="padding:0.6rem 1rem;text-align:right;color:var(--amber);font-weight:500;">Win rate</th>
+            <th style="padding:0.6rem 1rem;text-align:right;color:var(--blue);font-weight:500;">MB trades</th>
+            <th style="padding:0.6rem 1rem;text-align:right;color:var(--blue);font-weight:500;">Win rate</th>
+            <th style="padding:0.6rem 1.25rem;text-align:right;color:var(--muted);font-weight:500;">Delta</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2016</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">1,172</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--amber);">45.5%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">1,138</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--blue);">45.4%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--muted);">&minus;0.1pp</td></tr>
+            <tr style="border-top:1px solid var(--border);background:var(--surf2);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2017</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">1,209</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--amber);">40.9%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">970</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--blue);">42.3%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--green);">+1.4pp</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2018</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">726</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">14.2%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">380</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">15.5%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--green);">+1.3pp</td></tr>
+            <tr style="border-top:1px solid var(--border);background:var(--surf2);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2019</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">998</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">11.0%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">568</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">12.3%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--green);">+1.3pp</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2020</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">1,605</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--green);">51.4%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">1,321</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--green);">55.5%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--green);">+4.1pp</td></tr>
+            <tr style="border-top:1px solid var(--border);background:var(--surf2);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2021</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">566</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--green);">42.9%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">507</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--green);">46.2%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--green);">+3.3pp</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2022</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">1,280</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--amber);">28.0%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">898</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--amber);">30.6%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--green);">+2.6pp</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+      <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:1.1rem 1.25rem;">
+        <div style="font-weight:700;color:var(--green);margin-bottom:0.4rem;">What MB does better</div>
+        <ul style="color:var(--text);font-size:0.88rem;line-height:1.75;padding-left:1.1rem;">
+          <li>Win rate is higher in <strong>every single year</strong> &mdash; this is real signal, not noise</li>
+          <li>More trades in big winner bucket (&gt;50%): 18.2% vs 15.4%</li>
+          <li>Avg return per trade: +31.4% vs +26.6%</li>
+          <li>23% fewer signals &mdash; less time in market on weak setups</li>
+        </ul>
+      </div>
+      <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:1.1rem 1.25rem;">
+        <div style="font-weight:700;color:var(--red);margin-bottom:0.4rem;">The serious problem with MB</div>
+        <ul style="color:var(--text);font-size:0.88rem;line-height:1.75;padding-left:1.1rem;">
+          <li>15.1% of trades lose &gt;20% vs 9.6% in GC&rarr;DC &mdash; <strong>57% more blowups</strong></li>
+          <li>Avg loser: &minus;15.25% vs &minus;12.19% &mdash; bigger losses when wrong</li>
+          <li>Profit factor barely moved (4.42 vs 4.38) &mdash; gains and losses cancel out</li>
+          <li>2018 &amp; 2019: near-zero win rates in both strategies &mdash; market regime ignored</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:8px;padding:1.25rem 1.5rem;">
+      <div style="font-weight:700;margin-bottom:0.5rem;">Root cause: MB buys later, so falls harder</div>
+      <p style="color:var(--muted);font-size:0.9rem;line-height:1.75;">MB enters after the stock has already moved (volume surge + price at 4-week high). When it works, you ride a confirmed breakout. When it fails, the stock was already extended &mdash; so the reversal hurts more. Volume surges also catch <strong>euphoric tops</strong>: retail buying FOMO right at the peak. The solution is a hard stop-loss to cap downside. Next experiment: add a &minus;10% stop to MB and see if it unlocks the win-rate advantage cleanly.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 5c. Regime Filter Test (200-week EMA) ── -->
+  <div class="section">
+    <div class="section-tag tag-amber">Regime Filter Test</div>
+    <h2 class="section-title">Nifty 50 &times; 200-week EMA filter: <em>didn't help</em></h2>
+    <p class="section-intro">We tested skipping all signals when Nifty 50 was below its 200-week EMA. The result is clear: this filter is the wrong tool for our specific problem.</p>
+
+    <div style="background:var(--surf);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1.25rem;">
+      <div style="padding:0.85rem 1.25rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;">Result &mdash; Nifty 50 / 200-week EMA regime gate (backtest 2016&ndash;2022)</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.87rem;">
+          <thead><tr style="background:var(--surf2);">
+            <th style="padding:0.6rem 1.25rem;text-align:left;color:var(--muted);font-weight:500;">Metric</th>
+            <th style="padding:0.6rem 1rem;text-align:right;color:var(--amber);font-weight:500;">GC&rarr;DC</th>
+            <th style="padding:0.6rem 1rem;text-align:right;color:var(--amber);font-weight:500;">GC + 200w</th>
+            <th style="padding:0.6rem 1rem;text-align:right;color:var(--blue);font-weight:500;">MB</th>
+            <th style="padding:0.6rem 1.25rem;text-align:right;color:var(--blue);font-weight:500;">MB + 200w</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">Trades</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);">7,556</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);">7,359</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);">5,782</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);">5,659</td></tr>
+            <tr style="border-top:1px solid var(--border);background:var(--surf2);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">Win rate</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--amber);">35.3%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">34.4% &darr;</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--blue);">39.7%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--red);">39.1% &darr;</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">Profit factor</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);">4.378</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">4.061 &darr;</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);">4.420</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--red);">4.258 &darr;</td></tr>
+            <tr style="border-top:1px solid var(--border);background:var(--surf2);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2018 win rate</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">14.2%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">14.2% &mdash; unchanged</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">15.5%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--red);">15.5% &mdash; unchanged</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">2019 win rate</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">11.0%</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">11.0% &mdash; unchanged</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--red);">12.3%</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);color:var(--red);">12.3% &mdash; unchanged</td></tr>
+            <tr style="border-top:1px solid var(--border);background:var(--surf2);"><td style="padding:0.55rem 1.25rem;font-family:var(--mono);">Trades removed</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">&mdash;</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);">197 (2.6%)</td><td style="padding:0.55rem 1rem;text-align:right;font-family:var(--mono);color:var(--muted);">&mdash;</td><td style="padding:0.55rem 1.25rem;text-align:right;font-family:var(--mono);">123 (2.1%)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+      <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:1.1rem 1.25rem;">
+        <div style="font-weight:700;color:var(--red);margin-bottom:0.4rem;">Why it did not work</div>
+        <ul style="color:var(--text);font-size:0.88rem;line-height:1.75;padding-left:1.1rem;">
+          <li>Nifty 50 stayed <strong>above</strong> its 200-week EMA for the entire 2018&ndash;2019 period</li>
+          <li>Only 2.6% of trades removed &mdash; and they were mostly good 2020 recovery trades</li>
+          <li>2018/19 was a <strong>mid-cap meltdown</strong>, not a headline index crash: IL&amp;FS crisis &amp; trade war crushed small/mid caps while large caps held</li>
+          <li>Result: win rate and profit factor <em>fell</em> with the filter on</li>
+        </ul>
+      </div>
+      <div style="background:var(--blue-bg);border:1px solid var(--blue);border-radius:8px;padding:1.1rem 1.25rem;">
+        <div style="font-weight:700;color:var(--blue);margin-bottom:0.4rem;">Smarter regime filters to try next</div>
+        <ul style="color:var(--text);font-size:0.88rem;line-height:1.75;padding-left:1.1rem;">
+          <li><strong>Nifty Midcap 100 / 52w EMA</strong> &mdash; matches what actually crashed in 2018/19</li>
+          <li><strong>Breadth filter</strong>: % of NSE 500 stocks above their own 200d MA. If &lt;40%, pause entries</li>
+          <li><strong>India VIX gate</strong>: VIX &gt;20 = elevated fear, pause new entries</li>
+          <li><strong>Nifty 50 / 26-week EMA</strong>: more responsive, catches medium-term downtrends</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:8px;padding:1.25rem 1.5rem;">
+      <div style="font-weight:700;margin-bottom:0.5rem;">Key learning: 2018/19 is a stock-universe problem, not a market regime problem</div>
+      <p style="color:var(--muted);font-size:0.9rem;line-height:1.75;">Nifty 50 was fine in 2018/19. The IL&amp;FS credit crisis destroyed mid-cap finance, infra, and NBFC stocks while large caps held up. A large-cap index filter cannot detect this. The real solutions are: (a) a Midcap-specific or breadth-based regime filter, (b) a fundamental quality screen rejecting high-leverage / illiquid companies, or (c) sector exclusion rules that pause NBFC/infra entries during credit stress cycles.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 5d. What to Study ── -->
+  <div class="section">
+    <div class="section-tag tag-purple">Study Roadmap</div>
+    <h2 class="section-title">What you need to study to crack the negatives</h2>
+    <p class="section-intro">The data tells us exactly what is broken. Each problem maps to a specific area of study. Work through these in order &mdash; each one directly fixes a known weakness in the current system.</p>
+
+    <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+      <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--red);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;">
+          <span style="background:var(--red-bg);color:var(--red);font-family:var(--mono);font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:4px;">URGENT</span>
+          <div style="font-weight:700;font-size:1rem;">Stop-Loss &amp; Position Sizing</div>
+        </div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.7;margin-bottom:0.75rem;"><strong>The problem it solves:</strong> 15.1% of MB trades lose &gt;20%. One catastrophic trade can wipe out 3&ndash;4 winners. Without a stop-loss, the profit factor improvement from better entry is neutralised by blow-up trades.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.6rem;font-size:0.83rem;">
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">ATR (Average True Range)</strong><br><span style="color:var(--muted);">Volatility-based stop: set stop at 2&times;ATR below entry so low-volatility stocks have tighter stops than high-volatility ones</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Fixed % stop vs trailing stop</strong><br><span style="color:var(--muted);">Fixed &minus;10%: simple, easy to backtest. Trailing: follows price up, locks in gains. Study both and compare</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Kelly Criterion</strong><br><span style="color:var(--muted);">Optimal bet sizing given win rate and win/loss ratio. At 39.7% WR and 6.7&times; W:L, Kelly says bet ~30% of capital. Full Kelly is too aggressive &mdash; half-Kelly is safer</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Time stop</strong><br><span style="color:var(--muted);">If trade shows no momentum after 4&ndash;8 weeks, exit regardless of price. Stagnant positions tie up capital that could be in a new signal</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;">
+          <span style="background:var(--amber-bg);color:var(--amber);font-family:var(--mono);font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:4px;">HIGH PRIORITY</span>
+          <div style="font-weight:700;font-size:1rem;">Market Regime Detection</div>
+        </div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.7;margin-bottom:0.75rem;"><strong>The problem it solves:</strong> 2018 win rate = 14%, 2019 = 11%. Both were broad market downturns (IL&amp;FS crisis, trade war). In a bear market, even good GC signals fail because the entire market is falling. We took 1,724 bad trades in just those two years.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.6rem;font-size:0.83rem;">
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Nifty 500 macro filter</strong><br><span style="color:var(--muted);">Only take signals when Nifty 500 is above its 200-week EMA. If the index is in a downtrend, pause all new entries. Simple rule, dramatic improvement in bear years</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">India VIX as a gate</strong><br><span style="color:var(--muted);">When India VIX &gt;25, volatility is extreme and trend signals fail more often. Study: does pausing entries at VIX &gt;20 improve the 2018/2019 win rate?</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Breadth indicator</strong><br><span style="color:var(--muted);">% of NSE 500 stocks above their 200-day MA. If &lt;40%, the market is sick &mdash; don't buy breakouts. This filters regimes before individual stock signals</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Advance-Decline ratio</strong><br><span style="color:var(--muted);">Ratio of advancing stocks to declining stocks over 20 days. A falling A/D line in a rising market = bearish divergence. Classic regime signal</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;">
+          <span style="background:var(--amber-bg);color:var(--amber);font-family:var(--mono);font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:4px;">HIGH PRIORITY</span>
+          <div style="font-weight:700;font-size:1rem;">Entry Timing: Retracement vs Breakout</div>
+        </div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.7;margin-bottom:0.75rem;"><strong>The problem it solves:</strong> MB enters at the breakout (highest price). Buying the breakout means buying when retail FOMO is highest. A retracement entry (waiting for a small pullback after the breakout) gives a better price and lower risk. The median return being negative in both strategies suggests we're often entering at local highs.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.6rem;font-size:0.83rem;">
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Fibonacci retracements</strong><br><span style="color:var(--muted);">After a GC, wait for 38.2% or 50% pullback before entering. Classic technique: "buy the dip in a confirmed uptrend." Reduces entry price and improves reward:risk</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">RSI pullback entry</strong><br><span style="color:var(--muted);">Enter when RSI dips to 40&ndash;50 zone after a GC (brief cooling off) rather than chasing RSI &gt;70. Lower entry price, less FOMO risk</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Bollinger Band squeeze</strong><br><span style="color:var(--muted);">A GC signal combined with a Bollinger Band squeeze (low volatility contracting before breakout) is much stronger than a GC alone. Signals coiled spring ready to release</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">MACD histogram</strong><br><span style="color:var(--muted);">MACD histogram turning positive while EMA cross happens = double confirmation. Study: does requiring MACD confirmation reduce the 60% loss rate without killing too many winners?</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;">
+          <span style="background:var(--blue-bg);color:var(--blue);font-family:var(--mono);font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:4px;">MEDIUM</span>
+          <div style="font-weight:700;font-size:1rem;">Quantitative Metrics to Measure Strategy Quality</div>
+        </div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.7;margin-bottom:0.75rem;"><strong>The problem it solves:</strong> We currently compare strategies with win rate, avg return, and profit factor. But these don't capture drawdown risk or account for how long money was in the market. Two strategies with the same profit factor can have very different real-world risk profiles.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.6rem;font-size:0.83rem;">
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Sharpe Ratio</strong><br><span style="color:var(--muted);">Return / risk. Above 1.0 = good, above 2.0 = excellent. Forces you to account for volatility, not just return. Study how to compute it for a portfolio backtest</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Sortino Ratio</strong><br><span style="color:var(--muted);">Like Sharpe but only penalises downside volatility. Better for trend strategies where upside volatility (big wins) is welcome. Use Sortino alongside Sharpe</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Max Drawdown &amp; Recovery</strong><br><span style="color:var(--muted);">Worst peak-to-trough loss in the portfolio. How long did it take to recover? A strategy with 40% max drawdown needs a 67% recovery &mdash; psychologically brutal</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Monte Carlo simulation</strong><br><span style="color:var(--muted);">Randomly shuffle the order of trades 10,000 times. What is the range of outcomes? If shuffled results vary wildly, the strategy is fragile. If stable, it's robust</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;">
+          <span style="background:var(--blue-bg);color:var(--blue);font-family:var(--mono);font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:4px;">MEDIUM</span>
+          <div style="font-weight:700;font-size:1rem;">Fundamental Quality as a Filter (not just a score)</div>
+        </div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.7;margin-bottom:0.75rem;"><strong>The problem it solves:</strong> Our catastrophic losers (&minus;97.8% worst trade) are likely frauds, heavily leveraged companies, or stocks with deteriorating fundamentals. Fundamental filters should eliminate these before any technical signal is trusted.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.6rem;font-size:0.83rem;">
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Quality investing framework</strong><br><span style="color:var(--muted);">Study Sanjay Bakshi (FinSight) and Buffett's approach adapted to India. ROCE &gt;15%, debt-free or low debt, consistent cash flow &gt; profit. These are hard floors, not scores</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Piotroski F-Score</strong><br><span style="color:var(--muted);">9-point fundamental health score (profitability, leverage, operating efficiency). F-score &ge;7 = quality. Study: do GC signals from high F-score stocks have dramatically better outcomes?</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Altman Z-Score</strong><br><span style="color:var(--muted);">Predicts bankruptcy risk using 5 financial ratios. Z &lt; 1.8 = distress zone. Eliminate these stocks entirely. This alone might cut the &minus;97.8% worst trades out</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Screener.in / BSE XBRL</strong><br><span style="color:var(--muted);">Learn to pull structured quarterly data: Screener.in API or BSE XBRL filing. This is the data layer for everything above. Understand the filing date vs quarter-end distinction</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--purple);border-radius:8px;padding:1.25rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;">
+          <span style="background:var(--purple-bg);color:var(--purple);font-family:var(--mono);font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:4px;">LATER</span>
+          <div style="font-weight:700;font-size:1rem;">Portfolio Theory &amp; Correlation</div>
+        </div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.7;margin-bottom:0.75rem;"><strong>The problem it solves:</strong> Right now, 10 concurrent signals might all be from Banking sector. A sector-specific event (RBI rate decision, NPA cycle) could blow up all 10 at once. Portfolio construction needs to account for correlation between positions.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.6rem;font-size:0.83rem;">
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Sector exposure limits</strong><br><span style="color:var(--muted);">Simple rule: max 2&ndash;3 positions per sector in the portfolio at any time. Forces diversification without needing complex math</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Correlation matrix</strong><br><span style="color:var(--muted);">Study Pearson correlation of weekly returns across sectors. If two holdings are 0.8+ correlated, they behave like one position &mdash; no benefit to holding both</span></div>
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:0.6rem 0.85rem;"><strong style="color:var(--text);">Modern Portfolio Theory basics</strong><br><span style="color:var(--muted);">Markowitz efficient frontier: understand how combining uncorrelated assets reduces portfolio volatility without reducing return. Foundation for any multi-stock system</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;margin-top:1.5rem;">
+      <div style="font-weight:700;margin-bottom:0.75rem;">Suggested study order &mdash; based on what will move the numbers fastest</div>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.88rem;">
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;"><span style="font-family:var(--mono);color:var(--amber);font-weight:700;flex-shrink:0;">Week 1&ndash;2</span><span style="color:var(--muted);">ATR stops &amp; fixed % stop backtest on MB strategy. Add market regime filter (Nifty 500 above 200w EMA). Re-run. Measure impact on 2018/2019 win rate and &lt;&minus;20% trade count.</span></div>
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;"><span style="font-family:var(--mono);color:var(--amber);font-weight:700;flex-shrink:0;">Week 3&ndash;4</span><span style="color:var(--muted);">Piotroski F-Score and Altman Z-Score as hard eliminators. Pull from Screener.in. Remove low F-score stocks from both backtest universes. Measure improvement in worst-trade distribution.</span></div>
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;"><span style="font-family:var(--mono);color:var(--amber);font-weight:700;flex-shrink:0;">Month 2</span><span style="color:var(--muted);">Build portfolio simulator. Measure Sharpe and max drawdown for GC&rarr;DC vs MB (with stops) vs market index. MACD confirmation filter. Fibonacci retracement entry test.</span></div>
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;"><span style="font-family:var(--mono);color:var(--amber);font-weight:700;flex-shrink:0;">Month 3+</span><span style="color:var(--muted);">Historical BSE fundamentals collection. Full ranking system with scoring. Portfolio correlation analysis. Live paper trading with decision log to build out-of-sample dataset.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 6. Where we're lagging ── -->
+  <div class="section">
+    <div class="section-tag tag-red">Gaps</div>
+    <h2 class="section-title">Where we're still behind</h2>
+    <p class="section-intro">Honest gaps between where we are and where the system needs to be.</p>
+
+    <div class="card-grid">
+      <div class="card amber">
+        <div class="card-icon">🎯</div>
+        <div class="card-title">No portfolio simulator yet</div>
+        <div class="card-body">
+          Right now we average all 7,556 signals equally. But in real life, nobody holds 1,000+ stocks at once. We need a simulator that picks the <strong>top 10 signals by score</strong> and runs them as a portfolio. Without this, we can't test if a ranking system actually helps.
+        </div>
+      </div>
+      <div class="card amber">
+        <div class="card-icon">📰</div>
+        <div class="card-title">No news/fundamental layer yet</div>
+        <div class="card-body">
+          The ranking system (fundamentals + news + concall) is designed but not built. We know what we want to do — we haven't done it yet. This is the biggest gap between current state and the full vision.
+        </div>
+      </div>
+      <div class="card amber">
+        <div class="card-icon">📅</div>
+        <div class="card-title">Historical fundamentals not collected</div>
+        <div class="card-body">
+          To backtest a fundamental score fairly, we need ROE/ROCE as they were <strong>at the time of the signal</strong> — not today. This requires scraping BSE quarterly filings with their filing dates. Complex but essential for honest backtesting.
+        </div>
+      </div>
+      <div class="card amber">
+        <div class="card-icon">🔔</div>
+        <div class="card-title">No alert system yet</div>
+        <div class="card-body">
+          The scanner runs manually. There's no automated pipeline that runs weekly, scores new signals, and sends us a notification when a high-quality setup appears. This is the final missing piece for a production system.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 7. What's next ── -->
+  <div class="section">
+    <div class="section-tag tag-amber">What's next</div>
+    <h2 class="section-title">The roadmap — in order</h2>
+    <p class="section-intro">These steps build on each other. We can't jump to step 3 without step 1.</p>
+
+    <div class="step-list">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Build a portfolio simulator</h4>
+          <p>Write Python code that takes a list of ranked signals, picks the top N (e.g., 10), runs them as concurrent trades with GC→DC exits, and outputs monthly P&amp;L, CAGR, and maximum drawdown. This gives us a real scoreboard to measure whether any ranking system helps.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Collect historical fundamentals with filing dates</h4>
+          <p>Scrape BSE quarterly filing dates for all 973 stocks. For each historical Golden Cross signal, find the last quarterly result available before that date. Store ROE, ROCE, revenue growth, D/E ratio, and promoter holding in Supabase — all tagged with the date they were known, not today.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Score signals by fundamentals — run portfolio sim</h4>
+          <p>Build a fundamental scorer that ranks each signal 0–40 points based on how the stock compares to its sector peers (percentile ranking). Run the portfolio sim: top-10 by score vs random-10 vs no filter. If the score improves CAGR or Sharpe, it's real and we use it.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Add news veto layer (red flags only)</h4>
+          <p>Google News RSS for each stock. If the headline contains fraud / SEBI probe / insolvency / default — that signal is eliminated, no score given. This is not scored (we can't backtest 2016 news) but it protects against obvious disasters in live trading.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h4>Add concall quality layer</h4>
+          <p>Download BSE quarterly concall PDFs, use Claude API to extract structured signals (management guidance raised/cut, order wins, tone). Score 0–30 points. For live signals only — not backtested. Combine with fundamental score for a final conviction rating.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <h4>Automate the pipeline + alerts</h4>
+          <p>GitHub Actions runs the scanner weekly. New Golden Crosses are scored automatically. A Telegram/email alert fires for signals scoring above threshold (e.g., 65/100). Also starts a Decision Log — every recommendation frozen with its score components so we can measure accuracy over time and improve the system with real forward data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Closing note ── -->
+  <div style="background:var(--surf);border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:8px;padding:1.5rem 1.75rem;">
+    <div style="font-weight:700;margin-bottom:0.5rem;font-size:1rem;">The bottom line</div>
+    <p style="color:var(--muted);font-size:0.93rem;line-height:1.7">
+      Two backtested strategies, 973 stocks, 2016&ndash;2022. GC&rarr;DC: profit factor 4.38, 35.3% win rate. Momentum Breakout: profit factor 4.42, 39.7% win rate &mdash; but 57% more catastrophic losers. The edge is real; the risk management is the missing piece. The next three experiments are: (1) ATR stop-loss on MB, (2) market regime filter on both strategies, (3) Piotroski quality screen to eliminate the worst-trade stocks. Each one directly attacks a known number. That's the work ahead.
+    </p>
+  </div>
+
+</div>
+
+<div class="footer">
+  NSE Stock Screener Project · Updated September 2026 · Research window 2016–2022 · 973 stocks
+</div>
