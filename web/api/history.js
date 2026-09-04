@@ -8,16 +8,24 @@ module.exports = async (req, res) => {
     const pageNum = Math.max(1, parseInt(page, 10))
     const offset  = (pageNum - 1) * PAGE_SIZE
 
+    // Strip "undefined" / "null" strings that URLSearchParams can inject
+    const val = v => (v && v !== 'undefined' && v !== 'null') ? v : undefined
+    const strategyVal = val(strategy)
+    const symbolVal   = val(symbol)
+    const sectorVal   = val(sector)
+    const fromVal     = val(from)
+    const toVal       = val(to)
+
     let q = db.from('signals')
       .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector, stocks(name)', { count: 'exact' })
       .order('signal_date', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1)
 
-    if (strategy) q = q.eq('strategy_name', strategy)
-    if (symbol)   q = q.ilike('symbol', `%${symbol}%`)
-    if (sector)   q = q.ilike('sector', `%${sector}%`)
-    if (from)     q = q.gte('signal_date', from)
-    if (to)       q = q.lte('signal_date', to)
+    if (strategyVal) q = q.eq('strategy_name', strategyVal)
+    if (symbolVal)   q = q.ilike('symbol', `%${symbolVal}%`)
+    if (sectorVal)   q = q.ilike('sector', `%${sectorVal}%`)
+    if (fromVal)     q = q.gte('signal_date', fromVal)
+    if (toVal)       q = q.lte('signal_date', toVal)
 
     const { data, count, error } = await q
     if (error) return sendErr(res, error.message)

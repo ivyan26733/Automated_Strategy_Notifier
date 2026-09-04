@@ -167,7 +167,12 @@ async function loadHistoryTab(reset = false) {
   const container = el('body-history')
   if (reset) { historyPage = 1; historyAllRows = []; loading(container) }
 
-  const params = new URLSearchParams({ page: historyPage, ...historyFilters })
+  const params = new URLSearchParams(
+    Object.fromEntries(
+      Object.entries({ page: historyPage, ...historyFilters })
+        .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    )
+  )
   const d = await apiFetch(`/api/history?${params}`)
 
   if (!d.rows?.length) {
