@@ -25,13 +25,22 @@ module.exports = async (req, res) => {
     const excluded = await getExcluded()
     const clean = inds.filter(r => !excluded.has(r.symbol))
 
-    // Exclude stocks that fired a fresh crossover this week — they belong in Fresh Crossovers tab.
-    // On the next scanner run (after their first completed week), they move here automatically.
-    const { data: freshData } = await db.from('signals')
-      .select('symbol')
-      .eq('strategy_name', 'ema_crossover')
-      .eq('signal_type', 'golden_cross')
-      .gte('signal_date', daysAgo(obsDate, 7))
+    // Exclude stocks that fired a fresh crossover since the latest completed weekly candle.
+    // Same boundary as crossovers.js so a stock appears in exactly one tab.
+    const { data: lastCompleted } = await db.from('weekly_indicators')
+      .select('observation_date')
+      .eq('is_developing_week', false)
+      .order('observation_date', { ascending: false })
+      .limit(1)
+    const freshFrom = lastCompleted?.[0]?.observation_date
+
+    const { data: freshData } = freshFrom
+      ? await db.from('signals')
+          .select('symbol')
+          .eq('strategy_name', 'ema_crossover')
+          .eq('signal_type', 'golden_cross')
+          .gte('signal_date', freshFrom)
+      : { data: [] }
     const freshSet = new Set((freshData || []).map(r => r.symbol))
 
     const activeOnly = clean.filter(r => !freshSet.has(r.symbol))

@@ -14,11 +14,18 @@ module.exports = async (req, res) => {
     let freshBrkCount = 0
 
     if (obsDate) {
-      // Fresh EMA = golden-cross signals from the past 7 days (same window as crossovers.js)
+      // Fresh EMA = signals since the latest completed weekly candle (same anchor as crossovers.js)
+      const { data: lastCompleted } = await db.from('weekly_indicators')
+        .select('observation_date').eq('is_developing_week', false)
+        .order('observation_date', { ascending: false }).limit(1)
+      const freshFrom = lastCompleted?.[0]?.observation_date
+
       const [emaRes, brkRes] = await Promise.all([
-        db.from('signals').select('symbol')
-          .eq('strategy_name', 'ema_crossover').eq('signal_type', 'golden_cross')
-          .gte('signal_date', daysAgo(obsDate, 7)),
+        freshFrom
+          ? db.from('signals').select('symbol')
+              .eq('strategy_name', 'ema_crossover').eq('signal_type', 'golden_cross')
+              .gte('signal_date', freshFrom)
+          : Promise.resolve({ data: [] }),
         db.from('signals').select('*', { count: 'exact', head: true })
           .eq('strategy_name', 'breakout_6m')
           .gte('signal_date', daysAgo(obsDate, BRK_WINDOW_DAYS))

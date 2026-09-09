@@ -1,14 +1,21 @@
-const { db, daysAgo, getObsContext, getExcluded, fetchCmp, send, sendErr } = require('./_utils')
+const { db, getObsContext, getExcluded, fetchCmp, send, sendErr } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
     const { obsDate } = await getObsContext()
     if (!obsDate) return send(res, { obsDate: null, freshFrom: null, rows: [] })
 
-    // Fresh = golden-cross signals from the past 7 days (covers the latest completed weekly candle).
-    // Using a window instead of MAX(signal_date) prevents a single developing-week signal
-    // from hiding all completed-candle signals from the same week.
-    const freshFrom = daysAgo(obsDate, 7)
+    // Use the latest COMPLETED (non-developing) weekly candle date as the lower bound.
+    // This excludes any mid-week developing-bar signals still in the DB from before
+    // the runner.py fix, and keeps the window tight regardless of when the scanner last ran.
+    const { data: lastCompleted } = await db.from('weekly_indicators')
+      .select('observation_date')
+      .eq('is_developing_week', false)
+      .order('observation_date', { ascending: false })
+      .limit(1)
+
+    const freshFrom = lastCompleted?.[0]?.observation_date
+    if (!freshFrom) return send(res, { obsDate, freshFrom: null, rows: [] })
 
     const { data, error } = await db.from('signals')
       .select('symbol, signal_date, price, ema9, ema20, ema_difference_pct, sector, industry, stocks(name)')
@@ -20,10 +27,6 @@ module.exports = async (req, res) => {
     if (error || !data?.length) return send(res, { obsDate, freshFrom, rows: [] })
 
     const excluded = await getExcluded()
-
-    // Show ALL fresh crossovers — including those that may have briefly dipped since crossing.
-    // Do NOT filter by activeSet: if a signal fired this week it belongs in Fresh regardless
-    // of whether EMA9 > EMA20 right now.
     const filtered = data.filter(r => !excluded.has(r.symbol))
 
     const cmpMap = await fetchCmp(filtered.map(r => r.symbol))
