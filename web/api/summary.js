@@ -1,4 +1,4 @@
-const { db, daysAgo, getObsContext, getExcluded, getLatestRunStart, send, sendErr, EMA_WINDOW_DAYS, BRK_WINDOW_DAYS } = require('./_utils')
+const { db, daysAgo, getObsContext, getExcluded, getLatestRunStart, getFreshEmaSet, send, sendErr, EMA_WINDOW_DAYS, BRK_WINDOW_DAYS } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
@@ -14,15 +14,12 @@ module.exports = async (req, res) => {
     let freshBrkCount = 0
 
     if (obsDate) {
-      // Fresh EMA = golden crosses discovered by the latest completed run (same anchor as crossovers.js)
+      // Fresh EMA = cross episodes that began in the latest run — the same set
+      // crossovers.js renders, so the KPI and the tab cannot disagree.
       const runStartedAt = await getLatestRunStart()
 
-      const [emaRes, brkRes] = await Promise.all([
-        runStartedAt
-          ? db.from('signals').select('symbol')
-              .eq('strategy_name', 'ema_crossover').eq('signal_type', 'golden_cross')
-              .gte('created_at', runStartedAt)
-          : Promise.resolve({ data: [] }),
+      const [freshSet, brkRes] = await Promise.all([
+        getFreshEmaSet(runStartedAt),
         db.from('signals').select('*', { count: 'exact', head: true })
           .eq('strategy_name', 'breakout_6m')
           .gte('signal_date', daysAgo(obsDate, BRK_WINDOW_DAYS))
@@ -30,7 +27,7 @@ module.exports = async (req, res) => {
       ])
 
       const excluded = await getExcluded()
-      freshEmaCount = (emaRes.data || []).filter(r => !excluded.has(r.symbol)).length
+      freshEmaCount = [...freshSet].filter(s => !excluded.has(s)).length
       freshBrkCount = brkRes.count || 0
     }
 

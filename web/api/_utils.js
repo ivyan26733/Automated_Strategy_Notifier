@@ -67,7 +67,69 @@ async function getLatestRunStart() {
   return data?.[0]?.started_at || null
 }
 
-// Symbols with a golden cross first discovered by the latest completed run
+// Monday of the ISO week containing `date`
+function weekStart(date) {
+  const d = new Date(date)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return d.toISOString().slice(0, 10)
+}
+
+// Collapse each symbol's duplicate rows down to its current cross episode.
+//
+// A cross detected on the in-progress weekly bar re-fires on every daily run,
+// because that bar's observation_date advances each day and signal_date is part
+// of the upsert key — so one cross can leave five rows (JUNIPER: Sep 2, 3, 7, 8,
+// 9). Taken at face value those rows make a stock look newly-crossed every day,
+// so it never leaves Fresh.
+//
+// Death crosses would give exact episode boundaries, but the scanner has never
+// written one (32,758 golden crosses, 0 death crosses), so the boundary used
+// here is the week: re-fires of a single cross always land inside one week,
+// because once that week closes the strategy's `above` state suppresses further
+// signals. The episode is therefore the run of signals sharing the week of the
+// symbol's most recent signal.
+//
+// Returns Map<symbol, { start, firstSeen, price, stocks }> where `start` is the
+// true crossing date to display and `firstSeen` is when the scanner first saw it.
+async function getEpisodes(symbols) {
+  const out = new Map()
+  if (!symbols?.length) return out
+
+  const rows = (await Promise.all(mkChunks(symbols).map(chunk =>
+    db.from('signals')
+      .select('symbol, signal_date, price, created_at, stocks(name, sector, industry)')
+      .eq('strategy_name', 'ema_crossover')
+      .eq('signal_type', 'golden_cross')
+      .in('symbol', chunk)
+      .order('signal_date', { ascending: false })
+      .limit(1000)
+      .then(r => r.data || [])
+  ))).flat()
+
+  // Rows arrive newest-first, so the first row seen for a symbol is its latest.
+  for (const r of rows) {
+    const e = out.get(r.symbol)
+    if (!e) {
+      out.set(r.symbol, {
+        wk: weekStart(r.signal_date),
+        start: r.signal_date,
+        firstSeen: r.created_at,
+        price: r.price,
+        stocks: r.stocks,
+      })
+      continue
+    }
+    if (r.signal_date >= e.wk) {            // still the same week => same cross
+      if (r.signal_date < e.start) { e.start = r.signal_date; e.price = r.price }
+      if (r.created_at < e.firstSeen) e.firstSeen = r.created_at
+    }
+  }
+  return out
+}
+
+// Symbols whose current cross EPISODE began in the latest completed run.
+// Keyed on the episode's first sighting, not on any individual row, so a stock
+// that crossed on Monday and merely re-fired today is not treated as new.
 async function getFreshEmaSet(runStartedAt) {
   if (!runStartedAt) return new Set()
   const { data } = await db.from('signals')
@@ -75,7 +137,15 @@ async function getFreshEmaSet(runStartedAt) {
     .eq('strategy_name', 'ema_crossover')
     .eq('signal_type', 'golden_cross')
     .gte('created_at', runStartedAt)
-  return new Set((data || []).map(r => r.symbol))
+
+  const candidates = [...new Set((data || []).map(r => r.symbol))]
+  if (!candidates.length) return new Set()
+
+  const episodes = await getEpisodes(candidates)
+  return new Set(candidates.filter(s => {
+    const e = episodes.get(s)
+    return e && e.firstSeen >= runStartedAt
+  }))
 }
 
 // Circuit stocks + recently-listed stocks (<90 days NSE listing)
@@ -120,6 +190,6 @@ module.exports = {
   daysAgo, addDays, mkChunks,
   send, sendErr,
   getObsContext, getExcluded, fetchCmp, parseListingDate,
-  getLatestRunStart, getFreshEmaSet,
+  getLatestRunStart, getFreshEmaSet, getEpisodes, weekStart,
   EMA_WINDOW_DAYS, BRK_WINDOW_DAYS,
 }

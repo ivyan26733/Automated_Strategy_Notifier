@@ -1,43 +1,57 @@
-const { db, getObsContext, getExcluded, fetchCmp, getLatestRunStart, send, sendErr } = require('./_utils')
+const { db, getObsContext, getExcluded, fetchCmp, getLatestRunStart, getFreshEmaSet, getEpisodes, send, sendErr } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
     const { obsDate } = await getObsContext()
     if (!obsDate) return send(res, { obsDate: null, runStartedAt: null, rows: [] })
 
-    // Fresh = golden crosses this scanner run discovered for the first time.
-    // Signals already known from an earlier run keep their original created_at
-    // and therefore fall out of Fresh (into Active) as soon as the next run completes.
+    // Fresh = stocks whose cross EPISODE began in this run. Keyed on the episode
+    // rather than on any single row: a mid-week cross re-fires a new row on every
+    // daily run, so row-level created_at would keep a stock here indefinitely
+    // instead of handing it to Active on the next run.
     const runStartedAt = await getLatestRunStart()
     if (!runStartedAt) return send(res, { obsDate, runStartedAt: null, rows: [] })
 
-    const { data, error } = await db.from('signals')
-      .select('symbol, signal_date, price, ema9, ema20, ema_difference_pct, sector, industry, stocks(name)')
+    const excluded = await getExcluded()
+    const freshSet = await getFreshEmaSet(runStartedAt)
+    const symbols  = [...freshSet].filter(s => !excluded.has(s))
+    if (!symbols.length) return send(res, { obsDate, runStartedAt, rows: [] })
+
+    // Latest row per symbol carries the current EMA readings; the episode carries
+    // the true crossing date and entry price.
+    const { data } = await db.from('signals')
+      .select('symbol, ema9, ema20, ema_difference_pct, sector, industry')
       .eq('strategy_name', 'ema_crossover')
       .eq('signal_type', 'golden_cross')
+      .in('symbol', symbols)
       .gte('created_at', runStartedAt)
-      .order('ema_difference_pct', { ascending: false })
+      .order('signal_date', { ascending: false })
 
-    if (error || !data?.length) return send(res, { obsDate, runStartedAt, rows: [] })
+    const latest = {}
+    for (const r of (data || [])) if (!latest[r.symbol]) latest[r.symbol] = r
 
-    const excluded = await getExcluded()
-    const filtered = data.filter(r => !excluded.has(r.symbol))
+    const episodes = await getEpisodes(symbols)
+    const cmpMap   = await fetchCmp(symbols)
 
-    const cmpMap = await fetchCmp(filtered.map(r => r.symbol))
-
-    const rows = filtered.map(r => ({
-      symbol:             r.symbol,
-      name:               r.stocks?.name || '',
-      signal_date:        r.signal_date,
-      price:              r.price,
-      cmp:                cmpMap[r.symbol] ?? null,
-      return_pct:         (cmpMap[r.symbol] && r.price) ? (cmpMap[r.symbol] / r.price - 1) * 100 : null,
-      ema9:               r.ema9,
-      ema20:              r.ema20,
-      ema_difference_pct: r.ema_difference_pct,
-      sector:             r.sector,
-      industry:           r.industry,
-    }))
+    const rows = symbols.map(sym => {
+      const e = episodes.get(sym)
+      const l = latest[sym] || {}
+      const price = e?.price ?? null
+      const cmp = cmpMap[sym] ?? null
+      return {
+        symbol:             sym,
+        name:               e?.stocks?.name || '',
+        signal_date:        e?.start || null,
+        price,
+        cmp,
+        return_pct:         (cmp && price) ? (cmp / price - 1) * 100 : null,
+        ema9:               l.ema9 ?? null,
+        ema20:              l.ema20 ?? null,
+        ema_difference_pct: l.ema_difference_pct ?? null,
+        sector:             l.sector || e?.stocks?.sector || '',
+        industry:           l.industry || '',
+      }
+    }).sort((a, b) => (b.ema_difference_pct ?? -Infinity) - (a.ema_difference_pct ?? -Infinity))
 
     send(res, { obsDate, runStartedAt, rows })
   } catch (e) {
