@@ -156,7 +156,7 @@
 <div class="tab-panel" id="panel-research">
   <div class="panel-header">
     <span class="panel-title">Research &amp; Backtests</span>
-    <span class="panel-meta">NSE EMA Golden Cross · 973 stocks · 2016–2022 · 11,576 signals · last updated Sep 2026</span>
+    <span class="panel-meta">NSE EMA Golden Cross · 973 stocks · 2016–2022 · 6,971 W/L signals · 6-criteria selective signal · Sep 2026</span>
   </div>
 
   <div class="research-wrap">
@@ -195,11 +195,71 @@
 
       <p class="research-lead">
         The strategy scans NSE equities on <strong>weekly OHLCV data</strong> for EMA9 × EMA20 crossovers.
-        A <strong>Golden Cross (GC)</strong> — EMA9 crosses <em>above</em> EMA20 — generates a long entry signal.
-        The position is held until a <strong>Death Cross (DC)</strong> — EMA9 crosses <em>below</em> EMA20 — which is the exit.
-        The trade return (<code>return_pct</code>) is the percentage gain from GC entry price to DC exit price, capturing
-        the full duration of each trend. All analysis uses weekly candles on liquid NSE stocks with price history from 2016.
+        A <strong>Golden Cross (GC)</strong> — EMA9 crosses <em>above</em> EMA20 — generates a long entry signal;
+        a <strong>Death Cross (DC)</strong> — EMA9 crosses <em>below</em> EMA20 — is the exit.
+        As of September 2026, a GC fires only when <strong>all six criteria below are simultaneously met</strong>.
+        The first three criteria have always been enforced; the last three (ATR spread, EMA20 slope gate, volume) were
+        added after backtesting showed they improve signal quality. Fundamentals are used for <strong>ranking only</strong> —
+        they never decide whether a signal fires.
       </p>
+
+      <div class="subsection-label">Signal Selection — 6 Hard Gates (ALL must be satisfied)</div>
+      <div class="criteria-grid">
+        <div class="criteria-item">
+          <div class="criteria-num">1</div>
+          <div class="criteria-content">
+            <div class="criteria-name">EMA9 crosses above EMA20</div>
+            <div class="criteria-formula">prev_EMA9 ≤ prev_EMA20  AND  curr_EMA9 &gt; curr_EMA20</div>
+            <div class="criteria-desc">The core golden cross signal. EMA9 must have been at or below EMA20 last week and now crossed above it this week. Both EMAs computed on weekly closing prices using Wilder's exponential smoothing (alpha = 2/(period+1)).</div>
+          </div>
+          <span class="status-badge status-existing">Since V1</span>
+        </div>
+        <div class="criteria-item">
+          <div class="criteria-num">2</div>
+          <div class="criteria-content">
+            <div class="criteria-name">Fresh cross only — no re-firing while above</div>
+            <div class="criteria-formula">above_state = False when signal fires · resets when EMA9 ≤ EMA20</div>
+            <div class="criteria-desc">An <code>above</code> state variable prevents duplicate signals while EMA9 stays above EMA20. A new signal can only fire after the state has fully reset (EMA9 dropped back below EMA20 in a subsequent week).</div>
+          </div>
+          <span class="status-badge status-existing">Since V1</span>
+        </div>
+        <div class="criteria-item">
+          <div class="criteria-num">3</div>
+          <div class="criteria-content">
+            <div class="criteria-name">Completed weekly candle</div>
+            <div class="criteria-formula">is_developing = False  (signal date = observation_date of the completed week)</div>
+            <div class="criteria-desc">Signals fire only on completed weekly candles, not on intra-week (developing) data. This prevents acting on a crossover that may reverse before the week closes. Signal date is the last trading day of the crossover week.</div>
+          </div>
+          <span class="status-badge status-existing">Since V1</span>
+        </div>
+        <div class="criteria-item criteria-new">
+          <div class="criteria-num">4</div>
+          <div class="criteria-content">
+            <div class="criteria-name">EMA20 monotonically rising for 4 consecutive weeks</div>
+            <div class="criteria-formula">EMA20[i] &gt; EMA20[i−1] &gt; EMA20[i−2] &gt; EMA20[i−3] &gt; EMA20[i−4]</div>
+            <div class="criteria-desc">The medium-term trend must be actively turning up, not just flat. Strictly monotonic: every one of the 4 prior weekly EMA20 values must be lower than the next. A net increase (EMA20[i] &gt; EMA20[i−4]) without monotonicity does not pass — it catches the beginning of trend inflections, not sustained rises that may then reverse.</div>
+          </div>
+          <span class="status-badge status-new">NEW — Sep 2026</span>
+        </div>
+        <div class="criteria-item criteria-new">
+          <div class="criteria-num">5</div>
+          <div class="criteria-content">
+            <div class="criteria-name">EMA9–EMA20 spread ≥ 0.05 × ATR(14) on weekly data</div>
+            <div class="criteria-formula">(EMA9 − EMA20) ≥ 0.05 × ATR(14, weekly OHLC, Wilder's smoothing)</div>
+            <div class="criteria-desc">Filters out vanishingly thin noise crosses where EMA9 barely nudges above EMA20 with no real price separation. The threshold is ATR-scaled — not a fixed percentage — so it automatically adjusts for a stock's own volatility regime. ATR is computed using Wilder's recursive formula seeded on the first 14 true ranges. If ATR data is not yet available (fewer than 15 weekly bars), this gate is skipped.</div>
+          </div>
+          <span class="status-badge status-new">NEW — Sep 2026</span>
+        </div>
+        <div class="criteria-item criteria-new">
+          <div class="criteria-num">6</div>
+          <div class="criteria-content">
+            <div class="criteria-name">Daily volume on crossover day &gt; 20-day average daily volume</div>
+            <div class="criteria-formula">vol(obs_date) &gt; mean(vol, 20 prior trading days)  →  vol_ratio_20d &gt; 1.0</div>
+            <div class="criteria-desc">Volume on the last trading day of the crossover week must exceed the average of the preceding 20 trading days. If daily data is absent for a stock, this gate is skipped (not treated as a rejection). <strong>Counterintuitive finding:</strong> within tech-filtered signals, low-volume crosses (vol &lt; 20d avg) significantly outperformed high-volume ones in 2016–2022 — see Volume Analysis section below.</div>
+          </div>
+          <span class="status-badge status-new">NEW — Sep 2026</span>
+        </div>
+      </div>
 
       <div class="subsection-label">Signal Labels &amp; Outcome Metrics</div>
       <div class="feature-grid">
@@ -308,6 +368,114 @@
       </div>
       <p class="research-note" style="margin-top:10px">
         Phase 1 was also run on <code>ret_13w</code> across 2016–2026 (all signals including open). On that metric: composite ≥ 9 gives +7.2 pp lift, composite ≥ 10 gives +8.5 pp lift, baseline 28.8%. Numbers differ from above because ret_13w uses a fixed 13-week horizon, a different win definition, and includes 2023–2026 signals.
+      </p>
+    </div>
+
+    <!-- ── 2b. 6-Criteria Conjunction — Backtest Impact ────────── -->
+    <div class="research-section">
+      <div class="research-section-title">6-Criteria Conjunction — Backtest Impact vs Previous Strategies</div>
+
+      <p class="research-lead">
+        The conjunction (AND of all 6 hard gates) is <strong>not</strong> equivalent to the composite score filter used in previous backtests.
+        The composite score awards partial credit — a signal can score 10/12 by being excellent on three features and mediocre on the fourth.
+        The conjunction requires <em>all conditions simultaneously</em>. Since the ATR-spread criterion is not pre-computed in the historical
+        dataset, the table below uses proxies: <code>ema20_slope &gt; 0</code> ≈ criterion 4, <code>ema_diff_pct &gt; 0.5%</code> ≈ criterion 5,
+        <code>vol_ratio_20d ≥ 1.0</code> = criterion 6 exactly.
+      </p>
+
+      <div class="impl-note">
+        <strong>How to read the proxy:</strong> The proxy conjunction is an approximation — ema20_slope&gt;0 is weaker than strict monotonic 4-week rising, and ema_diff_pct&gt;0.5% is a flat percentage threshold vs the true ATR-scaled gate. Actual live signal counts will differ from the proxy. The proxy understates strictness, so actual 6-criteria signals will be fewer than 1,680.
+      </div>
+
+      <div class="cmp-wrap">
+        <table class="cmp-table">
+          <thead>
+            <tr>
+              <th style="min-width:320px">Strategy / Gate Combination</th>
+              <th class="r">Win Rate</th>
+              <th class="r">Lift</th>
+              <th class="r">N Signals</th>
+              <th class="r">Signal %</th>
+              <th class="r">Avg Return</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="strat-name">Baseline — no filter, all W/L signals</td>
+              <td class="wr">30.0%</td>
+              <td class="lift-zero">—</td>
+              <td class="mono r">6,971</td>
+              <td class="mono r">100%</td>
+              <td class="mono r">+28.5%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Gate 4 proxy: EMA20 rising (slope &gt; 0)</td>
+              <td class="wr">30.2%</td>
+              <td class="lift-pos">+0.2 pp</td>
+              <td class="mono r">6,081</td>
+              <td class="mono r">87%</td>
+              <td class="mono r">+29.5%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Gate 6: Daily vol &gt; 20-day avg (vol_ratio_20d ≥ 1.0)</td>
+              <td class="wr">31.0%</td>
+              <td class="lift-pos">+1.0 pp</td>
+              <td class="mono r">3,431</td>
+              <td class="mono r">49%</td>
+              <td class="mono r">+27.1%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Gate 5 proxy: EMA spread &gt; 0.5% (ema_diff_pct)</td>
+              <td class="wr">34.6%</td>
+              <td class="lift-pos">+4.6 pp</td>
+              <td class="mono r">3,111</td>
+              <td class="mono r">45%</td>
+              <td class="mono r">+37.0%</td>
+            </tr>
+            <tr class="conj-row">
+              <td class="strat-name">All 3 proxy gates combined (≈ criteria 4+5+6)</td>
+              <td class="wr">34.3%</td>
+              <td class="lift-pos">+4.3 pp</td>
+              <td class="mono r">1,680</td>
+              <td class="mono r">24%</td>
+              <td class="mono r">+33.2%</td>
+            </tr>
+            <tr class="conj-row">
+              <td class="strat-name">All 3 proxy gates + Tech composite ≥ 9</td>
+              <td class="wr">34.1%</td>
+              <td class="lift-pos">+4.1 pp</td>
+              <td class="mono r">994</td>
+              <td class="mono r">14%</td>
+              <td class="mono r">+33.3%</td>
+            </tr>
+            <tr class="conj-row">
+              <td class="strat-name">All 3 proxy gates + Tech composite ≥ 10</td>
+              <td class="wr">34.9%</td>
+              <td class="lift-pos">+4.9 pp</td>
+              <td class="mono r">745</td>
+              <td class="mono r">11%</td>
+              <td class="mono r">+39.0%</td>
+            </tr>
+            <tr style="opacity:.55">
+              <td class="strat-name" style="color:var(--text-3)">← Previous best: Tech ≥ 10 only (for comparison)</td>
+              <td class="wr" style="color:var(--text-3)">37.3%</td>
+              <td style="font-family:var(--font-mono);text-align:right;color:var(--text-3)">+7.3 pp</td>
+              <td class="mono r" style="color:var(--text-3)">1,174</td>
+              <td class="mono r" style="color:var(--text-3)">17%</td>
+              <td class="mono r" style="color:var(--text-3)">+45.2%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="research-note" style="margin-top:12px">
+        <strong>Key insight:</strong> The 6-criteria conjunction reduces signals to ~745 (proxy) vs 1,174 for composite ≥10, but win rate
+        drops from 37.3% to 34.9%. The conjunction and the composite score are not equivalent filters.
+        The composite score with its partial-credit model is a better predictor at the population level than a strict AND conjunction.
+        This does not mean the criteria are wrong — the new gates filter <em>signal generation</em> for quality reasons beyond predictive
+        win rate alone (e.g. filtering thin noise crosses via ATR gate; ensuring trend is genuinely turning via monotonic EMA20 rise).
+        The composite score is complementary: use the 6 criteria to select signals, then use the composite score and fundamental rank
+        to prioritize among those that pass.
       </p>
     </div>
 
@@ -514,6 +682,185 @@
       </div>
       <p class="research-note" style="margin-top:10px">
         Strategies combining hard-rejection + Tech + Fund top-half/Q produce identical results to the Tech + Fund rows above — the hard-rejection filter adds nothing on top of the technical filter in practice, because the rejected stocks rarely pass the composite ≥ 9/10 threshold to begin with.
+      </p>
+    </div>
+
+    <!-- ── 4b. Volume Factor Analysis ───────────────────────── -->
+    <div class="research-section">
+      <div class="research-section-title">Volume Factor Analysis — Counterintuitive Finding</div>
+
+      <p class="research-lead">
+        Signal criterion 6 requires the crossover day's daily volume to exceed the 20-day average — the intuition being that
+        high volume confirms smart-money participation. The backtest tells a different story.
+        Using the <strong>exact criterion measure</strong> (<code>vol_ratio_20d ≥ 1.0</code> — daily vol vs its 20-day average on the GC week),
+        low-volume signals (<code>vol_ratio_20d &lt; 1.0</code>) <em>consistently outperform</em> high-volume signals within every tech-filtered subset.
+      </p>
+
+      <div class="vol-callout">
+        <div class="vol-callout-icon">⚠</div>
+        <div>
+          <div class="vol-callout-title">Counterintuitive Finding: Low Volume Outperforms High Volume</div>
+          <div class="vol-callout-body">
+            Within tech-filtered signals (composite ≥ 10), the win rate for low-volume crosses is <strong>41.1%</strong> (+11.1 pp lift)
+            vs <strong>35.3%</strong> (+5.3 pp) for high-volume crosses — a 5.8 pp gap favoring LOW volume.
+            This pattern holds in 5 of 7 individual years, with the largest gap in 2017 (44.2% low vol vs 27.4% high vol).
+            Criterion 6 as currently specified (vol &gt; 20d avg) filters <em>in</em> the weaker signals and filters <em>out</em> the stronger ones.
+            This criterion is implemented as specified; the data is shown here so the team can decide whether to revise it.
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-label">Win Rate by Volume Level — vol_ratio_20d (absolute threshold ≥ 1.0)</div>
+      <div class="cmp-wrap">
+        <table class="cmp-table">
+          <thead>
+            <tr>
+              <th style="min-width:320px">Strategy</th>
+              <th class="r">Win Rate</th>
+              <th class="r">Lift</th>
+              <th class="r">N Signals</th>
+              <th class="r">Avg Return</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="strat-name">Baseline — all W/L signals</td>
+              <td class="wr">30.0%</td>
+              <td class="lift-zero">—</td>
+              <td class="mono r">6,971</td>
+              <td class="mono r">+28.5%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">High volume only (vol_ratio_20d ≥ 1.0)</td>
+              <td class="wr">31.0%</td>
+              <td class="lift-pos">+1.0 pp</td>
+              <td class="mono r">3,431</td>
+              <td class="mono r">+27.1%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Low volume only (vol_ratio_20d &lt; 1.0)</td>
+              <td class="wr">29.1%</td>
+              <td class="lift-neg">−0.9 pp</td>
+              <td class="mono r">3,539</td>
+              <td class="mono r">+29.8%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Tech ≥ 9, all volume</td>
+              <td class="wr">35.9%</td>
+              <td class="lift-pos">+5.9 pp</td>
+              <td class="mono r">1,759</td>
+              <td class="mono r">+40.3%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Tech ≥ 9 + high vol (≥ 1.0)</td>
+              <td class="wr">34.1%</td>
+              <td class="lift-pos">+4.1 pp</td>
+              <td class="mono r">1,045</td>
+              <td class="mono r">+32.6%</td>
+            </tr>
+            <tr class="best-row">
+              <td class="strat-name">Tech ≥ 9 + low vol (&lt; 1.0) — best in this tier</td>
+              <td class="wr">38.7%</td>
+              <td class="lift-pos">+8.7 pp</td>
+              <td class="mono r">713</td>
+              <td class="mono r" style="color:var(--green)">+51.9%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Tech ≥ 10, all volume</td>
+              <td class="wr">37.3%</td>
+              <td class="lift-pos">+7.3 pp</td>
+              <td class="mono r">1,174</td>
+              <td class="mono r">+45.2%</td>
+            </tr>
+            <tr>
+              <td class="strat-name">Tech ≥ 10 + high vol (≥ 1.0)</td>
+              <td class="wr">35.3%</td>
+              <td class="lift-pos">+5.3 pp</td>
+              <td class="mono r">759</td>
+              <td class="mono r">+39.4%</td>
+            </tr>
+            <tr class="best-row">
+              <td class="strat-name">Tech ≥ 10 + low vol (&lt; 1.0) — overall best</td>
+              <td class="wr">41.1%</td>
+              <td class="lift-pos">+11.1 pp</td>
+              <td class="mono r">414</td>
+              <td class="mono r" style="color:var(--green)">+56.0%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection-label" style="margin-top:24px">Year-by-Year: Tech ≥ 9 Split by vol_ratio_20d Threshold (≥ 1.0 = high, &lt; 1.0 = low)</div>
+      <div class="cmp-wrap">
+        <table class="yr-table">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Baseline</th>
+              <th>Tech ≥ 9 (all vol)</th>
+              <th>Tech ≥ 9 + High Vol ≥ 1.0</th>
+              <th>Tech ≥ 9 + Low Vol &lt; 1.0</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="yr-label">2016</td>
+              <td class="wr-base">39.9% <span style="font-size:11px;color:var(--text-4)">(1,061)</span></td>
+              <td class="wr-high">41.6% <span style="font-size:11px;color:var(--text-4)">(113)</span></td>
+              <td class="wr-high">42.4% <span style="font-size:11px;color:var(--text-4)">(n=66)</span></td>
+              <td class="wr-high">40.4% <span style="font-size:11px;color:var(--text-4)">(n=47)</span></td>
+            </tr>
+            <tr>
+              <td class="yr-label">2017</td>
+              <td class="wr-base">33.8% <span style="font-size:11px;color:var(--text-4)">(1,074)</span></td>
+              <td class="wr-mid">33.4% <span style="font-size:11px;color:var(--text-4)">(290)</span></td>
+              <td class="wr-low">27.4% <span style="font-size:11px;color:var(--text-4)">(n=186)</span></td>
+              <td class="wr-high">44.2% <span style="font-size:11px;color:var(--text-4)">(n=104)</span></td>
+            </tr>
+            <tr>
+              <td class="yr-label">2018</td>
+              <td class="wr-base">7.2% <span style="font-size:11px;color:var(--text-4)">(671)</span></td>
+              <td class="wr-low">10.3% <span style="font-size:11px;color:var(--text-4)">(155)</span></td>
+              <td class="wr-low">9.7% <span style="font-size:11px;color:var(--text-4)">(n=93)</span></td>
+              <td class="wr-low">11.3% <span style="font-size:11px;color:var(--text-4)">(n=62)</span></td>
+            </tr>
+            <tr>
+              <td class="yr-label">2019</td>
+              <td class="wr-base">6.0% <span style="font-size:11px;color:var(--text-4)">(945)</span></td>
+              <td class="wr-low">7.9% <span style="font-size:11px;color:var(--text-4)">(203)</span></td>
+              <td class="wr-low">7.8% <span style="font-size:11px;color:var(--text-4)">(n=102)</span></td>
+              <td class="wr-low">7.9% <span style="font-size:11px;color:var(--text-4)">(n=101)</span></td>
+            </tr>
+            <tr>
+              <td class="yr-label">2020</td>
+              <td class="wr-base">49.4% <span style="font-size:11px;color:var(--text-4)">(1,536)</span></td>
+              <td class="wr-high">54.9% <span style="font-size:11px;color:var(--text-4)">(619)</span></td>
+              <td class="wr-high">52.8% <span style="font-size:11px;color:var(--text-4)">(n=352)</span></td>
+              <td class="wr-high">57.9% <span style="font-size:11px;color:var(--text-4)">(n=266)</span></td>
+            </tr>
+            <tr>
+              <td class="yr-label">2021</td>
+              <td class="wr-base">36.0% <span style="font-size:11px;color:var(--text-4)">(503)</span></td>
+              <td class="wr-mid">38.8% <span style="font-size:11px;color:var(--text-4)">(129)</span></td>
+              <td class="wr-mid">38.5% <span style="font-size:11px;color:var(--text-4)">(n=96)</span></td>
+              <td class="wr-mid">39.4% <span style="font-size:11px;color:var(--text-4)">(n=33)</span></td>
+            </tr>
+            <tr>
+              <td class="yr-label">2022</td>
+              <td class="wr-base">22.1% <span style="font-size:11px;color:var(--text-4)">(1,181)</span></td>
+              <td class="wr-low">26.4% <span style="font-size:11px;color:var(--text-4)">(250)</span></td>
+              <td class="wr-low">24.7% <span style="font-size:11px;color:var(--text-4)">(n=150)</span></td>
+              <td class="wr-mid">29.0% <span style="font-size:11px;color:var(--text-4)">(n=100)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="research-note" style="margin-top:10px">
+        Low-volume outperforms high-volume in 5 of 7 years. The largest reversal is 2017: high vol 27.4% vs low vol 44.2% — a 16.8 pp gap.
+        2019 is the one year where they tie (7.8% vs 7.9%). The finding is consistent enough across years to be structural, not a single-year fluke.
+        <strong>Possible interpretation:</strong> within stocks that already pass the technical composite filter, crosses occurring on
+        <em>relatively quiet</em> volume may represent gradual institutional accumulation, while high-volume crosses may reflect retail
+        momentum-chasing after the move is already partially priced in.
       </p>
     </div>
 
@@ -836,6 +1183,16 @@
           <div class="finding-stat">Known Gap</div>
           <div class="finding-text">Some stocks with high fundamental scores (e.g. CASTROLIND: score=68, ROCE=63%) are structural GC losers due to their long-term price pattern generating repeated false crossovers. A stock blacklist mechanism is designed but not yet implemented in the live scanner.</div>
         </div>
+        <div class="finding finding-warn">
+          <div class="finding-label">Volume Gate Inverts Expected Result</div>
+          <div class="finding-stat">−5.8 pp</div>
+          <div class="finding-text">Criterion 6 (vol &gt; 20d avg) was hypothesized to improve signal quality by confirming momentum. In practice, within tech-filtered (composite ≥ 10) signals, the high-volume subset achieves 35.3% WR vs 41.1% for the low-volume subset — a 5.8 pp penalty from enforcing the volume gate. The pattern holds in 5 of 7 years. The criterion is implemented as specified and the decision to keep, revise, or remove it rests with the team. If reversed (require vol &lt; 20d avg), the best configuration becomes Tech ≥ 10 + low vol at 41.1% (+11.1 pp).</div>
+        </div>
+        <div class="finding finding-info">
+          <div class="finding-label">6-Criteria Signal — Live Since Sep 2026</div>
+          <div class="finding-stat">3 new gates</div>
+          <div class="finding-text">The scanner now enforces all 6 signal selection criteria. The three new gates added in Sep 2026 are: (4) EMA20 monotonically rising for 4 consecutive weeks; (5) EMA9–EMA20 spread ≥ 0.05 × ATR(14) — ATR-scaled to the stock's own volatility; (6) daily volume on crossover day &gt; 20-day average. These run as hard gates in signal generation — not scoring features. The composite score and fundamental rank are still applied for prioritization <em>after</em> a signal fires.</div>
+        </div>
       </div>
     </div>
 
@@ -844,6 +1201,13 @@
       <div class="research-section-title">Data Gaps &amp; Known Limitations</div>
 
       <ul class="gap-list">
+        <li class="gap-item gap-done">
+          <span class="gap-icon">✓</span>
+          <div>
+            <span class="gap-title">Signal Criteria 2–4 — EMA20 Slope Gate, ATR Spread Gate, Volume Gate — Now Implemented</span>
+            <span class="gap-desc">Previously only 3 of 6 signal criteria were enforced. As of September 2026, the scanner implements all six: (4) EMA20 monotonically rising for 4 weeks — strict monotonic check at generation time; (5) EMA9–EMA20 spread ≥ 0.05 × ATR(14) computed with Wilder's smoothing on weekly OHLC data; (6) daily volume on obs_date &gt; 20-day average daily volume, with graceful skip if daily data is absent. These are hard gates in signal generation, not post-hoc filters.</span>
+          </div>
+        </li>
         <li class="gap-item">
           <span class="gap-icon">⚠</span>
           <div>

@@ -661,3 +661,69 @@ th.star-col:hover { color: var(--text-3) !important; }
   .stat-chip         { min-width: 110px; padding: 12px 14px; }
   .stat-chip-val     { font-size: 19px; }
 }
+
+/* ── 6-Criteria grid ─────────────────────────────────────────────── */
+.criteria-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+.criteria-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; background: var(--muted-bg);
+}
+.criteria-item.criteria-new { border-color: var(--blue-bd); background: var(--blue-bg); }
+.criteria-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  background: var(--card); border: 2px solid var(--border-md); color: var(--text);
+}
+.criteria-new .criteria-num { border-color: var(--blue); color: var(--blue); background: var(--card); }
+.criteria-content { flex: 1; min-width: 0; }
+.criteria-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.criteria-formula {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-3);
+  background: var(--page); border: 1px solid var(--border);
+  padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;
+}
+.criteria-desc { font-size: 12px; color: var(--text-2); line-height: 1.65; }
+
+/* Status badges */
+.status-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; padding: 3px 9px; border-radius: 20px;
+  white-space: nowrap; flex-shrink: 0; align-self: flex-start; margin-top: 2px;
+}
+.status-existing { background: var(--muted-bg); color: var(--text-4); border: 1px solid var(--border); }
+.status-new      { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--blue-bd); }
+
+/* Volume counterintuitive callout */
+.vol-callout {
+  border: 2px solid var(--amber-bd); border-radius: var(--radius);
+  background: var(--amber-bg); padding: 14px 18px; margin: 16px 0;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.vol-callout-icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+.vol-callout-title { font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 5px; }
+.vol-callout-body { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+
+/* Implementation note */
+.impl-note {
+  border-left: 3px solid var(--blue); background: var(--blue-bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 12px 16px; margin: 14px 0;
+  font-size: 12px; color: var(--text-2); line-height: 1.65;
+}
+.impl-note strong { color: var(--text); font-weight: 600; }
+
+/* Conjunction proxy row (dimmed, different from best) */
+.cmp-table tbody tr.conj-row { background: var(--blue-bg) !important; }
+.cmp-table tbody tr.conj-row td.strat-name { color: var(--blue); }
+
+/* Gap items that are now resolved */
+.gap-item.gap-done { border-color: var(--green-bd); background: var(--green-bg); }
+.gap-item.gap-done .gap-icon { filter: grayscale(1) opacity(.5); }
+.gap-item.gap-done .gap-title { color: var(--green); }
+
+@media (max-width: 640px) {
+  .criteria-item { flex-wrap: wrap; }
+  .criteria-num  { width: 24px; height: 24px; font-size: 11px; }
+}
