@@ -183,7 +183,7 @@ h5, h6 { font-size: 1.125rem; }
 .header-left { display: flex; align-items: center; gap: 10px; }
 .brand-icon {
   width: 34px; height: 34px; border-radius: 8px;
-  background: var(--blue); display: flex; align-items: center; justify-content: center;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
   font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #fff; letter-spacing: -.5px;
 }
 .brand-name { font-family: var(--font-head); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
@@ -242,7 +242,7 @@ h5, h6 { font-size: 1.125rem; }
   flex-shrink: 0;
 }
 .tab-btn:hover { color: var(--text-2); }
-.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+.tab-btn.active { color: var(--accent-text); border-bottom-color: var(--accent); font-weight: 700; }
 
 /* ── Panels ──────────────────────────────────────────────────────── */
 .tab-panel { display: none; }
@@ -266,19 +266,24 @@ h5, h6 { font-size: 1.125rem; }
 .filter-input, .filter-select {
   font-family: var(--font-ui); font-size: 14px; color: var(--text);
   background: var(--card); border: 1px solid var(--border-md);
-  border-radius: var(--radius-sm); padding: 8px 12px; outline: none;
+  border-radius: var(--radius-pill); padding: 8px 16px; outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
 .filter-input:focus, .filter-select:focus {
-  border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg);
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg);
 }
 .filter-select {
   appearance: none; padding-right: 30px; cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B7280'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 10px center;
 }
-.btn { border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; padding: 8px 18px; transition: opacity .15s; }
-.btn-primary { background: var(--blue); color: #fff; }
+.btn {
+  border-radius: var(--radius-pill); font-size: 14px; font-weight: 700;
+  padding: 9px 22px; transition: background-color .15s, opacity .15s;
+  font-family: var(--font-head); letter-spacing: .01em;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); opacity: 1; }
 .btn-secondary { background: var(--card); color: var(--text-2); border: 1px solid var(--border-md); }
 .btn:hover { opacity: .85; }
 
@@ -334,8 +339,8 @@ td.muted { color: var(--text-4); font-size: 13px; }
 /* ── Badges ──────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
-  letter-spacing: .03em; white-space: nowrap;
+  padding: 3px 11px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700;
+  letter-spacing: .04em; white-space: nowrap;
 }
 .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
 .badge-red   { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd);  }
@@ -425,7 +430,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 .perf-period-btn {
   padding: 5px 16px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border-md);
   background: var(--muted-bg);
   color: var(--text-2);
@@ -434,10 +439,10 @@ th.star-col:hover { color: var(--text-3) !important; }
   font-family: var(--font-ui);
 }
 .perf-period-btn:hover {
-  border-color: var(--blue); color: var(--blue); background: var(--blue-bg);
+  border-color: var(--accent); color: var(--accent-text); background: var(--accent-bg);
 }
 .perf-period-btn.active {
-  background: var(--blue); color: #fff; border-color: var(--blue);
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
 
 /* ── Perf Summary (Crossover Returns tab) ────────────────────────── */
@@ -494,12 +499,12 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 
 /* ── Research Tab ────────────────────────────────────────────────── */
-.research-wrap { padding: 0 0 56px; }
+.research-wrap { padding: 0 0 72px; }
 
 .research-section {
-  padding: 30px 26px 36px;
+  padding: 52px 34px 56px;
   background: var(--card);
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .research-section-title {
@@ -513,8 +518,8 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 
 .research-lead {
-  font-size: 15px; line-height: 1.8; color: var(--text-2);
-  max-width: 900px; margin-bottom: 22px;
+  font-size: 16px; line-height: 1.8; color: var(--text-2);
+  max-width: 68ch; margin-bottom: 28px;
 }
 .research-lead strong { color: var(--text); font-weight: 600; }
 .research-lead code {
@@ -714,7 +719,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 
 /* Mobile */
 @media (max-width: 640px) {
-  .research-section  { padding: 20px 16px; }
+  .research-section  { padding: 34px 18px 38px; }
   .findings-grid     { grid-template-columns: 1fr; }
   .feature-grid      { grid-template-columns: 1fr; }
   .score-sections    { grid-template-columns: repeat(2, 1fr); }
@@ -790,22 +795,22 @@ th.star-col:hover { color: var(--text-3) !important; }
 
 /* ── Formula Sheet ────────────────────────────────────────────────── */
 .formula-wrap {
-  max-width: 960px; margin: 24px auto; padding: 0 20px 48px;
+  max-width: 1140px; margin: 32px auto; padding: 0 24px 64px;
 }
 
 .formula-nav {
-  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px;
 }
 .formula-nav-btn {
-  padding: 6px 16px; border-radius: 20px;
-  font-size: 12px; font-weight: 600;
+  padding: 7px 18px; border-radius: var(--radius-pill);
+  font-size: 13px; font-weight: 600;
   background: var(--muted-bg); color: var(--text-3);
   border: 1px solid var(--border); cursor: pointer;
   transition: all .15s;
 }
 .formula-nav-btn:hover { color: var(--text-2); border-color: var(--border-md); }
 .formula-nav-btn.active {
-  background: var(--blue); color: #fff; border-color: var(--blue);
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
 
 .formula-section { display: none; }
