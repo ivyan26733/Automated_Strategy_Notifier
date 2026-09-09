@@ -577,8 +577,14 @@
         All strategies tested on the same 6,971 winner/loser signals from 2016–2022 closed GC events across 973 NSE stocks. <strong>Win rate</strong> = fraction with return_pct ≥ 10%. <strong>Lift</strong> = win rate minus the 30.0% no-filter baseline. <strong>Average return</strong> is the equal-weight mean GC→DC return (right-skewed by multi-bagger winners, which drives mean well above median).
       </p>
 
+      <figure class="chart-box" id="chartbox-variants">
+        <figcaption class="chart-title">Win rate by strategy variant</figcaption>
+        <div class="chart-canvas-wrap chart-tall"><canvas id="chart-variants"></canvas></div>
+        <figcaption class="chart-note">Dashed line marks the 30.0% no-filter baseline. Bars right of it beat the baseline; length of the bar is the win rate, not the lift.</figcaption>
+      </figure>
+
       <div class="cmp-wrap">
-        <table class="cmp-table">
+        <table class="cmp-table" id="tbl-variants">
           <thead>
             <tr>
               <th style="min-width:310px">Strategy</th>
@@ -697,8 +703,15 @@
       </div>
 
       <div class="subsection-label">Win Rate by Volume Level — vol_ratio_20d (absolute threshold ≥ 1.0)</div>
+
+      <figure class="chart-box" id="chartbox-volume">
+        <figcaption class="chart-title">Win rate by volume level</figcaption>
+        <div class="chart-canvas-wrap"><canvas id="chart-volume"></canvas></div>
+        <figcaption class="chart-note">Low-volume bars sitting above their high-volume counterparts is the counterintuitive result: within tech-filtered signals, quieter volume outperformed.</figcaption>
+      </figure>
+
       <div class="cmp-wrap">
-        <table class="cmp-table">
+        <table class="cmp-table" id="tbl-volume">
           <thead>
             <tr>
               <th style="min-width:320px">Strategy</th>
@@ -858,8 +871,14 @@
         Win rate by calendar year of GC entry date. 2018 and 2019 were structurally weak market years (IL&amp;FS crisis, NBFC liquidity squeeze, election uncertainty — many midcaps fell 40–70%). 2020 was anomalously strong (post-COVID V-shaped bounce drove a large number of EMA crossovers). The combined strategy's largest absolute alpha over baseline appears in <strong>2022 (+16.6 pp) and 2019 (+7.3 pp)</strong> — distressed market conditions where fundamental quality most differentiates survivors from laggards.
       </p>
 
+      <figure class="chart-box" id="chartbox-years">
+        <figcaption class="chart-title">Win rate by entry year</figcaption>
+        <div class="chart-canvas-wrap chart-mid"><canvas id="chart-years"></canvas></div>
+        <figcaption class="chart-note">Every strategy tracks the market regime — 2018/2019 are weak across the board, 2020 strong. Filters add alpha within a year; they do not escape the year.</figcaption>
+      </figure>
+
       <div class="cmp-wrap">
-        <table class="yr-table">
+        <table class="yr-table" id="tbl-years">
           <thead>
             <tr>
               <th>Year</th>
@@ -1061,8 +1080,14 @@
         GC→DC returns are highly right-skewed: the <strong>median is negative</strong> (most trades lose money or barely break even, because many GC signals are false starts that exit quickly at a small loss), while the <strong>mean is strongly positive</strong> because winning trades can return 100–500%+ while losers are typically capped at −15 to −25% (the death cross cuts the position before catastrophic loss). The practical metric is <strong>expectancy = P(win) × avg_winner_return + P(loss) × avg_loser_return</strong>.
       </p>
 
+      <figure class="chart-box" id="chartbox-distribution">
+        <figcaption class="chart-title">Return distribution by percentile</figcaption>
+        <div class="chart-canvas-wrap chart-mid"><canvas id="chart-distribution"></canvas></div>
+        <figcaption class="chart-note">Q10 → Q90 spread per strategy. Filtering lifts the upper percentiles far more than it lifts the median — the edge comes from fatter winners, not fewer losers.</figcaption>
+      </figure>
+
       <div class="cmp-wrap">
-        <table class="cmp-table">
+        <table class="cmp-table" id="tbl-distribution">
           <thead>
             <tr>
               <th>Strategy</th>
@@ -1543,6 +1568,8 @@ Data source: daily (not weekly) volume series</code>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="charts.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -261,6 +261,18 @@ async function loadPerfTab() {
       <div class="perf-kpi-sub">${k.nPos} of ${k.withRetCount} profitable · ${periodLabel}</div>
     </div>
   </div>
+  <div id="chartbox-returns" class="chart-grid">
+    <figure class="chart-box">
+      <figcaption class="chart-title">Where the returns land</figcaption>
+      <div class="chart-canvas-wrap"><canvas id="chart-returns-dist"></canvas></div>
+      <figcaption class="chart-note">Each bar counts trades in that return band. End bands are overflow buckets — GC→DC returns are right-skewed, so a linear axis would hide the shape.</figcaption>
+    </figure>
+    <figure class="chart-box">
+      <figcaption class="chart-title">Median return by sector</figcaption>
+      <div class="chart-canvas-wrap"><canvas id="chart-returns-sector"></canvas></div>
+      <figcaption class="chart-note">Median, not average — one multi-bagger can drag a sector mean into the thousands of percent. Sectors with at least 5 trades only; sample size is in each label.</figcaption>
+    </figure>
+  </div>
   <div id="perf-table-wrap"></div>`
 
   const cols = [
@@ -279,6 +291,7 @@ async function loadPerfTab() {
     { label: 'Sector',      key: 'sector',      cls: 'muted',    fmt: v => esc(v) },
   ]
   renderTable(el('perf-table-wrap'), 'perf', cols, d.trades.map(r => ({ ...r, _star: r.symbol })))
+  window.NSECharts?.renderReturnsCharts(d.trades)
 }
 
 // ── Watchlist Tab ─────────────────────────────────────────────────
@@ -404,7 +417,7 @@ const loaders = {
   history:    () => loadHistoryTab(true),
   perf:       loadPerfTab,
   watchlist:  loadWatchlistTab,
-  research:   () => {},
+  research:   () => window.NSECharts?.initResearchCharts(),
   formulas:   initFormulaNav,
 }
 

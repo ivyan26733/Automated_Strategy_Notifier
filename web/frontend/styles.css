@@ -849,3 +849,53 @@ th.star-col:hover { color: var(--text-3) !important; }
   .formula-card { grid-template-columns: 1fr; }
   .formula-card-num { display: none; }
 }
+
+/* ── Charts ───────────────────────────────────────────────────────
+   Every chart restates a table that is already on the page. If Chart.js
+   fails to load the canvas simply stays empty and the table carries the
+   data, so nothing here is load-bearing. */
+.chart-box {
+  margin: 0 0 22px;
+  padding: 16px 18px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.chart-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-1, var(--text-2));
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+.chart-note {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-3);
+  margin-top: 10px;
+  max-width: 78ch;
+}
+.chart-canvas-wrap {
+  position: relative;
+  height: 260px;
+  margin-top: 12px;
+}
+.chart-canvas-wrap.chart-mid  { height: 330px; }
+.chart-canvas-wrap.chart-tall { height: 420px; }
+.chart-canvas-wrap canvas { display: block; width: 100% !important; }
+
+/* Returns tab: two charts side by side on wide screens */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.chart-grid .chart-box { margin-bottom: 0; }
+
+@media (max-width: 720px) {
+  .chart-canvas-wrap       { height: 300px; }
+  .chart-canvas-wrap.chart-mid,
+  .chart-canvas-wrap.chart-tall { height: 380px; }
+  .chart-box { padding: 14px 12px 12px; }
+}
