@@ -212,11 +212,11 @@
         <div class="criteria-item">
           <div class="criteria-num">3</div>
           <div class="criteria-content">
-            <div class="criteria-name">Completed weekly candle</div>
-            <div class="criteria-formula">is_developing = False  (signal date = observation_date of the completed week)</div>
-            <div class="criteria-desc">Signals fire only on completed weekly candles, not on intra-week (developing) data. This prevents acting on a crossover that may reverse before the week closes. Signal date is the last trading day of the crossover week.</div>
+            <div class="criteria-name">Weekly candle (developing bar included)</div>
+            <div class="criteria-formula">signal date = observation_date of the latest weekly bar, including the in-progress week</div>
+            <div class="criteria-desc">The scanner evaluates the crossover on the current weekly bar even while that week is still open, so a cross is surfaced on the day it happens rather than after Friday's close. <strong>Trade-off:</strong> these signals can repaint — a cross detected mid-week may fall back below EMA20 before the week closes, in which case it was never a confirmed weekly golden cross. Such a stock leaves the Active EMA tab once EMA9 drops back under EMA20.</div>
           </div>
-          <span class="status-badge status-existing">Since V1</span>
+          <span class="status-badge status-new">Changed Sep 2026</span>
         </div>
         <div class="criteria-item criteria-new">
           <div class="criteria-num">4</div>
@@ -1288,10 +1288,10 @@
         <div class="formula-card">
           <div class="formula-card-num">3</div>
           <div class="formula-card-body">
-            <div class="formula-card-name">Completed Weekly Candle <span class="fc-badge fc-v1">Since V1</span></div>
-            <code class="formula-block">is_developing_week = False
-(i.e. the weekly bar is fully closed — not a partial in-progress bar)</code>
-            <div class="formula-note">Prevents mid-week false signals. The scanner marks the current partial bar as "developing" and never fires on it.</div>
+            <div class="formula-card-name">Weekly Candle — Developing Bar Included <span class="fc-badge fc-new">Changed Sep 2026</span></div>
+            <code class="formula-block">signal_date = observation_date of the latest weekly bar
+(the in-progress week is evaluated, not skipped)</code>
+            <div class="formula-note">Surfaces a crossover on the day it occurs, so Fresh Crossovers populates daily. <strong>Caveat:</strong> mid-week signals can repaint — a cross on Tuesday may fall back below EMA20 by Friday's close, meaning it never became a confirmed weekly golden cross.</div>
           </div>
         </div>
 

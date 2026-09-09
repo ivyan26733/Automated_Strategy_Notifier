@@ -90,17 +90,23 @@ def _process_stock(stock: Stock) -> tuple[list[Signal], dict[str, Any] | None, s
             "is_developing_week": bool(last["is_developing"]),
         }
 
-    # Run strategies on completed weeks only — the developing (partial) bar must not
-    # trigger signals because signal_date would be today, not a closed candle.
+    # Run strategies on the full weekly series INCLUDING the developing (partial) bar.
+    # This is a deliberate choice: it surfaces a cross on the day it happens, so the
+    # Fresh Crossovers tab populates daily rather than once a week.
+    #
+    # Trade-off — these signals can repaint: a cross detected mid-week can fall back
+    # below EMA20 before Friday's close, so it was never a confirmed weekly golden
+    # cross. Such a stock leaves the Active EMA tab when ema_difference goes negative.
+    # Passing `weekly[~weekly["is_developing"]]` here restores completed-candle-only
+    # behaviour (criterion 3) at the cost of weekly-only signals.
     signals: list[Signal] = []
-    completed_weekly = weekly[~weekly["is_developing"]]
     for strategy in _STRATEGIES_EMA:
         signals.extend(strategy.generate_signals(
-            stock.symbol, completed_weekly, stock.sector, stock.industry, daily=daily
+            stock.symbol, weekly, stock.sector, stock.industry, daily=daily
         ))
     for strategy in _STRATEGIES_BREAKOUT:
         signals.extend(strategy.generate_signals(
-            stock.symbol, completed_weekly, stock.sector, stock.industry, daily=daily
+            stock.symbol, weekly, stock.sector, stock.industry, daily=daily
         ))
 
     return signals, indicator, None
