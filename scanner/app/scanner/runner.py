@@ -94,7 +94,7 @@ def _process_stock(stock: Stock) -> tuple[list[Signal], dict[str, Any] | None, s
     signals: list[Signal] = []
     for strategy in _STRATEGIES_EMA:
         signals.extend(strategy.generate_signals(
-            stock.symbol, weekly, stock.sector, stock.industry
+            stock.symbol, weekly, stock.sector, stock.industry, daily=daily
         ))
     for strategy in _STRATEGIES_BREAKOUT:
         signals.extend(strategy.generate_signals(
