@@ -79,11 +79,11 @@ async function loadCrossoverTab() {
 
   const d = await apiFetch('/api/crossovers')
   if (!d.rows?.length) {
-    empty(container, 'No EMA crossovers in the last 4 weeks.', 'The scanner will populate this after daily runs.')
+    empty(container, 'No EMA crossovers in the last 7 days.', 'No new golden crosses detected in the latest weekly candle.')
     return
   }
 
-  el('meta-crossovers').textContent = `Fresh Golden Crosses · Scanner run ${fmt.date(d.freshDate)} · Still active (EMA9 > EMA20)`
+  el('meta-crossovers').textContent = `Fresh Golden Crosses · signals since ${fmt.date(d.freshFrom)} · new from this week's completed candle`
 
   const cols = [
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },
@@ -143,14 +143,12 @@ async function loadActiveTab() {
     return
   }
 
-  const freshCount = d.rows.filter(r => r.is_fresh).length
-  el('meta-active').textContent = `${d.activeCount} stocks above EMA9 > EMA20 · ${freshCount} fresh from latest scan · as of ${fmt.date(d.obsDate)}`
+  el('meta-active').textContent = `${d.activeCount} stocks above EMA9 > EMA20 · holding position · as of ${fmt.date(d.obsDate)}`
 
   const cols = [
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },
     { label: 'Symbol',       key: 'symbol',            cls: 'sym',      fmt: v => esc(v) },
     { label: 'Name',         key: 'name',              cls: 'name',     fmt: v => esc(v) },
-    { label: 'Status',       key: 'is_fresh',          cls: '',         fmt: v => v ? '<span class="badge badge-green">Fresh</span>' : '<span class="badge badge-blue">Active</span>' },
     { label: 'Cross Date',   key: 'signal_date',       cls: 'mono',     fmt: v => fmt.date(v) },
     { label: 'Held',         key: 'signal_date',       cls: 'mono',     fmt: v => fmt.days(v) },
     { label: 'Signal Price', key: 'signal_price',      cls: 'num r',    fmt: v => fmt.price(v) },

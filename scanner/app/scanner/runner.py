@@ -90,15 +90,17 @@ def _process_stock(stock: Stock) -> tuple[list[Signal], dict[str, Any] | None, s
             "is_developing_week": bool(last["is_developing"]),
         }
 
-    # Run strategies
+    # Run strategies on completed weeks only — the developing (partial) bar must not
+    # trigger signals because signal_date would be today, not a closed candle.
     signals: list[Signal] = []
+    completed_weekly = weekly[~weekly["is_developing"]]
     for strategy in _STRATEGIES_EMA:
         signals.extend(strategy.generate_signals(
-            stock.symbol, weekly, stock.sector, stock.industry, daily=daily
+            stock.symbol, completed_weekly, stock.sector, stock.industry, daily=daily
         ))
     for strategy in _STRATEGIES_BREAKOUT:
         signals.extend(strategy.generate_signals(
-            stock.symbol, weekly, stock.sector, stock.industry, daily=daily
+            stock.symbol, completed_weekly, stock.sector, stock.industry, daily=daily
         ))
 
     return signals, indicator, None

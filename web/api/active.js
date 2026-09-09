@@ -24,7 +24,18 @@ module.exports = async (req, res) => {
     // Exclude circuit + recently-listed
     const excluded = await getExcluded()
     const clean = inds.filter(r => !excluded.has(r.symbol))
-    clean.sort((a, b) => (b.ema_difference_pct ?? 0) - (a.ema_difference_pct ?? 0))
+
+    // Exclude stocks that fired a fresh crossover this week — they belong in Fresh Crossovers tab.
+    // On the next scanner run (after their first completed week), they move here automatically.
+    const { data: freshData } = await db.from('signals')
+      .select('symbol')
+      .eq('strategy_name', 'ema_crossover')
+      .eq('signal_type', 'golden_cross')
+      .gte('signal_date', daysAgo(obsDate, 7))
+    const freshSet = new Set((freshData || []).map(r => r.symbol))
+
+    const activeOnly = clean.filter(r => !freshSet.has(r.symbol))
+    activeOnly.sort((a, b) => (b.ema_difference_pct ?? 0) - (a.ema_difference_pct ?? 0))
 
     // Latest golden-cross signal per symbol in the last 2 years
     const { data: sigs } = await db.from('signals')
@@ -37,16 +48,7 @@ module.exports = async (req, res) => {
     const sigMap = {}
     for (const s of (sigs || [])) { if (!sigMap[s.symbol]) sigMap[s.symbol] = s }
 
-    // Also get the fresh scan date so the frontend can distinguish fresh vs older
-    const { data: latestRow } = await db.from('signals')
-      .select('signal_date')
-      .eq('strategy_name', 'ema_crossover')
-      .eq('signal_type', 'golden_cross')
-      .order('signal_date', { ascending: false })
-      .limit(1)
-    const freshDate = latestRow?.[0]?.signal_date
-
-    const rows = clean.map(ind => {
+    const rows = activeOnly.map(ind => {
       const sig = sigMap[ind.symbol] || {}
       const sigPrice = sig.price ?? null
       const cmp = ind.weekly_close
@@ -61,11 +63,10 @@ module.exports = async (req, res) => {
         ema20:              ind.ema20,
         ema_difference_pct: ind.ema_difference_pct,
         sector:             sig.stocks?.sector || '',
-        is_fresh:           sig.signal_date === freshDate,
       }
     })
 
-    send(res, { obsDate, freshDate, activeCount: clean.length, rows })
+    send(res, { obsDate, activeCount: activeOnly.length, rows })
   } catch (e) {
     sendErr(res, e.message)
   }

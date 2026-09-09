@@ -14,21 +14,11 @@ module.exports = async (req, res) => {
     let freshBrkCount = 0
 
     if (obsDate) {
-      // Get latest scan date for EMA crossovers
-      const { data: latestRow } = await db.from('signals')
-        .select('signal_date')
-        .eq('strategy_name', 'ema_crossover')
-        .eq('signal_type', 'golden_cross')
-        .order('signal_date', { ascending: false })
-        .limit(1)
-      const freshDate = latestRow?.[0]?.signal_date
-
+      // Fresh EMA = golden-cross signals from the past 7 days (same window as crossovers.js)
       const [emaRes, brkRes] = await Promise.all([
-        freshDate
-          ? db.from('signals').select('symbol')
-              .eq('strategy_name', 'ema_crossover').eq('signal_type', 'golden_cross')
-              .eq('signal_date', freshDate)
-          : Promise.resolve({ data: [] }),
+        db.from('signals').select('symbol')
+          .eq('strategy_name', 'ema_crossover').eq('signal_type', 'golden_cross')
+          .gte('signal_date', daysAgo(obsDate, 7)),
         db.from('signals').select('*', { count: 'exact', head: true })
           .eq('strategy_name', 'breakout_6m')
           .gte('signal_date', daysAgo(obsDate, BRK_WINDOW_DAYS))
@@ -36,8 +26,7 @@ module.exports = async (req, res) => {
       ])
 
       const excluded = await getExcluded()
-      const crossed = new Set((emaRes.data || []).map(r => r.symbol).filter(s => !excluded.has(s)))
-      freshEmaCount = [...crossed].filter(s => activeSet.has(s)).length
+      freshEmaCount = (emaRes.data || []).filter(r => !excluded.has(r.symbol)).length
       freshBrkCount = brkRes.count || 0
     }
 
