@@ -64,8 +64,10 @@
   --font-head: 'Roboto', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 
-  /* Eyebrow: the template's signature label treatment */
-  --track-eyebrow: 3px;
+  /* Eyebrow: the template's signature label treatment.
+     The template sets 3px at 16px; expressed in em so it stays in
+     proportion on the 12–13px labels this product actually uses. */
+  --track-eyebrow: 0.18em;
 }
 
 /* Dark mode — the reference template is light-only, so this is a derived
@@ -141,8 +143,34 @@
 /* ── Reset ───────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
-body { font-family: var(--font-ui); background: var(--page); color: var(--text); min-height: 100vh; }
+body {
+  font-family: var(--font-ui); background: var(--page); color: var(--text);
+  min-height: 100vh; line-height: 1.6;
+}
 button { cursor: pointer; font-family: inherit; border: none; background: none; color: inherit; }
+
+/* Type scale, from the reference template: headings sit on Roboto at a tight
+   1.2 leading, body copy on Open Sans at 1.6. Sizes below are the template's
+   own rem values. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-head);
+  line-height: 1.2; font-weight: 500; color: var(--text);
+  margin-bottom: 0.5rem; text-wrap: balance;
+}
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.5rem; }
+h3, h4 { font-size: 1.25rem; }
+h5, h6 { font-size: 1.125rem; }
+
+/* The eyebrow — uppercase, widely tracked, bold. The single most
+   recognisable device in the reference design. */
+.eyebrow, .kpi-label, .perf-kpi-label,
+.research-section-title, .subsection-label {
+  font-family: var(--font-head);
+  text-transform: uppercase;
+  letter-spacing: var(--track-eyebrow);
+  font-weight: 700;
+}
 
 /* ── Header ──────────────────────────────────────────────────────── */
 .app-header {
@@ -158,7 +186,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   background: var(--blue); display: flex; align-items: center; justify-content: center;
   font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #fff; letter-spacing: -.5px;
 }
-.brand-name { font-size: 17px; font-weight: 700; color: var(--text); }
+.brand-name { font-family: var(--font-head); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
 .brand-tag {
   font-size: 12px; font-weight: 500; color: var(--text-3);
   background: var(--muted-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -187,11 +215,10 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 .kpi-chip:nth-child(2) { border-left-color: var(--green); }
 .kpi-chip:nth-child(3) { border-left-color: var(--blue); }
 .kpi-label {
-  font-size: 12px; font-weight: 600; letter-spacing: .07em;
-  text-transform: uppercase; color: var(--text-3);
+  font-size: 12px; color: var(--text-3);
 }
 .kpi-value {
-  font-family: var(--font-mono); font-size: 28px; font-weight: 600;
+  font-family: var(--font-head); font-size: 30px; font-weight: 700;
   color: var(--text); font-variant-numeric: tabular-nums; line-height: 1;
 }
 .kpi-chip:nth-child(2) .kpi-value { color: var(--green); }
@@ -227,7 +254,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   border-bottom: 1px solid var(--border);
   gap: 12px; flex-wrap: wrap;
 }
-.panel-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.panel-title { font-family: var(--font-head); font-size: 16px; font-weight: 700; color: var(--text); }
 .panel-meta  { font-size: 13px; color: var(--text-3); font-family: var(--font-mono); }
 
 /* ── Filters ─────────────────────────────────────────────────────── */
@@ -425,15 +452,14 @@ th.star-col:hover { color: var(--text-3) !important; }
   display: flex; flex-direction: column; gap: 6px;
 }
 .perf-kpi-val {
-  font-family: var(--font-mono); font-size: 26px; font-weight: 600;
+  font-family: var(--font-head); font-size: 28px; font-weight: 700;
   color: var(--text); font-variant-numeric: tabular-nums; line-height: 1;
 }
 .perf-kpi-val.pos { color: var(--green); }
 .perf-kpi-val.neg { color: var(--red); }
 .perf-kpi-val.neutral { color: var(--blue); }
 .perf-kpi-label {
-  font-size: 12px; font-weight: 600; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--text-3);
+  font-size: 12px; color: var(--text-3);
 }
 .perf-kpi-sub {
   font-size: 12px; color: var(--text-4);
@@ -477,14 +503,13 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 
 .research-section-title {
-  font-size: 12px; font-weight: 700; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--text-3);
-  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-3);
+  display: flex; align-items: center; gap: 10px;
   margin-bottom: 22px;
 }
 .research-section-title::before {
-  content: ''; display: block; width: 3px; height: 16px;
-  background: var(--blue); border-radius: 2px; flex-shrink: 0;
+  content: ''; display: block; width: 3px; height: 18px;
+  background: var(--accent); border-radius: 2px; flex-shrink: 0;
 }
 
 .research-lead {
@@ -499,8 +524,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 
 .subsection-label {
-  font-size: 12px; font-weight: 700; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--blue);
+  font-size: 13px; color: var(--accent-text);
   margin: 26px 0 12px; border-bottom: 1px solid var(--border);
   padding-bottom: 7px;
 }
@@ -714,7 +738,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 .criteria-new .criteria-num { border-color: var(--blue); color: var(--blue); background: var(--card); }
 .criteria-content { flex: 1; min-width: 0; }
-.criteria-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.criteria-name { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
 .criteria-formula {
   font-family: var(--font-mono); font-size: 12px; color: var(--text-3);
   background: var(--page); border: 1px solid var(--border);
@@ -788,9 +812,9 @@ th.star-col:hover { color: var(--text-3) !important; }
 .formula-section.active { display: block; }
 
 .formula-section-title {
-  font-size: 15px; font-weight: 700; color: var(--text);
+  font-family: var(--font-head); font-size: 17px; font-weight: 700; color: var(--text);
   padding-bottom: 12px; margin-bottom: 16px;
-  border-bottom: 2px solid var(--blue-bd);
+  border-bottom: 2px solid var(--accent-bd);
 }
 
 .formula-intro {
@@ -821,7 +845,7 @@ th.star-col:hover { color: var(--text-3) !important; }
   font-size: 13px; font-weight: 700; font-family: var(--font-mono);
 }
 .formula-card-name {
-  font-size: 13px; font-weight: 700; color: var(--text);
+  font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--text);
   margin-bottom: 10px;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
@@ -900,8 +924,9 @@ th.star-col:hover { color: var(--text-3) !important; }
   border-radius: var(--radius);
 }
 .chart-title {
-  font-size: 14px;
-  font-weight: 650;
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
   color: var(--text);
   letter-spacing: -0.01em;
   margin-bottom: 2px;
