@@ -34,11 +34,6 @@
     <div class="kpi-value">—</div>
     <div class="kpi-sub">Fresh &amp; active · last 4 weeks</div>
   </div>
-  <div class="kpi-chip" id="kpi-breakouts">
-    <div class="kpi-label">6M Breakouts</div>
-    <div class="kpi-value">—</div>
-    <div class="kpi-sub">Last 30 days</div>
-  </div>
   <div class="kpi-chip" id="kpi-signals">
     <div class="kpi-label">Total Signals</div>
     <div class="kpi-value">—</div>
@@ -64,12 +59,12 @@
 
 <nav class="tab-bar">
   <button class="tab-btn active" data-tab="crossovers">Fresh EMA Crossovers</button>
-  <button class="tab-btn"        data-tab="breakouts">6M Breakouts</button>
   <button class="tab-btn"        data-tab="active">Active EMA</button>
   <button class="tab-btn"        data-tab="history">Signal History</button>
   <button class="tab-btn"        data-tab="perf">📈 Returns</button>
   <button class="tab-btn"        data-tab="watchlist">☆ Watchlist<span class="wl-count" id="wl-count"></span></button>
   <button class="tab-btn"        data-tab="research">Research &amp; Backtests</button>
+  <button class="tab-btn"        data-tab="formulas">📋 Formula Sheet</button>
 </nav>
 
 <!-- Fresh EMA Crossovers -->
@@ -79,15 +74,6 @@
     <span class="panel-meta" id="meta-crossovers">—</span>
   </div>
   <div id="body-crossovers"><div class="state-box"><div class="spinner"></div></div></div>
-</div>
-
-<!-- 6-Month Breakouts -->
-<div class="tab-panel" id="panel-breakouts">
-  <div class="panel-header">
-    <span class="panel-title">6-Month Breakouts</span>
-    <span class="panel-meta" id="meta-breakouts">—</span>
-  </div>
-  <div id="body-breakouts"><div class="state-box"><div class="spinner"></div></div></div>
 </div>
 
 <!-- Active EMA -->
@@ -1251,6 +1237,307 @@
           </div>
         </li>
       </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- Formula Sheet Panel -->
+<div class="tab-panel" id="panel-formulas">
+  <div class="panel-header">
+    <span class="panel-title">📋 Formula Sheet</span>
+    <span class="panel-meta">Complete calculation reference · NSE EMA Golden Cross Strategy · Sep 2026</span>
+  </div>
+  <div class="formula-wrap">
+
+    <!-- Section nav pills -->
+    <div class="formula-nav">
+      <button class="formula-nav-btn active" data-section="criteria">Signal Criteria</button>
+      <button class="formula-nav-btn" data-section="ema">EMA &amp; ATR</button>
+      <button class="formula-nav-btn" data-section="scoring">Composite Score</button>
+      <button class="formula-nav-btn" data-section="fundamentals">Fundamentals</button>
+      <button class="formula-nav-btn" data-section="metrics">Outcome Metrics</button>
+    </div>
+
+    <!-- ── Signal Criteria ────────────────────────────────────────── -->
+    <div class="formula-section active" id="fsec-criteria">
+      <div class="formula-section-title">6 Signal Selection Gates</div>
+      <div class="formula-intro">ALL 6 must be satisfied simultaneously. A single failure = no signal. These are hard rejection gates, not scoring factors.</div>
+
+      <div class="formula-cards">
+        <div class="formula-card">
+          <div class="formula-card-num">1</div>
+          <div class="formula-card-body">
+            <div class="formula-card-name">EMA9 Crosses Above EMA20 <span class="fc-badge fc-v1">Since V1</span></div>
+            <code class="formula-block">prev_EMA9 ≤ prev_EMA20  AND  curr_EMA9 > curr_EMA20</code>
+            <div class="formula-note">Both EMAs computed on weekly closing prices. "prev" = prior completed week. "curr" = current completed week.</div>
+          </div>
+        </div>
+
+        <div class="formula-card">
+          <div class="formula-card-num">2</div>
+          <div class="formula-card-body">
+            <div class="formula-card-name">No Repeat Signal (Fresh Cross Only) <span class="fc-badge fc-v1">Since V1</span></div>
+            <code class="formula-block">State variable `above`:
+  False → cross detected → True    (signal fires once)
+  Resets to False when EMA9 ≤ EMA20</code>
+            <div class="formula-note">A second signal cannot fire while EMA9 remains above EMA20. Prevents duplicate entries on a sustained uptrend.</div>
+          </div>
+        </div>
+
+        <div class="formula-card">
+          <div class="formula-card-num">3</div>
+          <div class="formula-card-body">
+            <div class="formula-card-name">Completed Weekly Candle <span class="fc-badge fc-v1">Since V1</span></div>
+            <code class="formula-block">is_developing_week = False
+(i.e. the weekly bar is fully closed — not a partial in-progress bar)</code>
+            <div class="formula-note">Prevents mid-week false signals. The scanner marks the current partial bar as "developing" and never fires on it.</div>
+          </div>
+        </div>
+
+        <div class="formula-card">
+          <div class="formula-card-num">4</div>
+          <div class="formula-card-body">
+            <div class="formula-card-name">EMA20 Monotonically Rising (4 Weeks) <span class="fc-badge fc-new">NEW Sep 2026</span></div>
+            <code class="formula-block">EMA20[i] > EMA20[i−1] > EMA20[i−2] > EMA20[i−3] > EMA20[i−4]
+(strict inequality across 5 consecutive bars — 4 intervals)</code>
+            <div class="formula-note">Rejects crosses where the medium-term trend (EMA20) is flat or declining. Filters signals during sideways or distribution markets.</div>
+          </div>
+        </div>
+
+        <div class="formula-card">
+          <div class="formula-card-num">5</div>
+          <div class="formula-card-body">
+            <div class="formula-card-name">ATR Spread Gate <span class="fc-badge fc-new">NEW Sep 2026</span></div>
+            <code class="formula-block">spread    = EMA9 − EMA20
+threshold = 0.05 × ATR(14) on weekly OHLC
+
+PASS if: spread ≥ threshold</code>
+            <div class="formula-note">Filters hairline crosses with negligible separation — the spread must be at least 5% of the 14-week Average True Range. See the EMA &amp; ATR section for the exact ATR calculation.</div>
+          </div>
+        </div>
+
+        <div class="formula-card">
+          <div class="formula-card-num">6</div>
+          <div class="formula-card-body">
+            <div class="formula-card-name">Daily Volume Gate <span class="fc-badge fc-new">NEW Sep 2026</span></div>
+            <code class="formula-block">vol_obs     = daily volume on observation_date
+vol_avg_20d = mean(daily volume, 20 trading days before obs_date)
+vol_ratio   = vol_obs / vol_avg_20d
+
+PASS if: vol_ratio > 1.0  (today's volume above its 20-day average)</code>
+            <div class="formula-note">⚠ Counterintuitive backtest finding: within tech-filtered signals (2016–2022), LOW volume signals outperform — Tech≥10 + low vol = 41.1% WR vs Tech≥10 + high vol = 35.3% WR. Gate is implemented as specified; see Research &amp; Backtests for full analysis before adjusting.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EMA & ATR ───────────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-ema">
+      <div class="formula-section-title">EMA &amp; ATR Formulas</div>
+
+      <div class="formula-cards">
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">Exponential Moving Average (EMA)</div>
+            <code class="formula-block">alpha = 2 / (period + 1)
+
+EMA[0] = Close[0]                          ← seed (first available bar)
+EMA[i] = alpha × Close[i] + (1 − alpha) × EMA[i−1]
+
+EMA9:   period = 9,   alpha = 2/10 = 0.2000
+EMA20:  period = 20,  alpha = 2/21 ≈ 0.0952</code>
+            <div class="formula-note">Computed on weekly closing prices. Runs forward from the first available bar — no look-ahead bias.</div>
+          </div>
+        </div>
+
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">True Range (TR) — per weekly bar</div>
+            <code class="formula-block">TR[i] = max(
+  High[i] − Low[i],             ← intrabar range
+  |High[i] − Close[i−1]|,       ← gap up from prior close
+  |Low[i]  − Close[i−1]|        ← gap down from prior close
+)
+
+TR[0] = undefined  (no prior close for first bar)</code>
+          </div>
+        </div>
+
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">ATR(14) — Wilder's Smoothing on Weekly OHLC</div>
+            <code class="formula-block">Step 1 — Seed (bars 1–14):
+  ATR[14] = mean(TR[1], TR[2], …, TR[14])    ← simple average
+
+Step 2 — Recursive (bar i > 14):
+  ATR[i] = (ATR[i−1] × 13 + TR[i]) / 14
+
+General form for period n:
+  ATR[i] = (ATR[i−1] × (n−1) + TR[i]) / n</code>
+            <div class="formula-note">Wilder's method uses (n−1) as multiplier, not a standard exponential alpha. This gives the ATR a longer memory than a conventional EMA of the same period. Period = 14 weekly bars here.</div>
+          </div>
+        </div>
+
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">EMA Difference (Spread)</div>
+            <code class="formula-block">ema_difference     = EMA9 − EMA20
+ema_difference_pct = (EMA9 − EMA20) / EMA20 × 100
+
+Positive → EMA9 above EMA20  (uptrend / active GC)
+Negative → EMA9 below EMA20  (downtrend / after DC)</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Composite Score ─────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-scoring">
+      <div class="formula-section-title">Composite Score (0 – 12)</div>
+      <div class="formula-intro">Four technical features scored 0–3 each via <strong>expanding-window quartiles</strong>. Sum = composite score 0–12. Used for <strong>ranking only</strong> — never determines whether a signal fires.</div>
+
+      <div class="formula-table-wrap">
+        <table class="formula-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Calculation</th>
+              <th>Q1 = 0 pts</th>
+              <th>Q2 = 1 pt</th>
+              <th>Q3 = 2 pts</th>
+              <th>Q4 = 3 pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ft-name">price_52w_position</td>
+              <td class="ft-formula">
+                <code>(Close − Low_52w) / (High_52w − Low_52w) × 100</code>
+                <small>Position within 52-week range. 0 = at 52w low, 100 = at 52w high.</small>
+              </td>
+              <td>Bottom 25%</td><td>25–50%</td><td>50–75%</td><td>Top 25%</td>
+            </tr>
+            <tr>
+              <td class="ft-name">ema_diff_pct</td>
+              <td class="ft-formula">
+                <code>(EMA9 − EMA20) / EMA20 × 100</code>
+                <small>Spread at cross date — higher = stronger momentum.</small>
+              </td>
+              <td>Weakest</td><td>Moderate</td><td>Strong</td><td>Strongest</td>
+            </tr>
+            <tr>
+              <td class="ft-name">momentum_4w</td>
+              <td class="ft-formula">
+                <code>(Close[t] − Close[t−4]) / Close[t−4] × 100</code>
+                <small>4-week price return ending at the signal date.</small>
+              </td>
+              <td>Negative</td><td>Low +ve</td><td>Moderate</td><td>Strong</td>
+            </tr>
+            <tr>
+              <td class="ft-name">ema20_slope</td>
+              <td class="ft-formula">
+                <code>(EMA20[t] − EMA20[t−4]) / EMA20[t−4] × 100</code>
+                <small>EMA20 slope over 4 weeks — confirms medium-term trend direction.</small>
+              </td>
+              <td>Declining</td><td>Flat</td><td>Rising</td><td>Steeply rising</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="formula-callout fc-amber">
+        <strong>Expanding-window quartiles — no look-ahead:</strong> Quartile boundaries are recomputed from all signals seen <em>before</em> the current one. A 500-signal burn-in period applies — the first 500 signals all receive score 0 while the distribution accumulates. This means live scoring is never contaminated by future data.
+      </div>
+    </div>
+
+    <!-- ── Fundamentals ────────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-fundamentals">
+      <div class="formula-section-title">Fundamental Scoring (Ranking Only)</div>
+      <div class="formula-intro">Financial metrics determine the <em>priority order</em> of signals — they never decide whether a signal fires. A stock failing every fundamental check still generates a signal if all 6 technical criteria are met.</div>
+
+      <div class="formula-table-wrap">
+        <table class="formula-table">
+          <thead>
+            <tr><th>Factor</th><th>What it measures</th><th>Role</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ft-name">Tech Score (0–12)</td>
+              <td>Sum of 4 composite scoring features above</td>
+              <td>Higher = higher alert priority</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Fund Score</td>
+              <td>Composite of ROE, Debt/Equity, Revenue growth, Promoter holding %, and other balance-sheet ratios</td>
+              <td>Top-half ≥ 44 used as threshold in backtests; higher = better rank</td>
+            </tr>
+            <tr>
+              <td class="ft-name">Combined Rank</td>
+              <td>Tech Score + Fund Score combined</td>
+              <td>Determines watchlist ordering among signals firing the same week</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="formula-callout fc-blue">
+        <strong>Best backtest result (2016–2022):</strong> Tech ≥ 10 (top-quartile technical) + Fund top-half (score ≥ 44) → <strong>42.2% win rate</strong> (+12.2 pp above the 30.0% baseline), n = 505 signals. Win defined as return_pct ≥ +10%.
+      </div>
+    </div>
+
+    <!-- ── Outcome Metrics ─────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-metrics">
+      <div class="formula-section-title">Outcome &amp; Backtest Metrics</div>
+
+      <div class="formula-cards">
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">return_pct — Primary Metric</div>
+            <code class="formula-block">return_pct = (exit_price / entry_price − 1) × 100
+
+entry_price = weekly close on Golden Cross signal date
+exit_price  = weekly close on Death Cross date (EMA9 crosses below EMA20)
+
+Open signals → exit_price = latest weekly close (mark-to-market)</code>
+            <div class="formula-note">Win threshold: return_pct ≥ +10%. Loss threshold: return_pct ≤ 0%. Neutral zone (0–10%) excluded from the W/L denominator in win-rate calculations.</div>
+          </div>
+        </div>
+
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">ret_13w — Fixed-Horizon Secondary Metric</div>
+            <code class="formula-block">ret_13w = (price[entry + 13 weeks] / price[entry] − 1) × 100
+
+Fixed 13-week window from entry date — no exit trigger.
+Position is valued at week 13 whether EMA cross still holds or not.</code>
+            <div class="formula-note">Unbiased metric: unlike return_pct, ret_13w is not affected by how long a trend lasts. Each signal gets an identical 13-week evaluation window.</div>
+          </div>
+        </div>
+
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">Win Rate</div>
+            <code class="formula-block">win_rate = winners / (winners + losers) × 100
+
+winners = signals where return_pct ≥ +10%
+losers  = signals where return_pct ≤  0%
+neutral = 0% &lt; return_pct &lt; 10%  → excluded from denominator
+
+Baseline (2016–2022): 2,091 / 6,971 = 30.0%</code>
+          </div>
+        </div>
+
+        <div class="formula-card formula-card-full">
+          <div class="formula-card-body">
+            <div class="formula-card-name">vol_ratio_20d — Volume Gate Input (Criterion 6)</div>
+            <code class="formula-block">vol_ratio_20d = daily_volume(obs_date) / mean(daily_volume, prev 20 trading days)
+
+"prev 20 trading days" = 20 sessions strictly before obs_date (excludes obs_date itself)
+Data source: daily (not weekly) volume series</code>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>

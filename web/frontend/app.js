@@ -68,7 +68,6 @@ async function loadSummary() {
   const obsSub = d.obsDate ? 'As of ' + fmt.date(d.obsDate) : 'No scanner data yet'
   el('kpi-universe').innerHTML   = `<div class="kpi-label">Universe</div><div class="kpi-value">${fmt.num(d.universeCount)}</div><div class="kpi-sub">NSE EQ stocks</div>`
   el('kpi-crossovers').innerHTML = `<div class="kpi-label">EMA Crossovers</div><div class="kpi-value">${fmt.num(d.freshEmaCount)}</div><div class="kpi-sub">Fresh from latest scanner run</div>`
-  el('kpi-breakouts').innerHTML  = `<div class="kpi-label">6M Breakouts</div><div class="kpi-value">${fmt.num(d.freshBrkCount)}</div><div class="kpi-sub">Last 30 days</div>`
   el('kpi-signals').innerHTML    = `<div class="kpi-label">Total Signals</div><div class="kpi-value">${fmt.num(d.totalSignals)}</div><div class="kpi-sub">All time · ${obsSub}</div>`
 }
 
@@ -385,15 +384,28 @@ function sortRows(rows, col, dir) {
   })
 }
 
+// ── Formula Sheet Nav ─────────────────────────────────────────────
+function initFormulaNav() {
+  document.querySelectorAll('.formula-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.formula-nav-btn').forEach(b => b.classList.remove('active'))
+      document.querySelectorAll('.formula-section').forEach(s => s.classList.remove('active'))
+      btn.classList.add('active')
+      const sec = document.getElementById('fsec-' + btn.dataset.section)
+      if (sec) sec.classList.add('active')
+    })
+  })
+}
+
 // ── Tab Switching ─────────────────────────────────────────────────
 const loaders = {
   crossovers: loadCrossoverTab,
-  breakouts:  loadBreakoutTab,
   active:     loadActiveTab,
   history:    () => loadHistoryTab(true),
   perf:       loadPerfTab,
   watchlist:  loadWatchlistTab,
   research:   () => {},
+  formulas:   initFormulaNav,
 }
 
 async function switchTab(tab) {
