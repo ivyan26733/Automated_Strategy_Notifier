@@ -1,103 +1,141 @@
 /* NSE Stock Screener — clean, readable, readability-first */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ── Tokens ──────────────────────────────────────────────────────── */
+/* ── Tokens ──────────────────────────────────────────────────────────
+   Palette adapted from the Nicepage "PHP Developer" template
+   (see web/DESIGN_SPEC.md): warm orange accent on a warm-neutral ground,
+   Roboto headings over Open Sans body.
+
+   Token NAMES here are a contract. charts.js resolves --green, --red,
+   --blue, --amber, --text-2, --text-4 and --border at paint time through
+   getComputedStyle; a rename silently falls back to a stale hardcoded hex
+   rather than erroring. Values may change freely, names may not.
+
+   --green / --red are semantic polarity (gain/loss) and carry meaning in
+   every table and chart. The accent is chrome only — active tab, buttons,
+   links, eyebrow labels. It must never stand in for gain or loss. */
 :root {
-  /* Surfaces */
-  --page:      #F1F3F8;
+  /* Surfaces — warm neutrals, tint blocks instead of heavy rules */
+  --page:      #F5F3F0;
   --card:      #FFFFFF;
-  --muted-bg:  #F8F9FB;
-  --hover-bg:  #EEF2FF;
+  --muted-bg:  #FAF8F6;
+  --hover-bg:  #FDF2EB;
 
   /* Borders */
-  --border:    #E2E6EF;
-  --border-md: #C8CEDC;
+  --border:    #E7E2DC;
+  --border-md: #CFC7BD;
 
-  /* Text — all WCAG AA+ on white */
-  --text:      #111827;   /* near-black — headings, numbers */
-  --text-2:    #374151;   /* body copy */
-  --text-3:    #6B7280;   /* secondary labels */
-  --text-4:    #9CA3AF;   /* placeholders, muted */
+  /* Text — template text colour is #111111 */
+  --text:      #111111;   /* headings, numbers */
+  --text-2:    #3A3733;   /* body copy */
+  --text-3:    #6E675F;   /* secondary labels */
+  --text-4:    #9A9289;   /* placeholders, muted */
 
-  /* Semantics */
-  --green:     #059669;   /* bullish — 4.6:1 on white */
-  --green-bg:  #ECFDF5;
-  --green-bd:  #6EE7B7;
-  --red:       #DC2626;   /* bearish */
-  --red-bg:    #FEF2F2;
-  --red-bd:    #FCA5A5;
-  --amber:     #B45309;   /* breakout */
+  /* Accent — chrome only, never data polarity */
+  --accent:      #EC8145;  /* fills, active states, rules */
+  --accent-text: #B85416;  /* accent as text on light ground (AA) */
+  --accent-dark: #E96E29;
+  --accent-bg:   #FDF2EB;
+  --accent-bd:   #F7CBB1;
+
+  /* Semantics — polarity pair, warmed slightly to sit with the palette */
+  --green:     #04785C;   /* bullish — AA on white */
+  --green-bg:  #EAF7F1;
+  --green-bd:  #7FCBAE;
+  --red:       #C7341F;   /* bearish — AA on white */
+  --red-bg:    #FDF0EC;
+  --red-bd:    #F3A995;
+  --amber:     #B45309;   /* breakout badges */
   --amber-bg:  #FFFBEB;
   --amber-bd:  #FCD34D;
-  --blue:      #1D4ED8;   /* symbols / links */
-  --blue-bg:   #EFF6FF;
-  --blue-bd:   #BFDBFE;
+  --blue:      #61427B;   /* symbols / links — template accent 2 */
+  --blue-bg:   #F5F0F9;
+  --blue-bd:   #CDBBDC;
 
   /* Misc */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
-  --shadow:    0 4px 12px rgba(0,0,0,.08);
-  --radius:    8px;
-  --radius-sm: 4px;
+  --shadow-sm: 0 1px 3px rgba(60,44,30,.07), 0 1px 2px rgba(60,44,30,.04);
+  --shadow:    0 4px 14px rgba(60,44,30,.09);
+  --radius:      8px;
+  --radius-sm:   4px;
+  --radius-pill: 50px;   /* template button radius */
 
-  --font-ui:   'Inter', system-ui, sans-serif;
+  --font-ui:   'Open Sans', system-ui, -apple-system, sans-serif;
+  --font-head: 'Roboto', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* Eyebrow: the template's signature label treatment */
+  --track-eyebrow: 3px;
 }
 
-/* Dark mode */
+/* Dark mode — the reference template is light-only, so this is a derived
+   warm dark: the same hue family at low lightness, with the accent lifted
+   so it still reads on a dark ground. Both blocks must stay in sync; the
+   @media one covers the default "system" setting (no attribute stamped),
+   the [data-theme] one covers an explicit toggle. */
 :root:not([data-theme="light"]) {
   @media (prefers-color-scheme: dark) {
-    --page:      #0F172A;
-    --card:      #1E293B;
-    --muted-bg:  #162032;
-    --hover-bg:  #1E3A5F;
-    --border:    #2D3F5A;
-    --border-md: #3D536E;
-    --text:      #F1F5F9;
-    --text-2:    #CBD5E1;
-    --text-3:    #94A3B8;
-    --text-4:    #64748B;
-    --green:     #10B981;
-    --green-bg:  rgba(16,185,129,.12);
-    --green-bd:  rgba(16,185,129,.3);
-    --red:       #EF4444;
-    --red-bg:    rgba(239,68,68,.12);
-    --red-bd:    rgba(239,68,68,.3);
-    --amber:     #F59E0B;
-    --amber-bg:  rgba(245,158,11,.12);
-    --amber-bd:  rgba(245,158,11,.3);
-    --blue:      #60A5FA;
-    --blue-bg:   rgba(96,165,250,.12);
-    --blue-bd:   rgba(96,165,250,.3);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
-    --shadow:    0 4px 16px rgba(0,0,0,.4);
+    --page:      #16130F;
+    --card:      #211C17;
+    --muted-bg:  #1B1712;
+    --hover-bg:  #2E241B;
+    --border:    #362E26;
+    --border-md: #4C4238;
+    --text:      #F6F3EF;
+    --text-2:    #D8D2CA;
+    --text-3:    #A79E93;
+    --text-4:    #7D7469;
+    --accent:      #F2A57A;
+    --accent-text: #F2A57A;
+    --accent-dark: #EC8145;
+    --accent-bg:   rgba(236,129,69,.14);
+    --accent-bd:   rgba(236,129,69,.32);
+    --green:     #35C692;
+    --green-bg:  rgba(53,198,146,.13);
+    --green-bd:  rgba(53,198,146,.32);
+    --red:       #F0705A;
+    --red-bg:    rgba(240,112,90,.13);
+    --red-bd:    rgba(240,112,90,.32);
+    --amber:     #F0A63C;
+    --amber-bg:  rgba(240,166,60,.13);
+    --amber-bd:  rgba(240,166,60,.32);
+    --blue:      #B99BD1;
+    --blue-bg:   rgba(185,155,209,.13);
+    --blue-bd:   rgba(185,155,209,.32);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.34);
+    --shadow:    0 4px 16px rgba(0,0,0,.44);
   }
 }
 :root[data-theme="dark"] {
-  --page:      #0F172A;
-  --card:      #1E293B;
-  --muted-bg:  #162032;
-  --hover-bg:  #1E3A5F;
-  --border:    #2D3F5A;
-  --border-md: #3D536E;
-  --text:      #F1F5F9;
-  --text-2:    #CBD5E1;
-  --text-3:    #94A3B8;
-  --text-4:    #64748B;
-  --green:     #10B981;
-  --green-bg:  rgba(16,185,129,.12);
-  --green-bd:  rgba(16,185,129,.3);
-  --red:       #EF4444;
-  --red-bg:    rgba(239,68,68,.12);
-  --red-bd:    rgba(239,68,68,.3);
-  --amber:     #F59E0B;
-  --amber-bg:  rgba(245,158,11,.12);
-  --amber-bd:  rgba(245,158,11,.3);
-  --blue:      #60A5FA;
-  --blue-bg:   rgba(96,165,250,.12);
-  --blue-bd:   rgba(96,165,250,.3);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
-  --shadow:    0 4px 16px rgba(0,0,0,.4);
+  --page:      #16130F;
+  --card:      #211C17;
+  --muted-bg:  #1B1712;
+  --hover-bg:  #2E241B;
+  --border:    #362E26;
+  --border-md: #4C4238;
+  --text:      #F6F3EF;
+  --text-2:    #D8D2CA;
+  --text-3:    #A79E93;
+  --text-4:    #7D7469;
+  --accent:      #F2A57A;
+  --accent-text: #F2A57A;
+  --accent-dark: #EC8145;
+  --accent-bg:   rgba(236,129,69,.14);
+  --accent-bd:   rgba(236,129,69,.32);
+  --green:     #35C692;
+  --green-bg:  rgba(53,198,146,.13);
+  --green-bd:  rgba(53,198,146,.32);
+  --red:       #F0705A;
+  --red-bg:    rgba(240,112,90,.13);
+  --red-bd:    rgba(240,112,90,.32);
+  --amber:     #F0A63C;
+  --amber-bg:  rgba(240,166,60,.13);
+  --amber-bd:  rgba(240,166,60,.32);
+  --blue:      #B99BD1;
+  --blue-bg:   rgba(185,155,209,.13);
+  --blue-bd:   rgba(185,155,209,.32);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.34);
+  --shadow:    0 4px 16px rgba(0,0,0,.44);
 }
 
 /* ── Reset ───────────────────────────────────────────────────────── */
@@ -864,7 +902,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 .chart-title {
   font-size: 14px;
   font-weight: 650;
-  color: var(--text-1, var(--text-2));
+  color: var(--text);
   letter-spacing: -0.01em;
   margin-bottom: 2px;
 }
