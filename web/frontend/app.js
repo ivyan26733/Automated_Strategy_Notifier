@@ -78,11 +78,11 @@ async function loadCrossoverTab() {
 
   const d = await apiFetch('/api/crossovers')
   if (!d.rows?.length) {
-    empty(container, 'No EMA crossovers in the last 7 days.', 'No new golden crosses detected in the latest weekly candle.')
+    empty(container, 'No new EMA crossovers in the latest scan.', 'Stocks from the previous scan have moved to the Active EMA tab.')
     return
   }
 
-  el('meta-crossovers').textContent = `Fresh Golden Crosses · signals since ${fmt.date(d.freshFrom)} · new from this week's completed candle`
+  el('meta-crossovers').textContent = `Fresh Golden Crosses · new in the latest scan (${fmt.date(d.runStartedAt)}) · move to Active EMA on the next run`
 
   const cols = [
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },

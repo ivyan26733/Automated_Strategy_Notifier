@@ -1,4 +1,4 @@
-const { db, daysAgo, getObsContext, getExcluded, send, sendErr } = require('./_utils')
+const { db, daysAgo, getObsContext, getExcluded, getLatestRunStart, getFreshEmaSet, send, sendErr } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
@@ -7,10 +7,9 @@ module.exports = async (req, res) => {
 
     const { data: rawInds, error } = await db.from('weekly_indicators')
       .select('symbol, ema9, ema20, ema_difference_pct, weekly_close, observation_date')
-      .gte('observation_date', daysAgo(obsDate, 7))
       .gt('ema_difference', 0)
       .order('observation_date', { ascending: false })
-      .limit(2000)
+      .limit(5000)
 
     if (error || !rawInds?.length) return send(res, { obsDate, activeCount: 0, rows: [] })
 
@@ -25,23 +24,11 @@ module.exports = async (req, res) => {
     const excluded = await getExcluded()
     const clean = inds.filter(r => !excluded.has(r.symbol))
 
-    // Exclude stocks that fired a fresh crossover since the latest completed weekly candle.
-    // Same boundary as crossovers.js so a stock appears in exactly one tab.
-    const { data: lastCompleted } = await db.from('weekly_indicators')
-      .select('observation_date')
-      .eq('is_developing_week', false)
-      .order('observation_date', { ascending: false })
-      .limit(1)
-    const freshFrom = lastCompleted?.[0]?.observation_date
-
-    const { data: freshData } = freshFrom
-      ? await db.from('signals')
-          .select('symbol')
-          .eq('strategy_name', 'ema_crossover')
-          .eq('signal_type', 'golden_cross')
-          .gte('signal_date', freshFrom)
-      : { data: [] }
-    const freshSet = new Set((freshData || []).map(r => r.symbol))
+    // Exclude stocks the latest run discovered — those belong in Fresh Crossovers.
+    // They land here automatically on the next run, and stay until the death cross
+    // drops EMA9 back below EMA20.
+    const runStartedAt = await getLatestRunStart()
+    const freshSet = await getFreshEmaSet(runStartedAt)
 
     const activeOnly = clean.filter(r => !freshSet.has(r.symbol))
     activeOnly.sort((a, b) => (b.ema_difference_pct ?? 0) - (a.ema_difference_pct ?? 0))

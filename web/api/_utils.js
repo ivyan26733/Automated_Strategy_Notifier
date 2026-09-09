@@ -51,6 +51,33 @@ async function getObsContext() {
   }
 }
 
+// Start time of the most recent COMPLETED scanner run.
+// Signals whose created_at is >= this were discovered for the first time by that run.
+// created_at survives upsert (upsert_signals only rewrites updated_at), so a signal
+// already known from an earlier run keeps its original timestamp and drops out of
+// "fresh" as soon as the next run finishes.
+// Anchored to status='success' so a run in flight doesn't make Fresh grow mid-scan.
+async function getLatestRunStart() {
+  const { data } = await db.from('scanner_runs')
+    .select('started_at')
+    .eq('status', 'success')
+    .not('finished_at', 'is', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+  return data?.[0]?.started_at || null
+}
+
+// Symbols with a golden cross first discovered by the latest completed run
+async function getFreshEmaSet(runStartedAt) {
+  if (!runStartedAt) return new Set()
+  const { data } = await db.from('signals')
+    .select('symbol')
+    .eq('strategy_name', 'ema_crossover')
+    .eq('signal_type', 'golden_cross')
+    .gte('created_at', runStartedAt)
+  return new Set((data || []).map(r => r.symbol))
+}
+
 // Circuit stocks + recently-listed stocks (<90 days NSE listing)
 async function getExcluded() {
   const [circuitRes, newListedRes] = await Promise.all([
@@ -93,5 +120,6 @@ module.exports = {
   daysAgo, addDays, mkChunks,
   send, sendErr,
   getObsContext, getExcluded, fetchCmp, parseListingDate,
+  getLatestRunStart, getFreshEmaSet,
   EMA_WINDOW_DAYS, BRK_WINDOW_DAYS,
 }

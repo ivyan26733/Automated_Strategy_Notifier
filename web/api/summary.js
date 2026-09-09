@@ -1,4 +1,4 @@
-const { db, daysAgo, getObsContext, getExcluded, send, sendErr, EMA_WINDOW_DAYS, BRK_WINDOW_DAYS } = require('./_utils')
+const { db, daysAgo, getObsContext, getExcluded, getLatestRunStart, send, sendErr, EMA_WINDOW_DAYS, BRK_WINDOW_DAYS } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
@@ -14,17 +14,14 @@ module.exports = async (req, res) => {
     let freshBrkCount = 0
 
     if (obsDate) {
-      // Fresh EMA = signals since the latest completed weekly candle (same anchor as crossovers.js)
-      const { data: lastCompleted } = await db.from('weekly_indicators')
-        .select('observation_date').eq('is_developing_week', false)
-        .order('observation_date', { ascending: false }).limit(1)
-      const freshFrom = lastCompleted?.[0]?.observation_date
+      // Fresh EMA = golden crosses discovered by the latest completed run (same anchor as crossovers.js)
+      const runStartedAt = await getLatestRunStart()
 
       const [emaRes, brkRes] = await Promise.all([
-        freshFrom
+        runStartedAt
           ? db.from('signals').select('symbol')
               .eq('strategy_name', 'ema_crossover').eq('signal_type', 'golden_cross')
-              .gte('signal_date', freshFrom)
+              .gte('created_at', runStartedAt)
           : Promise.resolve({ data: [] }),
         db.from('signals').select('*', { count: 'exact', head: true })
           .eq('strategy_name', 'breakout_6m')
