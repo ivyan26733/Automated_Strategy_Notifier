@@ -395,6 +395,7 @@ const loaders = {
   history:    () => loadHistoryTab(true),
   perf:       loadPerfTab,
   watchlist:  loadWatchlistTab,
+  research:   () => {},
 }
 
 async function switchTab(tab) {
