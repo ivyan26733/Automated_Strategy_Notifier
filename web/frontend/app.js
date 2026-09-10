@@ -78,7 +78,19 @@ async function loadCrossoverTab() {
 
   const d = await apiFetch('/api/crossovers')
   if (!d.rows?.length) {
-    empty(container, 'No new EMA crossovers in the latest scan.', 'Stocks from the previous scan have moved to the Active EMA tab.')
+    // Genuinely quiet days are normal — on a falling market nothing crosses up
+    // at all. Say that plainly instead of leaving a bare empty table, which
+    // reads like the scan failed.
+    el('meta-crossovers').textContent = d.runStartedAt
+      ? `Fresh Golden Crosses · last scan ${fmt.date(d.runStartedAt)}`
+      : 'Fresh Golden Crosses'
+    empty(
+      container,
+      'No stocks crossed over today.',
+      d.runStartedAt
+        ? `The latest scan (${fmt.date(d.runStartedAt)}) found no new golden crosses. Please check back after the next scan.`
+        : 'Please check back after the next scan.'
+    )
     return
   }
 
