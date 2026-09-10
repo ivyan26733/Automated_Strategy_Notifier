@@ -43,7 +43,7 @@ const fmt = {
 // ── Helpers ───────────────────────────────────────────────────────
 function esc(s) { if (!s) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
 function el(id) { return document.getElementById(id) }
-function loading(c) { c.innerHTML = '<div class="state-box"><div class="spinner"></div><span class="state-title">Loading…</span></div>' }
+function loading(c, sub = '') { c.innerHTML = `<div class="state-box"><div class="spinner"></div><span class="state-title">Loading…</span>${sub ? `<span class="state-sub">${esc(sub)}</span>` : ''}</div>` }
 function empty(c, msg, sub = '') { c.innerHTML = `<div class="state-box"><span class="state-title">${esc(msg)}</span>${sub ? `<span class="state-sub">${esc(sub)}</span>` : ''}</div>` }
 
 async function apiFetch(path) {
@@ -164,11 +164,27 @@ async function loadActiveTab() {
 // ── Tab 4: Signal History ─────────────────────────────────────────
 async function loadHistoryTab(reset = false) {
   const container = el('body-history')
-  if (reset) { historyPage = 1; historyAllRows = []; loading(container) }
+  const scanning = globalFilters.returnPct !== null || globalFilters.watchlistOnly
+  if (reset) {
+    historyPage = 1; historyAllRows = []
+    loading(container, scanning ? 'Scanning full signal history for Return%/Watchlist filters — a few seconds' : '')
+  }
+
+  // Return% and Watchlist-only are "global" filters (apply across every tab), but
+  // History is server-paginated — unlike the fully-loaded tabs, filtering here
+  // client-side would only ever see whatever page is currently in memory. They're
+  // threaded through as real query params so the server filters end-to-end and
+  // "Load More" pages through actual matches instead of hunting for them.
+  const globalParams = {}
+  if (globalFilters.returnPct !== null) globalParams.minReturn = globalFilters.returnPct
+  if (globalFilters.watchlistOnly) {
+    globalParams.watchlistOnly = '1'
+    globalParams.watchlist = [...getWatchlist()].join(',')
+  }
 
   const params = new URLSearchParams(
     Object.fromEntries(
-      Object.entries({ page: historyPage, ...historyFilters })
+      Object.entries({ page: historyPage, ...historyFilters, ...globalParams })
         .filter(([, v]) => v !== undefined && v !== null && v !== '')
     )
   )
@@ -224,7 +240,7 @@ async function loadPerfTab() {
     365: 'Last 1 year', 1095: 'Last 3 years', 1825: 'Last 5 years',
   }[perfPeriodDays] || 'Last 10 years'
 
-  el('meta-perf').textContent = `${periodLabel} · entry at golden cross · exit at death cross or still holding`
+  el('meta-perf').textContent = `${periodLabel} · ₹100 entered at each stock's first golden cross in this window, compounded through every golden-cross → death-cross cycle since`
 
   if (!d.trades?.length) {
     empty(container, 'No qualifying crossovers found.', 'No crosses found in this period.')
@@ -233,34 +249,46 @@ async function loadPerfTab() {
 
   const k = d.kpis
   const retStr = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%'
+  const holdStr = v => {
+    if (v == null) return '—'
+    return v >= 365 ? (v / 365).toFixed(1) + 'y' : v >= 60 ? (v / 30).toFixed(1) + 'mo' : Math.round(v) + 'd'
+  }
 
   container.innerHTML = `<div class="perf-summary">
     <div class="perf-kpi">
-      <div class="perf-kpi-val neutral">${d.trades.length}</div>
-      <div class="perf-kpi-label">Total Trades</div>
-      <div class="perf-kpi-sub">${k.openCount} open · ${k.closedCount} closed · ${periodLabel}</div>
+      <div class="perf-kpi-val ${k.compoundedAvg == null ? '' : k.compoundedAvg >= 0 ? 'pos' : 'neg'}">${retStr(k.compoundedAvg)}</div>
+      <div class="perf-kpi-label">Compounded Return</div>
+      <div class="perf-kpi-sub">₹100/stock, equal-weight · ${k.stockCount} stocks · ${periodLabel}</div>
     </div>
     <div class="perf-kpi">
-      <div class="perf-kpi-val ${k.avgRet == null ? '' : k.avgRet >= 0 ? 'pos' : 'neg'}">${retStr(k.avgRet)}</div>
-      <div class="perf-kpi-label">Avg Return</div>
-      <div class="perf-kpi-sub">Equal-weight · open + closed · ${periodLabel}</div>
+      <div class="perf-kpi-val ${k.compoundedMedian == null ? '' : k.compoundedMedian >= 0 ? 'pos' : 'neg'}">${retStr(k.compoundedMedian)}</div>
+      <div class="perf-kpi-label">Median Per-Stock</div>
+      <div class="perf-kpi-sub">Typical stock, not skewed by outliers</div>
     </div>
     <div class="perf-kpi">
-      <div class="perf-kpi-val pos">${retStr(k.best)}</div>
-      <div class="perf-kpi-label">Best Trade</div>
-      <div class="perf-kpi-sub">${periodLabel}</div>
+      <div class="perf-kpi-val pos">${retStr(k.compoundedBest)}</div>
+      <div class="perf-kpi-label">Best Stock</div>
+      <div class="perf-kpi-sub">Compounded, ${periodLabel}</div>
     </div>
     <div class="perf-kpi">
-      <div class="perf-kpi-val ${k.worst != null && k.worst < 0 ? 'neg' : 'pos'}">${retStr(k.worst)}</div>
-      <div class="perf-kpi-label">Worst Trade</div>
-      <div class="perf-kpi-sub">${periodLabel}</div>
+      <div class="perf-kpi-val ${k.compoundedWorst != null && k.compoundedWorst < 0 ? 'neg' : 'pos'}">${retStr(k.compoundedWorst)}</div>
+      <div class="perf-kpi-label">Worst Stock</div>
+      <div class="perf-kpi-sub">Compounded, ${periodLabel}</div>
     </div>
     <div class="perf-kpi">
-      <div class="perf-kpi-val neutral">${k.hitRate == null ? '—' : k.hitRate.toFixed(0) + '%'}</div>
+      <div class="perf-kpi-val neutral">${k.winRate == null ? '—' : k.winRate.toFixed(0) + '%'}</div>
       <div class="perf-kpi-label">Win Rate</div>
-      <div class="perf-kpi-sub">${k.nPos} of ${k.withRetCount} profitable · ${periodLabel}</div>
+      <div class="perf-kpi-sub">Stocks ending above ₹100 · ${k.stockCount} stocks</div>
+    </div>
+    <div class="perf-kpi">
+      <div class="perf-kpi-val neutral">${holdStr(k.avgHoldDays)}</div>
+      <div class="perf-kpi-label">Avg Holding Period</div>
+      <div class="perf-kpi-sub">${k.totalTrades} trades · ${k.openCount} open · ${k.closedCount} closed</div>
     </div>
   </div>
+  <p class="perf-caveat">
+    <strong>Compounded Return</strong> answers "if I'd systematically done this on every stock, what's my average outcome?" — it is signal quality, not an achievable portfolio return: these ${k.stockCount} sequences overlap in time and can't all be run with the same rupee at once. The gap between it and the median above is the tell — a few multi-baggers usually carry the average while most individual stocks land near or below it.
+  </p>
   <div id="chartbox-returns" class="chart-grid">
     <figure class="chart-box">
       <figcaption class="chart-title">Where the returns land</figcaption>

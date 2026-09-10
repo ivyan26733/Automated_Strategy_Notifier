@@ -89,6 +89,11 @@ class EmaCrossoverStrategy(Strategy):
     6. Previous week's EMA9 was NOT already above EMA20 (fresh cross only;
        enforced by the `above` state variable).
 
+    Also emits `death_cross` when EMA9 falls back below EMA20 while a position
+    is open — the exit side of the same state machine. Unlike golden_cross,
+    death_cross carries no quality gates: an exit isn't conditional on the
+    volume/spread/trend checks that filter entries.
+
     Fundamentals are NOT a selection criterion here — pass signals to an
     external ranking step (see ema_fundamental.py for a combined variant).
 
@@ -174,6 +179,36 @@ class EmaCrossoverStrategy(Strategy):
                         ))
                     above = True
             else:
+                if above:
+                    # ── Death cross: EMA9 has crossed back below EMA20 ──────────
+                    # No quality gates here — an exit is not conditional on the
+                    # volume/spread/trend criteria that gate entries. Same
+                    # repainting trade-off as the golden cross: this fires on the
+                    # developing bar, so a mid-week dip can reverse before the
+                    # week closes and re-fire as a fresh row (signal_date
+                    # advances daily on the same underlying event, exactly like
+                    # golden_cross duplicates — collapsed downstream by
+                    # consecutive-same-type dedup, not filtered here).
+                    row      = weekly.iloc[i]
+                    obs_date = row["observation_date"]
+                    signal_date = obs_date.date() if hasattr(obs_date, "date") else obs_date
+                    diff     = curr9 - curr20
+                    diff_pct = (diff / curr20) * 100.0 if curr20 else None
+
+                    signals.append(Signal(
+                        strategy_name      = self.name,
+                        signal_type        = "death_cross",
+                        symbol             = symbol,
+                        signal_date        = signal_date,
+                        price              = float(row["Close"]),
+                        weekly_close       = float(row["Close"]),
+                        ema9               = float(curr9),
+                        ema20              = float(curr20),
+                        ema_difference     = float(diff),
+                        ema_difference_pct = float(diff_pct) if diff_pct is not None else None,
+                        sector             = sector,
+                        industry           = industry,
+                    ))
                 above = False   # EMA9 <= EMA20 → state resets
 
         return signals

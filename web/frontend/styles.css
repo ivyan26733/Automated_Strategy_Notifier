@@ -899,3 +899,11 @@ th.star-col:hover { color: var(--text-3) !important; }
   .chart-canvas-wrap.chart-tall { height: 380px; }
   .chart-box { padding: 14px 12px 12px; }
 }
+
+.perf-caveat {
+  font-size: 13px; line-height: 1.6; color: var(--text-3);
+  padding: 14px 22px; background: var(--muted-bg);
+  border-bottom: 1px solid var(--border);
+  max-width: 90ch;
+}
+.perf-caveat strong { color: var(--text-2); }

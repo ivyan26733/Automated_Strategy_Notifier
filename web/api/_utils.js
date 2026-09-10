@@ -148,6 +148,62 @@ async function getFreshEmaSet(runStartedAt) {
   }))
 }
 
+const PAGE = 1000
+// Measured against live data: Supabase showed no meaningful degradation up to
+// 66 concurrent range() requests (9.8s total vs 20s at concurrency 8 for the
+// same 66-page, 65k-row scan) — the earlier low value serialized into ~9
+// sequential batches for no real benefit. 40 keeps a large future table's
+// worst-case concurrent connections bounded while covering today's full
+// history scan in two batches.
+const PAGE_CONCURRENCY = 40
+
+// Fetch every row matching a query, paginating with .range() so a bare .limit()
+// can't silently truncate — that's exactly what produced the 578 blank Cross
+// Dates earlier in this project. `buildQuery` receives the query builder
+// (already filtered/ordered) and must NOT call .range() or .limit() itself.
+//
+// Pages fetch in bounded-concurrency batches, not one at a time: a 40,000-row
+// scan is ~40 pages, and fetched serially that timed out a 2-minute request
+// outright. Concurrency requires knowing the total up front, so the caller's
+// .select() must request `{ count: 'exact' }` — page 1 then carries the count,
+// the remaining pages are computed and fetched PAGE_CONCURRENCY at a time. A
+// caller that doesn't request count falls back to the original sequential
+// loop, which stays correct, just slow.
+async function fetchAllPaged(buildQuery) {
+  const first = await buildQuery().range(0, PAGE - 1)
+  if (first.error) throw new Error(first.error.message)
+  const out = [...(first.data || [])]
+
+  const total = first.count
+  if (total == null) {
+    // No count requested — fall back to sequential paging.
+    let from = PAGE
+    while (first.data && first.data.length === PAGE) {
+      const { data, error } = await buildQuery().range(from, from + PAGE - 1)
+      if (error) throw new Error(error.message)
+      out.push(...(data || []))
+      if (!data || data.length < PAGE) break
+      from += PAGE
+    }
+    return out
+  }
+
+  const totalPages = Math.ceil(total / PAGE)
+  const remaining  = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => i + 1)
+
+  for (let b = 0; b < remaining.length; b += PAGE_CONCURRENCY) {
+    const batch = remaining.slice(b, b + PAGE_CONCURRENCY)
+    const results = await Promise.all(batch.map(p =>
+      buildQuery().range(p * PAGE, p * PAGE + PAGE - 1).then(r => {
+        if (r.error) throw new Error(r.error.message)
+        return r.data || []
+      })
+    ))
+    for (const chunk of results) out.push(...chunk)
+  }
+  return out
+}
+
 // Circuit stocks + recently-listed stocks (<90 days NSE listing)
 async function getExcluded() {
   const [circuitRes, newListedRes] = await Promise.all([
@@ -178,6 +234,21 @@ async function fetchCmp(symbols) {
   return map
 }
 
+// Stock display name per symbol, chunked. A joined `stocks(name)` select is
+// fine for a page of 50 rows, but on a full-table scan the join re-fetches the
+// same name on every row of a repeated symbol — measured 2x slower over 65k
+// rows than fetching signals bare and looking up names for just the distinct
+// symbols after (see history.js's full-scan path).
+async function fetchNames(symbols) {
+  if (!symbols.length) return {}
+  const rows = (await Promise.all(mkChunks(symbols).map(chunk =>
+    db.from('stocks').select('symbol, name').in('symbol', chunk).then(r => r.data || [])
+  ))).flat()
+  const map = {}
+  for (const row of rows) map[row.symbol] = row.name
+  return map
+}
+
 // Parse stocks.date_of_listing format "17-AUG-2026" → "2026-08-17"
 function parseListingDate(s) {
   if (!s) return null
@@ -189,7 +260,7 @@ module.exports = {
   db,
   daysAgo, addDays, mkChunks,
   send, sendErr,
-  getObsContext, getExcluded, fetchCmp, parseListingDate,
+  getObsContext, getExcluded, fetchCmp, fetchNames, parseListingDate, fetchAllPaged,
   getLatestRunStart, getFreshEmaSet, getEpisodes, weekStart,
   EMA_WINDOW_DAYS, BRK_WINDOW_DAYS,
 }
