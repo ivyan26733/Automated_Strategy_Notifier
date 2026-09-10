@@ -249,6 +249,95 @@ async function fetchNames(symbols) {
   return map
 }
 
+function emaRowKey(r) { return `${r.symbol}|${r.signal_date}|${r.signal_type}` }
+
+// Build a lookup from a single golden_cross/death_cross ROW's identity
+// (symbol|signal_date|signal_type) to the real trade EPISODE it belongs to:
+// { entryDate, entryPrice, exitDate, exitPrice } — exitDate/exitPrice null while
+// still open. Both the entry row and the exit row of one episode map to the SAME
+// object, and so does every re-fired duplicate of either.
+//
+// A cross on the developing weekly bar re-fires on every daily run (signal_date
+// advances with the bar's observation_date), so one real cross can leave several
+// rows. The collapse rule is general, not week-bounded: a row is a re-fire only
+// when the immediately preceding KEPT row for that symbol is the same type — this
+// stays correct even when a stock genuinely crosses, reverses, and crosses again
+// weeks apart (only an opposite-type signal in between breaks the run).
+//
+// `rows` must be EVERY golden_cross/death_cross row for the symbols involved —
+// a date-windowed subset would treat a mid-history entry as if it had no prior
+// episode. Order within `rows` does not matter; this sorts per symbol itself.
+function buildEmaEpisodeIndex(rows) {
+  const bySymbol = new Map()
+  for (const r of rows) {
+    if (!bySymbol.has(r.symbol)) bySymbol.set(r.symbol, [])
+    bySymbol.get(r.symbol).push(r)
+  }
+
+  const index = new Map()
+  for (const [, symRows] of bySymbol) {
+    symRows.sort((a, b) => a.signal_date === b.signal_date
+      ? new Date(a.created_at) - new Date(b.created_at)
+      : (a.signal_date < b.signal_date ? -1 : 1))
+
+    let episode = null
+    let lastType = null
+    for (const r of symRows) {
+      if (r.signal_type === lastType) {          // re-fire of the current episode
+        if (episode) index.set(emaRowKey(r), episode)
+        continue
+      }
+      lastType = r.signal_type
+      if (r.signal_type === 'golden_cross') {
+        episode = { entryDate: r.signal_date, entryPrice: r.price, exitDate: null, exitPrice: null }
+      } else if (episode) {
+        episode.exitDate = r.signal_date
+        episode.exitPrice = r.price
+      } else {
+        continue   // death_cross with no prior entry in the fetched range
+      }
+      index.set(emaRowKey(r), episode)
+    }
+  }
+  return index
+}
+
+// Above this many symbols, an .in() filter stops being worth applying — see
+// below.
+const EMA_HISTORY_IN_LIMIT = 500
+
+// Every golden_cross/death_cross row for a set of symbols, full history (no date
+// window) — the complete input buildEmaEpisodeIndex needs. Bounded to `symbols`
+// with .in() so a page of 50 signals only pays for the ~50 symbols it touches,
+// not the whole table.
+//
+// The full-scan filtered path in history.js can pass most of the universe as
+// `symbols` (a Return% filter with nothing else narrowing it), and that's the
+// case this guards: a single request with a 2,000-symbol .in() clause (~17KB of
+// query string) succeeds on its own, but fetchAllPaged fires many of those
+// concurrently, and the combined weight of that made "fetch failed" errors
+// under this specific combination — no failure with a small .in() list, none
+// with a large *unfiltered* fetch, only large-list-plus-high-concurrency
+// together. Reproduced consistently at ~2,000 symbols; not worth chasing the
+// exact byte threshold when skipping the filter above a safe symbol count
+// costs almost nothing (already fetching most of the table) and sidesteps the
+// failure mode entirely — confirmed the plain unfiltered fetch reliably
+// completes in ~4-7s regardless of table size.
+async function fetchEmaHistory(symbols) {
+  if (!symbols?.length) return []
+  const wide = symbols.length > EMA_HISTORY_IN_LIMIT
+  const symSet = wide ? new Set(symbols) : null
+
+  const rows = await fetchAllPaged(() => {
+    let q = db.from('signals')
+      .select('symbol, signal_type, signal_date, price, created_at', { count: 'exact' })
+      .eq('strategy_name', 'ema_crossover')
+    return wide ? q : q.in('symbol', symbols)
+  })
+
+  return wide ? rows.filter(r => symSet.has(r.symbol)) : rows
+}
+
 // Parse stocks.date_of_listing format "17-AUG-2026" → "2026-08-17"
 function parseListingDate(s) {
   if (!s) return null
@@ -261,6 +350,7 @@ module.exports = {
   daysAgo, addDays, mkChunks,
   send, sendErr,
   getObsContext, getExcluded, fetchCmp, fetchNames, parseListingDate, fetchAllPaged,
+  buildEmaEpisodeIndex, fetchEmaHistory, emaRowKey,
   getLatestRunStart, getFreshEmaSet, getEpisodes, weekStart,
   EMA_WINDOW_DAYS, BRK_WINDOW_DAYS,
 }

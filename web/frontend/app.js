@@ -197,7 +197,7 @@ async function loadHistoryTab(reset = false) {
   }
 
   historyTotal = d.total
-  el('meta-history').textContent = `${fmt.num(historyTotal)} total signals`
+  el('meta-history').textContent = `${fmt.num(historyTotal)} total signals · Return% is the real entry→exit trade for EMA crossovers, marked to today only while still open`
 
   const cols = [
     { label: '★',            key: '_star',              cls: 'star-col', fmt: v => starCell(v) },
@@ -206,8 +206,11 @@ async function loadHistoryTab(reset = false) {
     { label: 'Name',         key: 'name',               cls: 'name',     fmt: v => esc(v) },
     { label: 'Strategy',     key: 'strategy_name',      cls: '',         fmt: v => fmt.strat(v) },
     { label: 'Type',         key: 'signal_type',        cls: '',         fmt: v => fmt.type(v) },
+    { label: 'Status',       key: 'status',             cls: '',         fmt: v => v === 'open'
+        ? '<span class="badge badge-green">Open</span>'
+        : v === 'closed' ? '<span class="badge badge-red">Closed</span>' : '<span class="muted">—</span>' },
     { label: 'Signal Price', key: 'price',              cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'CMP',          key: 'cmp',                cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Exit/CMP',     key: 'cmp',                cls: 'num r',    fmt: v => fmt.price(v) },
     { label: 'Return%',      key: 'return_pct',         cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
     { label: 'EMA Diff%',    key: 'ema_difference_pct', cls: 'pct r',   fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
     { label: 'Brk%',         key: 'breakout_pct',       cls: 'pct r',   fmt: v => v != null ? `<span class="pos">${fmt.pct(v)}</span>` : '—' },
