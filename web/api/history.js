@@ -61,6 +61,23 @@ function buildRows(clean, cmpMap, names, episodeIndex) {
   })
 }
 
+// A cross re-fires on every daily run while its weekly bar is still developing
+// (see buildEmaEpisodeIndex), leaving several rows — one per re-fire date —
+// for the SAME real entry or exit. Only the row whose own signal_date matches
+// the episode's actual entry/exit date is the real event; every other row
+// mapped to that same episode is a same-priced echo of it and must not be
+// displayed. breakout_6m has no episode concept here (episodeIndex only ever
+// holds ema_crossover keys), so every one of its rows passes through unchanged
+// — that strategy's own re-fire behavior is a separate, strategy-level issue,
+// not something this display-layer filter should paper over.
+function isEpisodeAnchor(r, episodeIndex) {
+  if (r.strategy_name !== 'ema_crossover') return true
+  const ep = episodeIndex.get(emaRowKey(r))
+  if (!ep) return true   // no episode on record (e.g. orphan leading death_cross) — nothing to collapse against
+  const boundary = r.signal_type === 'golden_cross' ? ep.entryDate : ep.exitDate
+  return boundary === r.signal_date
+}
+
 module.exports = async (req, res) => {
   try {
     const { page = '1', strategy, symbol, sector, from, to, minReturn, watchlistOnly, watchlist } = req.query
@@ -101,30 +118,65 @@ module.exports = async (req, res) => {
     const needsFullScan = minReturnVal != null || wlOnly
 
     if (!needsFullScan) {
-      const { data, count, error } = await applyFilters(
-        db.from('signals')
-          .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector, stocks(name)', { count: 'exact' })
-          .order('signal_date', { ascending: false })
-      ).range(offset, offset + PAGE_SIZE - 1)
+      // Fast path, but re-fire duplicates (see isEpisodeAnchor) have to be
+      // dropped before a page can be filled from raw rows — a plain single
+      // .range() can no longer promise 50 real rows once some raw rows in
+      // that range are echoes of an episode already shown elsewhere. A
+      // re-fire duplicate sits within a few rows of its anchor (same
+      // developing week), so fetch in growing chunks and keep going only
+      // until enough SURVIVING rows exist to fill this page plus one more
+      // (to know whether a further page exists) — that stays close to the
+      // cost of a plain .range() for ordinary page depths, instead of
+      // scanning the whole table the way the filtered path below must.
+      const CHUNK = PAGE_SIZE * 3
+      const target = offset + PAGE_SIZE + 1
+      let episodeIndex = new Map()
+      const historySeenSyms = new Set()
+      let collected = []
+      let rawOffset = 0
+      let rawTotal = 0
 
-      if (error) return sendErr(res, error.message)
+      while (collected.length < target) {
+        const { data, count, error } = await applyFilters(
+          db.from('signals')
+            .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector, stocks(name)', { count: 'exact' })
+            .order('signal_date', { ascending: false })
+            .order('symbol', { ascending: true })
+        ).range(rawOffset, rawOffset + CHUNK - 1)
 
-      const clean = (data || []).filter(r => !excluded.has(r.symbol))
-      const emaSyms = [...new Set(clean.filter(r => r.strategy_name === 'ema_crossover').map(r => r.symbol))]
+        if (error) return sendErr(res, error.message)
+        rawTotal = count ?? 0
 
-      // Sequenced, not Promise.all — see the full-scan path below for why
-      // stacking fetchEmaHistory's internal concurrency on another chunked
-      // fetch caused an intermittent "fetch failed" under load.
-      const emaHistory = await fetchEmaHistory(emaSyms)
-      const cmpMap = await fetchCmp(clean.map(r => r.symbol))
-      const episodeIndex = buildEmaEpisodeIndex(emaHistory)
+        const chunk = (data || []).filter(r => !excluded.has(r.symbol))
+        const newEmaSyms = [...new Set(
+          chunk.filter(r => r.strategy_name === 'ema_crossover' && !historySeenSyms.has(r.symbol)).map(r => r.symbol)
+        )]
+        if (newEmaSyms.length) {
+          const hist = await fetchEmaHistory(newEmaSyms)
+          const idx = buildEmaEpisodeIndex(hist)
+          for (const [k, v] of idx) episodeIndex.set(k, v)
+          for (const s of newEmaSyms) historySeenSyms.add(s)
+        }
+
+        for (const r of chunk) {
+          if (!isEpisodeAnchor(r, episodeIndex)) continue   // drop re-fire duplicate
+          collected.push(r)
+        }
+
+        if (!data || data.length < CHUNK) break   // raw table exhausted
+        rawOffset += CHUNK
+      }
+
+      const pageRaw  = collected.slice(offset, offset + PAGE_SIZE)
+      const hasMore  = collected.length > offset + PAGE_SIZE
+      const cmpMap   = await fetchCmp(pageRaw.map(r => r.symbol))
 
       return send(res, {
-        total:    count ?? 0,
+        total:    rawTotal,
         page:     pageNum,
         pageSize: PAGE_SIZE,
-        hasMore:  offset + PAGE_SIZE < (count ?? 0),
-        rows:     buildRows(clean, cmpMap, null, episodeIndex),
+        hasMore,
+        rows:     buildRows(pageRaw, cmpMap, null, episodeIndex),
       })
     }
 
@@ -163,6 +215,11 @@ module.exports = async (req, res) => {
     const emaHistory = await fetchEmaHistory(emaSyms)
     const [cmpMap, names] = await Promise.all([fetchCmp(distinctSyms), fetchNames(distinctSyms)])
     const episodeIndex = buildEmaEpisodeIndex(emaHistory)
+
+    // Same re-fire collapse as the fast path above: keep only the row that IS
+    // its episode's real entry/exit date, drop every echo of it.
+    clean = clean.filter(r => isEpisodeAnchor(r, episodeIndex))
+
     let rows = buildRows(clean, cmpMap, names, episodeIndex)
 
     if (minReturnVal != null) {
