@@ -37,7 +37,16 @@ module.exports = async (req, res) => {
     // truncated at ~3 months, leaving most long-held stocks with no cross date.
     const episodes = await getEpisodes(activeOnly.map(r => r.symbol))
 
-    const rows = activeOnly.map(ind => {
+    // getEpisodes only returns symbols whose position is still OPEN, so a symbol
+    // missing from it has death-crossed and is no longer an active holding —
+    // drop it. EMA9 > EMA20 today is not sufficient on its own: a stock can
+    // climb back above EMA20 without ever emitting a golden cross (the entry
+    // gates in ema_crossover.py reject it while the state machine still flips
+    // `above`), which left 40 closed positions on this list showing a cross
+    // date and a return carried over from an episode that ended months ago.
+    const withOpenEpisode = activeOnly.filter(r => episodes.has(r.symbol))
+
+    const rows = withOpenEpisode.map(ind => {
       const e = episodes.get(ind.symbol)
       const sigPrice = e?.price ?? null
       const cmp = ind.weekly_close
@@ -55,7 +64,7 @@ module.exports = async (req, res) => {
       }
     })
 
-    send(res, { obsDate, activeCount: activeOnly.length, rows })
+    send(res, { obsDate, activeCount: withOpenEpisode.length, rows })
   } catch (e) {
     sendErr(res, e.message)
   }

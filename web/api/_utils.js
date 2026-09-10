@@ -74,7 +74,7 @@ function weekStart(date) {
   return d.toISOString().slice(0, 10)
 }
 
-// Collapse each symbol's duplicate rows down to its current cross episode.
+// Collapse each symbol's duplicate rows down to its current OPEN cross episode.
 //
 // A cross detected on the in-progress weekly bar re-fires on every daily run,
 // because that bar's observation_date advances each day and signal_date is part
@@ -82,47 +82,88 @@ function weekStart(date) {
 // 9). Taken at face value those rows make a stock look newly-crossed every day,
 // so it never leaves Fresh.
 //
-// Death crosses would give exact episode boundaries, but the scanner has never
-// written one (32,758 golden crosses, 0 death crosses), so the boundary used
-// here is the week: re-fires of a single cross always land inside one week,
-// because once that week closes the strategy's `above` state suppresses further
-// signals. The episode is therefore the run of signals sharing the week of the
-// symbol's most recent signal.
+// The episode's START still comes from the WEEK rule: re-fires of a single
+// cross land inside one week, because once that week closes the strategy's
+// `above` state suppresses further signals. The week boundary is deliberately
+// kept instead of collapsing every consecutive golden cross into one episode:
+// rows accumulate across runs, and each run re-evaluates the developing weekly
+// bar, so a cross seen one week can REPAINT away and re-appear at a later bar
+// with no death cross between the two (RPEL has golden crosses on 2026-05-17
+// and 2026-05-22, different ISO weeks). Collapsing those together would walk
+// the displayed cross date back onto a cross that no longer exists — it moved
+// the date on 159 of 933 active rows when tried.
 //
-// Returns Map<symbol, { start, firstSeen, price, stocks }> where `start` is the
-// true crossing date to display and `firstSeen` is when the scanner first saw it.
+// What the week rule can NOT do is tell whether the position is still open,
+// and that's the part that was wrong: it reads golden crosses only, because
+// the scanner had never written a death cross. It writes them now, so a symbol
+// is CLOSED when a death cross lands after the episode's start, and closed
+// positions are dropped here rather than presented as live holdings.
+//
+// That gate has to key on the death cross, not on today's EMA snapshot: a
+// stock can climb back above EMA20 without emitting a golden cross at all (the
+// entry gates in ema_crossover.py reject it while the state machine still
+// flips `above`), so weekly_indicators shows EMA9 > EMA20 while the newest
+// signal on record is still the old death cross. That is exactly how 40 closed
+// positions sat on the Active list showing a cross date and a return carried
+// over from an episode that had ended months earlier.
+//
+// Returns Map<symbol, { start, firstSeen, price, stocks }> for symbols whose
+// position is still OPEN — `start` is the true crossing date to display and
+// `firstSeen` is when the scanner first saw it. Closed symbols are absent.
 async function getEpisodes(symbols) {
   const out = new Map()
   if (!symbols?.length) return out
 
+  // Paged, not .limit(1000): 200-symbol chunks against a 60k-row signals table
+  // silently truncate to the newest 1000 rows chunk-wide, dropping every symbol
+  // whose signals are all older than that cut — the same failure that left 578
+  // blank Cross Dates before, still live here (ARIHANT, SICAGEN). symbol and
+  // signal_type join the sort purely to make the ordering total: .range() pages
+  // a tied ordering inconsistently, which silently drops and repeats rows.
   const rows = (await Promise.all(mkChunks(symbols).map(chunk =>
-    db.from('signals')
-      .select('symbol, signal_date, price, created_at, stocks(name, sector, industry)')
-      .eq('strategy_name', 'ema_crossover')
-      .eq('signal_type', 'golden_cross')
-      .in('symbol', chunk)
-      .order('signal_date', { ascending: false })
-      .limit(1000)
-      .then(r => r.data || [])
+    fetchAllPaged(() =>
+      db.from('signals')
+        .select('symbol, signal_type, signal_date, price, created_at, stocks(name, sector, industry)', { count: 'exact' })
+        .eq('strategy_name', 'ema_crossover')
+        .in('symbol', chunk)
+        .order('symbol', { ascending: true })
+        .order('signal_date', { ascending: false })
+        .order('signal_type', { ascending: true })
+        .order('created_at', { ascending: false })
+    )
   ))).flat()
 
-  // Rows arrive newest-first, so the first row seen for a symbol is its latest.
+  const bySymbol = new Map()
   for (const r of rows) {
-    const e = out.get(r.symbol)
-    if (!e) {
-      out.set(r.symbol, {
-        wk: weekStart(r.signal_date),
-        start: r.signal_date,
-        firstSeen: r.created_at,
-        price: r.price,
-        stocks: r.stocks,
-      })
-      continue
+    if (!bySymbol.has(r.symbol)) bySymbol.set(r.symbol, [])
+    bySymbol.get(r.symbol).push(r)
+  }
+
+  for (const [symbol, symRows] of bySymbol) {
+    symRows.sort((a, b) => a.signal_date === b.signal_date
+      ? new Date(b.created_at) - new Date(a.created_at)
+      : (a.signal_date > b.signal_date ? -1 : 1))          // newest first
+
+    let e = null
+    let lastDeath = null
+    for (const r of symRows) {
+      if (r.signal_type === 'death_cross') {
+        if (r.signal_date > (lastDeath || '')) lastDeath = r.signal_date
+        continue
+      }
+      if (!e) {
+        e = { wk: weekStart(r.signal_date), start: r.signal_date, firstSeen: r.created_at, price: r.price, stocks: r.stocks }
+        continue
+      }
+      if (r.signal_date >= e.wk) {            // still the same week => same cross
+        if (r.signal_date < e.start) { e.start = r.signal_date; e.price = r.price }
+        if (r.created_at < e.firstSeen) e.firstSeen = r.created_at
+      }
     }
-    if (r.signal_date >= e.wk) {            // still the same week => same cross
-      if (r.signal_date < e.start) { e.start = r.signal_date; e.price = r.price }
-      if (r.created_at < e.firstSeen) e.firstSeen = r.created_at
-    }
+
+    // A death cross after the entry closed this position — no open episode.
+    if (!e || (lastDeath && lastDeath > e.start)) continue
+    out.set(symbol, { start: e.start, firstSeen: e.firstSeen, price: e.price, stocks: e.stocks })
   }
   return out
 }
