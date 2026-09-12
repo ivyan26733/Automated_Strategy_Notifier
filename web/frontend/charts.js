@@ -266,8 +266,8 @@ function initResearchCharts() {
       .filter(r => r.wr != null)
     if (rows.length < 2) return null
 
-    const isLow  = s => /low/i.test(s)
-    const isHigh = s => /high/i.test(s)
+    // One neutral series: the evidence on volume is mixed, so the chart must not
+    // colour either volume level as the "good" outcome.
     return {
       type: 'bar',
       data: {
@@ -275,11 +275,8 @@ function initResearchCharts() {
         datasets: [{
           label: 'Win rate',
           data: rows.map(r => r.wr),
-          backgroundColor: rows.map(r =>
-            isLow(r.label)  ? alpha(p.green, 0.75) :
-            isHigh(r.label) ? alpha(p.amber, 0.7)  : alpha(p.blue, 0.45)),
-          borderColor: rows.map(r =>
-            isLow(r.label) ? p.green : isHigh(r.label) ? p.amber : p.blue),
+          backgroundColor: alpha(p.vizA, 0.75),
+          borderColor: p.vizA,
           borderWidth: 1, borderRadius: 3,
         }],
       },
