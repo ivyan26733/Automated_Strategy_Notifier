@@ -1,4 +1,4 @@
-const { db, send, sendErr } = require('./_utils')
+const { db, send, sendErr, must } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
@@ -9,12 +9,14 @@ module.exports = async (req, res) => {
       db.from('weekly_indicators')
         .select('symbol, ema9, ema20, ema_difference_pct, weekly_close, observation_date')
         .in('symbol', symbols)
-        .order('observation_date', { ascending: false }),
+        .order('observation_date', { ascending: false })
+        .then(r => must(r, 'weekly_indicators watchlist')),
       db.from('signals')
         .select('symbol, signal_date, price, strategy_name, signal_type, stocks(name, sector, industry)')
         .in('symbol', symbols)
         .eq('signal_type', 'golden_cross')
-        .order('signal_date', { ascending: false }),
+        .order('signal_date', { ascending: false })
+        .then(r => must(r, 'signals watchlist')),
     ])
 
     const indMap = {}, sigMap = {}

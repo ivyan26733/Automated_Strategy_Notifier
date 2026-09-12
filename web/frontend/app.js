@@ -45,6 +45,12 @@ function esc(s) { if (!s) return ''; return String(s).replace(/[&<>"']/g, c => (
 function el(id) { return document.getElementById(id) }
 function loading(c, sub = '') { c.innerHTML = `<div class="state-box"><div class="spinner"></div><span class="state-title">Loading…</span>${sub ? `<span class="state-sub">${esc(sub)}</span>` : ''}</div>` }
 function empty(c, msg, sub = '') { c.innerHTML = `<div class="state-box"><span class="state-title">${esc(msg)}</span>${sub ? `<span class="state-sub">${esc(sub)}</span>` : ''}</div>` }
+// A failed load must look different from an empty result — "no stocks today"
+// and "the database didn't answer" call for opposite reactions.
+function failed(c, retry) {
+  c.innerHTML = `<div class="state-box"><span class="state-title state-error">Couldn't load this data.</span><span class="state-sub">The server didn't respond properly — this is usually temporary.</span><button type="button" class="btn btn-secondary">Try again</button></div>`
+  c.querySelector('button').addEventListener('click', retry)
+}
 
 async function apiFetch(path) {
   const r = await fetch(path)
@@ -464,12 +470,24 @@ const loaders = {
   formulas:   initFormulaNav,
 }
 
+// Body container per data tab, where a load failure is shown in place.
+const TAB_BODY = { crossovers: 'body-crossovers', active: 'body-active', history: 'body-history', perf: 'body-perf', watchlist: 'body-watchlist' }
+
 async function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`))
   if (!loaded[tab]) {
+    // Marked before the await so a double click doesn't start two loads, and
+    // cleared on failure so the tab can't stay stuck on its spinner.
     loaded[tab] = true
-    await loaders[tab]()
+    try {
+      await loaders[tab]()
+    } catch (e) {
+      loaded[tab] = false
+      console.error(`Load error (${tab}):`, e)
+      const c = el(TAB_BODY[tab])
+      if (c) failed(c, () => switchTab(tab))
+    }
   }
 }
 
@@ -483,17 +501,32 @@ el('filter-apply').addEventListener('click', () => {
     to:       el('filter-to').value || undefined,
   }
   loaded.history = false
-  loadHistoryTab(true)
+  switchTab('history')
 })
 
 el('filter-reset').addEventListener('click', () => {
   historyFilters = {}
   ;['filter-strategy', 'filter-symbol', 'filter-sector', 'filter-from', 'filter-to'].forEach(id => el(id).value = '')
   loaded.history = false
-  loadHistoryTab(true)
+  switchTab('history')
 })
 
-el('load-more-history').addEventListener('click', () => loadHistoryTab(false))
+// A failed "Load more" keeps the rows already on screen and turns the button
+// into a retry, instead of replacing the whole table with an error.
+el('load-more-history').addEventListener('click', async () => {
+  const btn = el('load-more-history')
+  btn.disabled = true
+  try {
+    await loadHistoryTab(false)
+    btn.textContent = 'Load more'
+  } catch (e) {
+    console.error('Load more error:', e)
+    btn.textContent = "Couldn't load more — try again"
+    btn.hidden = false
+  } finally {
+    btn.disabled = false
+  }
+})
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab))
@@ -527,7 +560,8 @@ document.querySelectorAll('.perf-period-btn').forEach(btn => {
     perfPeriodDays = parseInt(btn.dataset.days, 10)
     document.querySelectorAll('.perf-period-btn').forEach(b => b.classList.remove('active'))
     btn.classList.add('active')
-    loadPerfTab()
+    loaded.perf = false
+    switchTab('perf')
   })
 })
 
@@ -564,14 +598,14 @@ el('gf-reset').addEventListener('click', () => {
 // ── Init ──────────────────────────────────────────────────────────
 async function init() {
   updateWlCount()
-  try {
-    await loadSummary()
-    await switchTab('crossovers')
-  } catch (e) {
-    console.error('Init error:', e)
+  // Independent: a failed summary must not stop the first tab from loading,
+  // and switchTab shows its own error state.
+  loadSummary().catch(e => {
+    console.error('Summary error:', e)
     el('run-text').textContent = 'Connection error'
     el('run-dot').className = 'dot err'
-  }
+  })
+  await switchTab('crossovers')
 }
 
 document.addEventListener('DOMContentLoaded', init)

@@ -284,6 +284,7 @@ td.muted { color: var(--text-4); font-size: 13px; }
 }
 .state-title { font-size: 16px; font-weight: 600; color: var(--text-2); }
 .state-sub   { font-size: 14px; color: var(--text-3); }
+.state-error { color: var(--red); }
 
 .spinner {
   width: 32px; height: 32px;

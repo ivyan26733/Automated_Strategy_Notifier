@@ -1,4 +1,4 @@
-const { db, getObsContext, getExcluded, fetchCmp, getLatestRunStart, getFreshEmaSet, getEpisodes, send, sendErr } = require('./_utils')
+const { db, getObsContext, getExcluded, fetchCmp, getLatestRunStart, getFreshEmaSet, getEpisodes, send, sendErr, must } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
@@ -19,13 +19,13 @@ module.exports = async (req, res) => {
 
     // Latest row per symbol carries the current EMA readings; the episode carries
     // the true crossing date and entry price.
-    const { data } = await db.from('signals')
+    const { data } = must(await db.from('signals')
       .select('symbol, ema9, ema20, ema_difference_pct, sector, industry')
       .eq('strategy_name', 'ema_crossover')
       .eq('signal_type', 'golden_cross')
       .in('symbol', symbols)
       .gte('created_at', runStartedAt)
-      .order('signal_date', { ascending: false })
+      .order('signal_date', { ascending: false }), 'signals fresh EMA readings')
 
     const latest = {}
     for (const r of (data || [])) if (!latest[r.symbol]) latest[r.symbol] = r

@@ -1,7 +1,7 @@
 const {
   db, getExcluded, fetchCmp, fetchNames, fetchAllPaged,
   buildEmaEpisodeIndex, fetchEmaHistory, emaRowKey,
-  send, sendErr,
+  send, sendErr, must,
 } = require('./_utils')
 
 const PAGE_SIZE = 50
@@ -137,14 +137,13 @@ module.exports = async (req, res) => {
       let rawTotal = 0
 
       while (collected.length < target) {
-        const { data, count, error } = await applyFilters(
+        const { data, count } = must(await applyFilters(
           db.from('signals')
             .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector, stocks(name)', { count: 'exact' })
             .order('signal_date', { ascending: false })
             .order('symbol', { ascending: true })
-        ).range(rawOffset, rawOffset + CHUNK - 1)
+        ).range(rawOffset, rawOffset + CHUNK - 1), 'signals history page')
 
-        if (error) return sendErr(res, error.message)
         rawTotal = count ?? 0
 
         const chunk = (data || []).filter(r => !excluded.has(r.symbol))
@@ -191,7 +190,8 @@ module.exports = async (req, res) => {
           .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector', { count: 'exact' })
           .order('signal_date', { ascending: false })
           .order('symbol', { ascending: true })   // deterministic tiebreak across range() pages
-      )
+      ),
+      'signals history full scan'
     )
 
     let clean = allMatching.filter(r => !excluded.has(r.symbol))

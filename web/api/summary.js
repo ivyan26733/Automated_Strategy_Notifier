@@ -1,11 +1,12 @@
-const { db, daysAgo, getObsContext, getExcluded, getLatestRunStart, getFreshEmaSet, send, sendErr, EMA_WINDOW_DAYS, BRK_WINDOW_DAYS } = require('./_utils')
+const { db, daysAgo, getObsContext, getExcluded, getLatestRunStart, getFreshEmaSet, send, sendErr, must, EMA_WINDOW_DAYS, BRK_WINDOW_DAYS } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
     const [runRes, uniRes, sigRes] = await Promise.all([
-      db.from('scanner_runs').select('started_at,finished_at,status').order('created_at', { ascending: false }).limit(1),
-      db.from('stocks').select('*', { count: 'exact', head: true }),
-      db.from('signals').select('*', { count: 'exact', head: true }),
+      db.from('scanner_runs').select('started_at,finished_at,status').order('created_at', { ascending: false }).limit(1)
+        .then(r => must(r, 'scanner_runs latest')),
+      db.from('stocks').select('*', { count: 'exact', head: true }).then(r => must(r, 'stocks count')),
+      db.from('signals').select('*', { count: 'exact', head: true }).then(r => must(r, 'signals count')),
     ])
 
     const { obsDate, activeSet } = await getObsContext()
@@ -23,7 +24,8 @@ module.exports = async (req, res) => {
         db.from('signals').select('*', { count: 'exact', head: true })
           .eq('strategy_name', 'breakout_6m')
           .gte('signal_date', daysAgo(obsDate, BRK_WINDOW_DAYS))
-          .lte('signal_date', obsDate),
+          .lte('signal_date', obsDate)
+          .then(r => must(r, 'signals breakout count')),
       ])
 
       const excluded = await getExcluded()

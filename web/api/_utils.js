@@ -26,24 +26,40 @@ function send(res, data, status = 200) {
   res.status(status).json(data)
 }
 
+// The full error goes to the Vercel function log, where it can be diagnosed;
+// the browser gets a generic message rather than raw database internals.
+// no-store keeps a failure from being cached and replayed after recovery.
 function sendErr(res, message, status = 500) {
-  res.status(status).json({ error: message })
+  console.error(`[api] ${res.req?.url || ''} ${status}: ${message}`)
+  res.setHeader('Cache-Control', 'no-store')
+  res.status(status).json({ error: 'Could not load data. Please try again.' })
+}
+
+// supabase-js reports a failed query as `{ error }` instead of throwing, so
+// destructuring only `data` turns an outage into an empty result: a blank tab
+// that reads like a quiet market, or — through getExcluded — circuit and
+// newly-listed stocks presented as tradeable. Every read goes through here so
+// a failure reaches the handler's catch and sendErr as a real error. `label`
+// names the query in the log line.
+function must(res, label) {
+  if (res.error) throw new Error(`${label}: ${res.error.message}`)
+  return res
 }
 
 // Latest obs date + set of symbols where EMA9 > EMA20
 async function getObsContext() {
-  const { data } = await db.from('weekly_indicators')
+  const { data } = must(await db.from('weekly_indicators')
     .select('observation_date')
     .order('observation_date', { ascending: false })
-    .limit(1)
+    .limit(1), 'weekly_indicators latest date')
 
   const obsDate = data?.[0]?.observation_date
   if (!obsDate) return { obsDate: null, activeSet: new Set() }
 
-  const { data: active } = await db.from('weekly_indicators')
+  const { data: active } = must(await db.from('weekly_indicators')
     .select('symbol')
     .gte('observation_date', daysAgo(obsDate, 7))
-    .gt('ema_difference', 0)
+    .gt('ema_difference', 0), 'weekly_indicators active set')
 
   return {
     obsDate,
@@ -58,12 +74,12 @@ async function getObsContext() {
 // "fresh" as soon as the next run finishes.
 // Anchored to status='success' so a run in flight doesn't make Fresh grow mid-scan.
 async function getLatestRunStart() {
-  const { data } = await db.from('scanner_runs')
+  const { data } = must(await db.from('scanner_runs')
     .select('started_at')
     .eq('status', 'success')
     .not('finished_at', 'is', null)
     .order('started_at', { ascending: false })
-    .limit(1)
+    .limit(1), 'scanner_runs latest success')
   return data?.[0]?.started_at || null
 }
 
@@ -129,7 +145,8 @@ async function getEpisodes(symbols) {
         .order('symbol', { ascending: true })
         .order('signal_date', { ascending: false })
         .order('signal_type', { ascending: true })
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
+      'signals episodes'
     )
   ))).flat()
 
@@ -173,11 +190,11 @@ async function getEpisodes(symbols) {
 // that crossed on Monday and merely re-fired today is not treated as new.
 async function getFreshEmaSet(runStartedAt) {
   if (!runStartedAt) return new Set()
-  const { data } = await db.from('signals')
+  const { data } = must(await db.from('signals')
     .select('symbol')
     .eq('strategy_name', 'ema_crossover')
     .eq('signal_type', 'golden_cross')
-    .gte('created_at', runStartedAt)
+    .gte('created_at', runStartedAt), 'signals fresh golden crosses')
 
   const candidates = [...new Set((data || []).map(r => r.symbol))]
   if (!candidates.length) return new Set()
@@ -210,9 +227,8 @@ const PAGE_CONCURRENCY = 40
 // the remaining pages are computed and fetched PAGE_CONCURRENCY at a time. A
 // caller that doesn't request count falls back to the original sequential
 // loop, which stays correct, just slow.
-async function fetchAllPaged(buildQuery) {
-  const first = await buildQuery().range(0, PAGE - 1)
-  if (first.error) throw new Error(first.error.message)
+async function fetchAllPaged(buildQuery, label = 'paged query') {
+  const first = must(await buildQuery().range(0, PAGE - 1), label)
   const out = [...(first.data || [])]
 
   const total = first.count
@@ -220,8 +236,7 @@ async function fetchAllPaged(buildQuery) {
     // No count requested — fall back to sequential paging.
     let from = PAGE
     while (first.data && first.data.length === PAGE) {
-      const { data, error } = await buildQuery().range(from, from + PAGE - 1)
-      if (error) throw new Error(error.message)
+      const { data } = must(await buildQuery().range(from, from + PAGE - 1), label)
       out.push(...(data || []))
       if (!data || data.length < PAGE) break
       from += PAGE
@@ -235,10 +250,7 @@ async function fetchAllPaged(buildQuery) {
   for (let b = 0; b < remaining.length; b += PAGE_CONCURRENCY) {
     const batch = remaining.slice(b, b + PAGE_CONCURRENCY)
     const results = await Promise.all(batch.map(p =>
-      buildQuery().range(p * PAGE, p * PAGE + PAGE - 1).then(r => {
-        if (r.error) throw new Error(r.error.message)
-        return r.data || []
-      })
+      buildQuery().range(p * PAGE, p * PAGE + PAGE - 1).then(r => must(r, label).data || [])
     ))
     for (const chunk of results) out.push(...chunk)
   }
@@ -252,8 +264,8 @@ async function getExcluded() {
     db.rpc('recently_listed_symbols', { cutoff_days: 90 }),
   ])
   return new Set([
-    ...(circuitRes.data  || []).map(r => r.symbol),
-    ...(newListedRes.data || []).map(r => r.symbol),
+    ...(must(circuitRes, 'rpc circuit_symbols').data || []).map(r => r.symbol),
+    ...(must(newListedRes, 'rpc recently_listed_symbols').data || []).map(r => r.symbol),
   ])
 }
 
@@ -266,7 +278,7 @@ async function fetchCmp(symbols) {
       .in('symbol', chunk)
       .order('observation_date', { ascending: false })
       .limit(500)
-      .then(r => r.data || [])
+      .then(r => must(r, 'weekly_indicators cmp').data || [])
   ))).flat()
   const map = {}
   for (const row of rows) {
@@ -283,7 +295,7 @@ async function fetchCmp(symbols) {
 async function fetchNames(symbols) {
   if (!symbols.length) return {}
   const rows = (await Promise.all(mkChunks(symbols).map(chunk =>
-    db.from('stocks').select('symbol, name').in('symbol', chunk).then(r => r.data || [])
+    db.from('stocks').select('symbol, name').in('symbol', chunk).then(r => must(r, 'stocks names').data || [])
   ))).flat()
   const map = {}
   for (const row of rows) map[row.symbol] = row.name
@@ -374,7 +386,7 @@ async function fetchEmaHistory(symbols) {
       .select('symbol, signal_type, signal_date, price, created_at', { count: 'exact' })
       .eq('strategy_name', 'ema_crossover')
     return wide ? q : q.in('symbol', symbols)
-  })
+  }, 'signals ema history')
 
   return wide ? rows.filter(r => symSet.has(r.symbol)) : rows
 }
@@ -389,7 +401,7 @@ function parseListingDate(s) {
 module.exports = {
   db,
   daysAgo, addDays, mkChunks,
-  send, sendErr,
+  send, sendErr, must,
   getObsContext, getExcluded, fetchCmp, fetchNames, parseListingDate, fetchAllPaged,
   buildEmaEpisodeIndex, fetchEmaHistory, emaRowKey,
   getLatestRunStart, getFreshEmaSet, getEpisodes, weekStart,
