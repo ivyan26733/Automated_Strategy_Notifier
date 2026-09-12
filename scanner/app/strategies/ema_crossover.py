@@ -52,11 +52,11 @@ def _daily_vol_above_20d(daily: pd.DataFrame | None, obs_date) -> bool | None:
     True  → volume on obs_date > mean volume of the 20 prior trading days.
     None  → insufficient data; caller treats this as gate-skipped (not rejected).
 
-    NOTE: backtest finding (vol_ratio_20d, 2016-2022): within tech-filtered signals,
-    LOW-volume signals (vol < 20d avg) OUTPERFORM high-volume signals:
-      Tech≥10 + low vol: 41.1% WR (+11.1pp) n=414
-      Tech≥10 + high vol: 35.3% WR (+5.3pp)  n=759
-    This criterion is implemented as specified; consider reviewing this data point.
+    NOTE: evidence on this gate is mixed. Across all 2016-2022 crosses volume made
+    almost no difference (vol > avg 31.0% vs 29.1% win rate, win = +10%). Within
+    composite score >= 10, low volume led (41.1% vs 35.3%) but that gap shrank to
+    ~1pp in 2023-2026. In a replay of this strategy since 2016, removing the gate
+    left the win rate level (37.9% vs 37.4%) while doubling the signal count.
     """
     if daily is None or daily.empty:
         return None

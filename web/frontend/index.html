@@ -1543,7 +1543,7 @@
         <div><dt>Signal</dt><dd>A golden cross that passed all six rules, so the scanner lists it.</dd></div>
         <div><dt>Survivorship bias</dt><dd>Testing only companies that still exist today. Firms that failed are left out, which makes past results look better than they were.</dd></div>
         <div><dt>Volume (20-day average)</dt><dd>The number of shares traded in a day, compared with the average of the 20 trading days before it.</dd></div>
-        <div><dt>Win rate</dt><dd>The share of finished trades counted as wins. In Chapters 1–5 a win is any profit; in the Deep dive it is a gain of 10% or more.</dd></div>
+        <div><dt>Win rate</dt><dd>The share of finished trades counted as wins. In Chapters 1–5 a win is any profit; in the Deep dive it is a gain of 10% or more; on the Returns tab it is a stock whose ₹100 ends above ₹100.</dd></div>
       </dl>
     </section>
   </div>
@@ -1553,298 +1553,627 @@
 <div class="tab-panel" id="panel-formulas">
   <div class="panel-header">
     <span class="panel-title">📋 Formula Sheet</span>
-    <span class="panel-meta">Complete calculation reference · NSE EMA Golden Cross Strategy · Sep 2026</span>
+    <span class="panel-meta">Every calculation behind the scanner and this site · plain words · exact maths · real example</span>
   </div>
+
+  <section class="rx-hero fx-hero" aria-labelledby="fx-hero-title">
+    <div class="rx-eyebrow">Formula sheet · checked line by line against the scanner's code</div>
+    <h2 class="rx-hero-title" id="fx-hero-title">How every number on this site is worked out</h2>
+    <p class="rx-hero-lead">Every formula comes in four parts, so you can follow it without a maths background and check it yourself with a phone calculator.</p>
+    <ul class="fx-anatomy">
+      <li><span class="fx-anatomy-icon" aria-hidden="true">💬</span><b>In plain words</b><span>What it measures and why it exists.</span></li>
+      <li><span class="fx-anatomy-icon" aria-hidden="true">ƒ</span><b>The exact formula</b><span>What the code actually runs.</span></li>
+      <li><span class="fx-anatomy-icon" aria-hidden="true">🧮</span><b>A worked example</b><span>Real numbers from M&amp;M's buy in the week ending 19 Jun 2020.</span></li>
+      <li><span class="fx-anatomy-icon" aria-hidden="true">📍</span><b>Where you see it</b><span>The tab or column that shows the result.</span></li>
+    </ul>
+  </section>
+
   <div class="formula-wrap">
 
-    <!-- Section nav pills -->
-    <div class="formula-nav">
-      <button class="formula-nav-btn active" data-section="criteria">Signal Criteria</button>
-      <button class="formula-nav-btn" data-section="ema">EMA &amp; ATR</button>
-      <button class="formula-nav-btn" data-section="scoring">Composite Score</button>
-      <button class="formula-nav-btn" data-section="fundamentals">Fundamentals</button>
-      <button class="formula-nav-btn" data-section="metrics">Outcome Metrics</button>
-    </div>
+    <nav class="formula-nav" aria-label="Formula sections">
+      <button class="formula-nav-btn active" data-section="start" aria-pressed="true">Start here</button>
+      <button class="formula-nav-btn" data-section="candles" aria-pressed="false">Prices &amp; candles</button>
+      <button class="formula-nav-btn" data-section="ema" aria-pressed="false">Moving averages</button>
+      <button class="formula-nav-btn" data-section="rules" aria-pressed="false">Signal rules</button>
+      <button class="formula-nav-btn" data-section="breakout" aria-pressed="false">6M breakout</button>
+      <button class="formula-nav-btn" data-section="dashboard" aria-pressed="false">Dashboard numbers</button>
+      <button class="formula-nav-btn" data-section="backtest" aria-pressed="false">Backtest maths</button>
+      <button class="formula-nav-btn" data-section="scores" aria-pressed="false">Research scores</button>
+      <button class="formula-nav-btn" data-section="cheat" aria-pressed="false">Cheat sheet</button>
+    </nav>
 
-    <!-- ── Signal Criteria ────────────────────────────────────────── -->
-    <div class="formula-section active" id="fsec-criteria">
-      <div class="formula-section-title">6 Signal Selection Gates</div>
-      <div class="formula-intro">ALL 6 must be satisfied simultaneously. A single failure = no signal. These are hard rejection gates, not scoring factors.</div>
+    <!-- ── Start here ─────────────────────────────────────────────── -->
+    <div class="formula-section active" id="fsec-start">
+      <div class="formula-section-title">Start here: from a share price to a signal</div>
+      <p class="fx-lead">Every signal is the end of the same six-step chain. Click a step to open its formulas.</p>
 
-      <div class="formula-cards">
-        <div class="formula-card">
-          <div class="formula-card-num">1</div>
-          <div class="formula-card-body">
-            <div class="formula-card-name">EMA9 Crosses Above EMA20 <span class="fc-badge fc-v1">Since V1</span></div>
-            <code class="formula-block">prev_EMA9 ≤ prev_EMA20  AND  curr_EMA9 > curr_EMA20</code>
-            <div class="formula-note">Both EMAs computed on weekly closing prices. "prev" = prior completed week. "curr" = current completed week.</div>
+      <ol class="fx-flow">
+        <li><button type="button" data-goto="candles"><span class="fx-flow-num">1</span><b>Daily prices</b><span>Open, high, low, close and volume for every trading day.</span></button></li>
+        <li><button type="button" data-goto="candles"><span class="fx-flow-num">2</span><b>Weekly candle</b><span>Each week's days combined into one candle.</span></button></li>
+        <li><button type="button" data-goto="ema"><span class="fx-flow-num">3</span><b>EMA9 &amp; EMA20</b><span>A fast and a slow average of weekly closes.</span></button></li>
+        <li><button type="button" data-goto="rules"><span class="fx-flow-num">4</span><b>Six rules</b><span>Cross, fresh, rising trend, gap, volume, history.</span></button></li>
+        <li><button type="button" data-goto="dashboard"><span class="fx-flow-num">5</span><b>Listed on the site</b><span>Fresh, Active and History, with Return %.</span></button></li>
+        <li><button type="button" data-goto="backtest"><span class="fx-flow-num">6</span><b>Judged over time</b><span>Win rate, median, profit factor.</span></button></li>
+      </ol>
+
+      <div class="rx-card fx-sim" id="fx-sim">
+        <div class="rx-fig-head">
+          <span class="rx-fig-title">Try it: where did M&amp;M have to close to trigger a signal?</span>
+          <button type="button" class="rx-btn rx-btn-ghost" id="fx-sim-reset">Reset to what happened</button>
+        </div>
+        <p class="rx-fig-sub">In the week ending 12 Jun 2020 M&amp;M's EMA9 was ₹433.86 and its EMA20 ₹437.85, so the fast line was still below.
+          It actually closed the next week at ₹500.05 on 98.1 lakh shares. Move the sliders to see how each rule reacts.</p>
+        <div class="fx-sim-grid">
+          <div>
+            <label class="rx-range"><span>Closing price, week ending 19 Jun <b id="fx-sim-close-val">₹500.05</b></span>
+              <input type="range" id="fx-sim-close" min="420" max="580" step="0.05" value="500.05"></label>
+            <label class="rx-range"><span>Volume on 19 Jun <b id="fx-sim-vol-val">98.1 lakh</b></span>
+              <input type="range" id="fx-sim-vol" min="30" max="200" step="0.1" value="98.1"></label>
+            <div class="fx-math" id="fx-sim-math" aria-live="polite"></div>
+            <div class="fx-thresholds">
+              <div class="fx-thresholds-title">The tipping points</div>
+              <ul id="fx-sim-thresholds"></ul>
+            </div>
+          </div>
+          <div>
+            <p class="fx-verdict" id="fx-sim-verdict" aria-live="polite"></p>
+            <ol class="rx-check-list" id="fx-sim-rules"></ol>
           </div>
         </div>
+        <p class="rx-footnote">ATR is held at this week's ₹50.17. In reality it also moves a little with the week's high and low. The rules are listed in the order the code checks them; once one fails, the later ones are not reached.</p>
+      </div>
 
-        <div class="formula-card">
-          <div class="formula-card-num">2</div>
-          <div class="formula-card-body">
-            <div class="formula-card-name">No Repeat Signal (Fresh Cross Only) <span class="fc-badge fc-v1">Since V1</span></div>
-            <code class="formula-block">State variable `above`:
-  False → cross detected → True    (signal fires once)
-  Resets to False when EMA9 ≤ EMA20</code>
-            <div class="formula-note">A second signal cannot fire while EMA9 remains above EMA20. Prevents duplicate entries on a sustained uptrend.</div>
-          </div>
-        </div>
-
-        <div class="formula-card">
-          <div class="formula-card-num">3</div>
-          <div class="formula-card-body">
-            <div class="formula-card-name">Weekly Candle — Developing Bar Included <span class="fc-badge fc-new">Changed Sep 2026</span></div>
-            <code class="formula-block">signal_date = observation_date of the latest weekly bar
-(the in-progress week is evaluated, not skipped)</code>
-            <div class="formula-note">Surfaces a crossover on the day it occurs, so Fresh Crossovers populates daily. <strong>Caveat:</strong> mid-week signals can repaint — a cross on Tuesday may fall back below EMA20 by Friday's close, meaning it never became a confirmed weekly golden cross.</div>
-          </div>
-        </div>
-
-        <div class="formula-card">
-          <div class="formula-card-num">4</div>
-          <div class="formula-card-body">
-            <div class="formula-card-name">EMA20 Monotonically Rising (4 Weeks) <span class="fc-badge fc-new">NEW Sep 2026</span></div>
-            <code class="formula-block">EMA20[i] > EMA20[i−1] > EMA20[i−2] > EMA20[i−3] > EMA20[i−4]
-(strict inequality across 5 consecutive bars — 4 intervals)</code>
-            <div class="formula-note">Rejects crosses where the medium-term trend (EMA20) is flat or declining. Filters signals during sideways or distribution markets.</div>
-          </div>
-        </div>
-
-        <div class="formula-card">
-          <div class="formula-card-num">5</div>
-          <div class="formula-card-body">
-            <div class="formula-card-name">ATR Spread Gate <span class="fc-badge fc-new">NEW Sep 2026</span></div>
-            <code class="formula-block">spread    = EMA9 − EMA20
-threshold = 0.05 × ATR(14) on weekly OHLC
-
-PASS if: spread ≥ threshold</code>
-            <div class="formula-note">Filters hairline crosses with negligible separation — the spread must be at least 5% of the 14-week Average True Range. See the EMA &amp; ATR section for the exact ATR calculation.</div>
-          </div>
-        </div>
-
-        <div class="formula-card">
-          <div class="formula-card-num">6</div>
-          <div class="formula-card-body">
-            <div class="formula-card-name">Daily Volume Gate <span class="fc-badge fc-new">NEW Sep 2026</span></div>
-            <code class="formula-block">vol_obs     = daily volume on observation_date
-vol_avg_20d = mean(daily volume, 20 trading days before obs_date)
-vol_ratio   = vol_obs / vol_avg_20d
-
-PASS if: vol_ratio > 1.0  (today's volume above its 20-day average)</code>
-            <div class="formula-note">Backtest note: this gate roughly halves the number of signals without improving the win rate (37.9% without it vs 37.4% with it, 2016 – Sep 2026). Earlier research found a low-volume edge within Tech≥10 signals in 2016–2022 (41.1% vs 35.3%) that shrank to about 1 pp after 2022. See Research &amp; Backtests, Chapter 5.</div>
-          </div>
-        </div>
+      <div class="rx-callout rx-callout-amber">
+        <div class="rx-callout-title">One thing to know before reading on</div>
+        <p>All strategy maths uses <strong>weekly candles</strong>. The live scanner runs every weekday evening and includes the unfinished current week,
+          so a signal can appear mid-week and, if the price falls back by Friday, disappear again. The backtests on Research &amp; Backtests use finished weeks only.</p>
       </div>
     </div>
 
-    <!-- ── EMA & ATR ───────────────────────────────────────────────── -->
+    <!-- ── Prices & candles ───────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-candles">
+      <div class="formula-section-title">Prices &amp; candles</div>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Weekly candle</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>A candle summarises a whole week of trading in five numbers. The strategy looks at weeks, not days, to ignore day-to-day noise.</p>
+        <code class="formula-block">Week   = Monday to Friday
+Open   = opening price of the week's first trading day
+High   = highest price reached on any day that week
+Low    = lowest price reached on any day that week
+Close  = closing price of the week's last trading day (so far)
+Volume = total shares traded that week</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M, 15–19 Jun 2020</div>
+          <p>Open ₹505.15 (15 Jun) · High ₹520.95 · Low ₹492.00 · Close <b>₹500.05</b> (19 Jun). The close is the number every EMA below uses.</p>
+        </div>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">Signal Price</span><span class="fx-chip">CMP</span><span class="fx-chip">input to every EMA</span></div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">The unfinished (developing) week</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>The scanner does not wait for Friday. Each weekday evening it builds the current week's candle from the days so far, so its "close" is that day's close.</p>
+        <code class="formula-block">On Wednesday: Open = Monday's open, High/Low = Mon–Wed range,
+              Close = Wednesday's close, Volume = Mon–Wed total</code>
+        <p class="fx-watch"><b>Watch out:</b> a cross seen on Wednesday is re-checked every evening. If the price slips back before Friday's close the cross can vanish ("repaint").</p>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">Fresh EMA Crossovers</span><span class="fx-chip">Active EMA</span></div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">CMP (current market price)</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>The latest price the site knows: the close of the current week's candle from the most recent scan.</p>
+        <code class="formula-block">CMP = weekly close from the stock's latest scan reading
+      (blank if the stock has no reading in the last 7 days)</code>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">CMP</span><span class="fx-chip">Exit/CMP (open trades)</span><span class="fx-chip">Watchlist</span></div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">What the site leaves out</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Some stocks produce misleading crosses, so they are filtered before any number is shown. This silently changes every count and average.</p>
+        <code class="formula-block">Hidden from every tab:
+  • stocks on the database's circuit list (price locked at its limit)
+  • stocks listed on NSE less than 90 days ago
+
+Returns tab only:
+  • golden crosses within 182 days of a stock's listing are ignored
+  • a death cross at the very start of the chosen period is skipped
+    (the buy it closes happened before the period began)</code>
+        <p class="fx-watch"><b>Why:</b> a new listing's moving averages start from its first price, so its early "crosses" are noise, and a price stuck at a circuit limit does not trade normally.</p>
+      </article>
+    </div>
+
+    <!-- ── Moving averages ────────────────────────────────────────── -->
     <div class="formula-section" id="fsec-ema">
-      <div class="formula-section-title">EMA &amp; ATR Formulas</div>
+      <div class="formula-section-title">Moving averages</div>
 
-      <div class="formula-cards">
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">Exponential Moving Average (EMA)</div>
-            <code class="formula-block">alpha = 2 / (period + 1)
+      <article class="fx-card">
+        <h4 class="fx-title">Exponential moving average (EMA9 and EMA20)</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>An average of weekly closes that leans towards recent weeks. Each week it moves a fixed share (α) of the way from its old value towards the new close.
+          EMA9 moves 20% of the way, so it is quick; EMA20 moves about 9.5%, so it is slow.</p>
+        <code class="formula-block">α = 2 ÷ (period + 1)          EMA9: α = 2 ÷ 10 = 0.20     EMA20: α = 2 ÷ 21 ≈ 0.0952
 
-EMA[0] = Close[0]                          ← seed (first available bar)
-EMA[i] = alpha × Close[i] + (1 − alpha) × EMA[i−1]
+EMA this week = EMA last week + α × (close this week − EMA last week)
+             (the same as α × close + (1 − α) × EMA last week)
 
-EMA9:   period = 9,   alpha = 2/10 = 0.2000
-EMA20:  period = 20,  alpha = 2/21 ≈ 0.0952</code>
-            <div class="formula-note">Computed on weekly closing prices. Runs forward from the first available bar — no look-ahead bias.</div>
-          </div>
+First week of a stock's history: EMA = that week's close
+A week with no price: EMA carries over unchanged</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M, week ending 19 Jun 2020 · close ₹500.05</div>
+          <ol class="fx-steps">
+            <li>EMA9 = 433.8564 + 0.20 × (500.05 − 433.8564) = 433.8564 + 13.2387 = <b>₹447.10</b></li>
+            <li>EMA20 = 437.8541 + 0.0952 × (500.05 − 437.8541) = 437.8541 + 5.9234 = <b>₹443.78</b></li>
+          </ol>
         </div>
+        <p class="fx-watch"><b>Watch out:</b> starting from the first close matches TradingView's <code>ta.ema</code>. Sites that start from a simple average will show slightly different values for a stock's first months, then converge.</p>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">EMA9</span><span class="fx-chip">EMA20</span><span class="fx-chip">Research replay chart</span></div>
+      </article>
 
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">True Range (TR) — per weekly bar</div>
-            <code class="formula-block">TR[i] = max(
-  High[i] − Low[i],             ← intrabar range
-  |High[i] − Close[i−1]|,       ← gap up from prior close
-  |Low[i]  − Close[i−1]|        ← gap down from prior close
-)
+      <article class="fx-card">
+        <h4 class="fx-title">Why EMA9 turns first: how much each past week counts</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Unpacking the formula shows every past week still counts, but less and less. Weight of a week that was <i>k</i> weeks ago = <code>α × (1 − α)<sup>k</sup></code>.</p>
+        <div class="fx-legend" aria-hidden="true"><span><i class="fx-sw fx-w-a"></i>EMA9</span><span><i class="fx-sw fx-w-b"></i>EMA20</span></div>
+        <div class="fx-weights" id="fx-weights" role="table" aria-label="Weight of each past week in EMA9 and EMA20"></div>
+        <p class="fx-plain fx-strong" id="fx-weights-sum"></p>
+      </article>
 
-TR[0] = undefined  (no prior close for first bar)</code>
-          </div>
+      <article class="fx-card">
+        <h4 class="fx-title">EMA gap and EMA Diff %</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>How far the fast line is above (positive) or below (negative) the slow line, in rupees and as a percentage of the slow line.</p>
+        <code class="formula-block">EMA gap    = EMA9 − EMA20
+EMA Diff % = (EMA9 − EMA20) ÷ EMA20 × 100</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M, 19 Jun 2020</div>
+          <ol class="fx-steps">
+            <li>Gap = 447.0951 − 443.7775 = <b>₹3.32</b></li>
+            <li>Diff % = 3.3176 ÷ 443.7775 × 100 = <b>+0.75%</b></li>
+          </ol>
         </div>
-
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">ATR(14) — Wilder's Smoothing on Weekly OHLC</div>
-            <code class="formula-block">Step 1 — Seed (bars 1–14):
-  ATR[14] = mean(TR[1], TR[2], …, TR[14])    ← simple average
-
-Step 2 — Recursive (bar i > 14):
-  ATR[i] = (ATR[i−1] × 13 + TR[i]) / 14
-
-General form for period n:
-  ATR[i] = (ATR[i−1] × (n−1) + TR[i]) / n</code>
-            <div class="formula-note">Wilder's method uses (n−1) as multiplier, not a standard exponential alpha. This gives the ATR a longer memory than a conventional EMA of the same period. Period = 14 weekly bars here.</div>
-          </div>
-        </div>
-
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">EMA Difference (Spread)</div>
-            <code class="formula-block">ema_difference     = EMA9 − EMA20
-ema_difference_pct = (EMA9 − EMA20) / EMA20 × 100
-
-Positive → EMA9 above EMA20  (uptrend / active GC)
-Negative → EMA9 below EMA20  (downtrend / after DC)</code>
-          </div>
-        </div>
-      </div>
+        <p class="fx-watch"><b>Reading it:</b> just after a cross the gap is small. A large Diff % usually means the cross happened weeks ago and much of the move has already happened.</p>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">EMA Diff %</span><span class="fx-chip">Active EMA is sorted by it</span></div>
+      </article>
     </div>
 
-    <!-- ── Composite Score ─────────────────────────────────────────── -->
-    <div class="formula-section" id="fsec-scoring">
-      <div class="formula-section-title">Composite Score (0 – 12)</div>
-      <div class="formula-intro">Four technical features scored 0–3 each via <strong>expanding-window quartiles</strong>. Sum = composite score 0–12. Used for <strong>ranking only</strong> — never determines whether a signal fires.</div>
+    <!-- ── Signal rules ───────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-rules">
+      <div class="formula-section-title">Signal rules: exactly what the scanner checks</div>
+      <p class="fx-lead">The code checks the rules in this order and stops at the first failure:</p>
+      <ol class="fx-order">
+        <li>At least 6 weekly candles</li><li>Fast line crosses above slow line</li><li>It is a fresh cross</li>
+        <li>Slow line rose 4 weeks running</li><li>Gap ≥ 5% of ATR</li><li>Volume above 20-day average</li><li class="is-end">Signal</li>
+      </ol>
 
-      <div class="formula-table-wrap">
-        <table class="formula-table">
-          <thead>
-            <tr>
-              <th>Feature</th>
-              <th>Calculation</th>
-              <th>Q1 = 0 pts</th>
-              <th>Q2 = 1 pt</th>
-              <th>Q3 = 2 pts</th>
-              <th>Q4 = 3 pts</th>
-            </tr>
-          </thead>
+      <article class="fx-card">
+        <h4 class="fx-title">Rules 1 &amp; 2 · Golden cross, and it must be fresh</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>The fast line has to move from at-or-below the slow line last week to above it this week.</p>
+        <code class="formula-block">last week:  EMA9 ≤ EMA20
+this week:  EMA9 > EMA20
+and no cross already counted since EMA9 last fell to or below EMA20</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M</div>
+          <p>Week ending 12 Jun: 433.86 ≤ 437.85 ✓ · week ending 19 Jun: 447.10 &gt; 443.78 ✓</p>
+        </div>
+        <p class="fx-watch"><b>Watch out, a cross can be "used up":</b> if a cross fails any later rule, the scanner still marks that move as seen. It will not signal a week later even if every rule passes then;
+          EMA9 has to fall back to or below EMA20 and cross again.</p>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Rule 3 · The slow line rose 4 weeks in a row</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>The bigger trend must already be turning up. Each of the last four weekly steps in EMA20 has to be a rise; one dip fails the rule even if the total went up.</p>
+        <code class="formula-block">EMA20 this week > 1 week ago > 2 weeks ago > 3 weeks ago > 4 weeks ago</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M, weeks ending 22 May → 19 Jun 2020</div>
+          <p>423.5424 → 424.7622 → 430.4229 → 437.8541 → <b>443.7775</b> ✓ every step higher</p>
+        </div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">True range and ATR(14)</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span><dfn class="rx-term" tabindex="0" data-tip="Average True Range: the size of a typical weekly price move, averaged over 14 weeks.">ATR</dfn> is the size of a typical weekly move. True range counts gaps too: if a stock opens far above last week's close, that jump is part of the move.</p>
+        <code class="formula-block">True range (TR) = the largest of
+    High − Low
+    | High − last week's close |
+    | Low  − last week's close |
+
+ATR(14): first value = simple average of the first 14 weekly TRs
+         after that  = (last week's ATR × 13 + this week's TR) ÷ 14     ← Wilder's smoothing</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M</div>
+          <div class="cmp-wrap">
+            <table class="rx-table">
+              <thead><tr><th>Week ending</th><th class="r">High − Low</th><th class="r">|High − prev close|</th><th class="r">|Low − prev close|</th><th class="r">True range</th></tr></thead>
+              <tbody>
+                <tr><td>5 Jun 2020 (gap up from ₹436.35)</td><td class="r">51.10</td><td class="r">56.25</td><td class="r">5.15</td><td class="r"><b>56.25</b></td></tr>
+                <tr><td>19 Jun 2020 (prev close ₹508.45)</td><td class="r">28.95</td><td class="r">12.50</td><td class="r">16.45</td><td class="r"><b>28.95</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ol class="fx-steps">
+            <li>ATR on 19 Jun = (51.8046 × 13 + 28.95) ÷ 14 = (673.4598 + 28.95) ÷ 14 = <b>₹50.17</b></li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Rule 4 · The gap is big enough</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>A hairline cross often flips straight back. The gap must be at least 5% of the stock's typical weekly move, so a volatile stock needs a wider gap than a calm one.</p>
+        <code class="formula-block">EMA9 − EMA20 ≥ 0.05 × ATR(14)
+(skipped, not failed, when ATR is not available yet: fewer than 15 weekly candles)</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M, 19 Jun 2020</div>
+          <p>Gap 3.3176 ≥ 0.05 × 50.1721 = <b>2.5086</b> ✓</p>
+        </div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Rule 5 · Volume above its 20-day average</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Shares traded on the candle's last day must beat the average of the 20 trading days before it. It was added to confirm real buying interest.</p>
+        <code class="formula-block">volume on the candle's last trading day > average volume of the 20 trading days before it
+(skipped, not failed, when fewer than 21 trading days of data exist)</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M, 21 May → 19 Jun 2020</div>
+          <div class="fx-volwrap">
+            <ol class="fx-volbars" id="fx-volbars" aria-label="Daily volume for the 20 days before 19 Jun and the signal day"></ol>
+            <div class="fx-vol-legend"><span><i class="fx-sw fx-sw-muted"></i>20 days before</span><span><i class="fx-sw fx-w-a"></i>signal day</span><span><i class="fx-sw-line"></i>20-day average</span></div>
+          </div>
+          <ol class="fx-steps">
+            <li>Average = 16,87,65,701 shares ÷ 20 = <b>84,38,285</b> (84.4 lakh)</li>
+            <li>19 Jun volume = <b>98,11,021</b> (98.1 lakh) &gt; 84,38,285 ✓ · 1.16× normal</li>
+          </ol>
+          <details class="rx-tableview">
+            <summary>Show the 21 days as a table</summary>
+            <div class="cmp-wrap"><table class="rx-table" id="fx-vol-table"><thead><tr><th>Day</th><th class="r">Shares traded</th></tr></thead><tbody></tbody></table></div>
+          </details>
+        </div>
+        <p class="fx-watch"><b>Evidence note:</b> in the backtest this rule halves the number of signals without raising the win rate (37.9% without it, 37.4% with it, 2016 – Sep 2026).</p>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Rule 6 · Enough history</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>The checks look back five weeks, and moving averages start from a stock's very first close, so a brand-new listing can't produce a meaningful cross.</p>
+        <code class="formula-block">at least 6 weekly candles (the first week that can signal is the 6th)</code>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Death cross (the sell)</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>The only exit. When the fast line falls back to or below the slow line while a buy is open, the trade is closed at that week's close. No other rule applies to selling.</p>
+        <code class="formula-block">EMA9 ≤ EMA20 this week, after a golden cross  →  sell at this week's close</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M</div>
+          <p>Week ending 23 Jul 2021: EMA9 fell below EMA20 → sold at <b>₹764.20</b>, 57 weeks after buying at ₹500.05.</p>
+        </div>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">Signal History: Status = Closed</span><span class="fx-chip">Exit Date</span><span class="fx-chip">Returns tab</span></div>
+      </article>
+    </div>
+
+    <!-- ── 6M breakout ────────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-breakout">
+      <div class="formula-section-title">6-month breakout (the second strategy)</div>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Consolidation breakout</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Flags a stock whose price climbs above the highest weekly close it made between 6 and 2 months ago.
+          Ignoring the last 2 months means the stock must have spent at least 2 months below that level before breaking out.</p>
+        <code class="formula-block">reference high = highest weekly close among finished weeks
+                 dated between 6 months ago and 2 months ago
+signal         = this week's close (so far) > reference high
+Breakout %     = (close ÷ reference high − 1) × 100</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Illustrative example</div>
+          <ol class="fx-steps">
+            <li>Highest weekly close between 6 and 2 months ago: ₹250.00</li>
+            <li>Today's close: ₹262.00 &gt; ₹250.00 → signal</li>
+            <li>Breakout % = (262 ÷ 250 − 1) × 100 = <b>+4.8%</b></li>
+          </ol>
+        </div>
+        <p class="fx-watch"><b>Watch out:</b> there are no other filters and no exit rule. Its Return % is always CMP ÷ signal price − 1, and it can be recorded again on later days while the price stays above the reference.</p>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">Signal History: 6M Breakout</span><span class="fx-chip">Brk %</span></div>
+      </article>
+    </div>
+
+    <!-- ── Dashboard numbers ──────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-dashboard">
+      <div class="formula-section-title">Dashboard numbers: what each column means</div>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Cross Date and Signal Price</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Because the unfinished week is re-checked every evening, one cross can be recorded on several days. The site keeps the first day it was recorded and that day's price.</p>
+        <code class="formula-block">Cross Date   = first day the cross was recorded
+Signal Price = the weekly close recorded on that day</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M</div>
+          <p>Cross Date 19 Jun 2020 · Signal Price <b>₹500.05</b></p>
+        </div>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">Fresh</span><span class="fx-chip">Active</span><span class="fx-chip">Signal History</span><span class="fx-chip">Watchlist</span></div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Return %</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>How much the price has moved since the signal. While a trade is open it uses today's price; once a death cross has happened it is frozen at the exit price.</p>
+        <code class="formula-block">Still open:  Return % = (CMP ÷ Signal Price − 1) × 100
+Closed:      Return % = (Exit price ÷ Signal Price − 1) × 100
+             Exit price = weekly close on the death-cross date</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M, bought at ₹500.05</div>
+          <ol class="fx-steps">
+            <li>Still open on 9 Oct 2020 at ₹633.20: (633.20 ÷ 500.05 − 1) × 100 = <b>+26.63%</b></li>
+            <li>Closed on 23 Jul 2021 at ₹764.20: (764.20 ÷ 500.05 − 1) × 100 = <b>+52.83%</b></li>
+          </ol>
+        </div>
+        <p class="fx-watch"><b>Filter note:</b> the "Return %" filter at the top keeps rows at or above the chosen value.</p>
+        <div class="fx-where"><span>📍 Where you see it</span><span class="fx-chip">Return %</span><span class="fx-chip">Exit/CMP</span><span class="fx-chip">Status: Open / Closed</span></div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Held</h4>
+        <code class="formula-block">Fresh, Active:  Held = today − Cross Date (days)
+Returns tab:    Held = Exit Date − Entry Date, or latest scan date − Entry Date if still open</code>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Fresh EMA Crossovers vs Active EMA</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Fresh is today's news; Active is everything still being held.</p>
+        <code class="formula-block">Fresh EMA Crossovers = golden crosses first recorded in the latest successful scan
+
+Active EMA = EMA9 > EMA20 in the stock's latest reading
+             AND its golden cross has had no death cross since
+             AND it is not Fresh (it moves to Active after the next scan)
+             sorted by EMA Diff %, largest first</code>
+        <p class="fx-watch"><b>Watch out:</b> a stock can sit above EMA20 without any signal (for example after a "used-up" cross), so Active lists only stocks with an open golden cross, not every stock above.</p>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">The three numbers at the top</h4>
+        <code class="formula-block">Universe       = NSE EQ stocks in the database
+EMA Crossovers = stocks in Fresh EMA Crossovers
+Total Signals  = every golden-cross and 6M-breakout record ever stored
+                 (death crosses are exits and are not counted; a cross recorded
+                  on several days of one week counts once per day)</code>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Returns tab: ₹100 per stock, compounded</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Imagine putting ₹100 into each stock at its first golden cross in the period, and rolling the money through every buy-and-sell since. The headline is the average result across stocks.</p>
+        <code class="formula-block">per stock:     ₹ = 100
+               after each closed trade:  ₹ = ₹ × (exit price ÷ entry price)
+               an open trade:            ₹ = ₹ × (CMP ÷ entry price)   (while EMA9 > EMA20)
+
+Compounded Return  = average of (₹ − 100) across stocks
+Median Per-Stock   = middle value of (₹ − 100)
+Win Rate           = stocks ending above ₹100 ÷ stocks        ← stocks, not trades
+Avg Holding Period = average days per trade</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · a stock with two trades</div>
+          <ol class="fx-steps">
+            <li>Trade 1 +52.8%, trade 2 −10.4%</li>
+            <li>₹100 × 1.528 × 0.896 = <b>₹136.91</b> → this stock adds <b>+36.9%</b> to the average, and counts as a win</li>
+          </ol>
+        </div>
+        <p class="fx-watch"><b>Watch out:</b> this is a measure of signal quality, not a portfolio you could run: the stocks overlap in time and would need separate money. Try your own sequence in the calculator under <button type="button" class="fx-link" data-goto="backtest">Backtest maths</button>.</p>
+      </article>
+    </div>
+
+    <!-- ── Backtest maths ─────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-backtest">
+      <div class="formula-section-title">Backtest maths: judging a strategy over many trades</div>
+
+      <div class="rx-card fx-trades">
+        <div class="rx-fig-head">
+          <span class="rx-fig-title">Calculator: type any list of trade returns</span>
+          <span class="rx-seg rx-seg-wrap" role="group" aria-label="Examples">
+            <button type="button" data-trades="five" aria-pressed="true">Five trades</button>
+            <button type="button" data-trades="mm" aria-pressed="false">M&amp;M then TCS</button>
+            <button type="button" data-trades="streak" aria-pressed="false">Six losses, one big win</button>
+            <button type="button" data-trades="coin" aria-pressed="false">Coin flips</button>
+          </span>
+        </div>
+        <label class="fx-input-label" for="fx-trades-input">Returns in %, separated by commas</label>
+        <input type="text" class="fx-input" id="fx-trades-input" value="-12, -9, -6, +18, +160" inputmode="text" autocomplete="off">
+        <div class="cmp-wrap" id="fx-trades-out" aria-live="polite"></div>
+        <p class="fx-chain"><span>₹100 through the trades:</span> <span id="fx-trades-chain"></span></p>
+      </div>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Win rate: three definitions on this site</h4>
+        <div class="cmp-wrap">
+          <table class="rx-table fx-deftable">
+            <thead><tr><th>Where</th><th>Counts as a win</th><th>Formula</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td>Research chapters 1–5</td><td>any profit</td><td>trades above 0% ÷ finished trades</td><td>352 ÷ 941 = 37.4%</td></tr>
+              <tr><td>Research deep dive</td><td>gain of 10% or more</td><td>wins ÷ (wins + trades below 0%) · 0–10% left out</td><td>2,091 ÷ 6,971 = 30.0%</td></tr>
+              <tr><td>Returns tab</td><td>a stock's ₹100 ends above ₹100</td><td>stocks above ₹100 ÷ stocks</td><td>changes with the period</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fx-watch"><b>Watch out:</b> a win rate alone says nothing about money. A strategy can win 37% of the time and profit, or win 60% and lose; see expectancy below.</p>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Median (typical) vs average</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>The median is the middle trade once they are sorted. The average adds everything up, so a single huge winner can pull it far above what a typical trade looks like.</p>
+        <code class="formula-block">median  = middle value of the sorted returns (mean of the two middle values if the count is even)
+average = sum of returns ÷ number of trades</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · five trades: −12, −9, −6, +18, +160</div>
+          <ol class="fx-steps">
+            <li>Median = the 3rd value = <b>−6%</b></li>
+            <li>Average = (−12 − 9 − 6 + 18 + 160) ÷ 5 = 151 ÷ 5 = <b>+30.2%</b></li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Average win, average loss, profit factor</h4>
+        <code class="formula-block">average win   = mean of trades above 0%
+average loss  = mean of trades at or below 0%
+payoff ratio  = average win ÷ |average loss|
+profit factor = sum of winning returns ÷ |sum of losing returns|     (same money in every trade)</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked examples</div>
+          <ol class="fx-steps">
+            <li>Five trades: profit factor = (18 + 160) ÷ (12 + 9 + 6) = 178 ÷ 27 = <b>6.59×</b></li>
+            <li>Today's rules since 2016: payoff = 97.4 ÷ 14.4 = <b>6.8×</b> · profit factor <b>4.05×</b></li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Expectancy and break-even win rate</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Expectancy is the average result per trade once winners and losers are combined; above zero means the strategy makes money over many trades. Break-even is the lowest win rate that still avoids a loss.</p>
+        <code class="formula-block">expectancy          = win rate × average win − (1 − win rate) × |average loss|
+break-even win rate = |average loss| ÷ (average win + |average loss|)</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · today's rules since 2016</div>
+          <ol class="fx-steps">
+            <li>Expectancy = 0.374 × 97.4 − 0.626 × 14.4 = 36.43 − 9.01 = <b>+27.4% per trade</b></li>
+            <li>Break-even = 14.4 ÷ (97.4 + 14.4) = <b>12.9%</b>, far below the actual 37.4%</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Percentiles and concentration</h4>
+        <code class="formula-block">10th percentile = the return that 10% of trades did worse than
+90th percentile = the return that 10% of trades did better than
+top-5% share    = sum of the best 5% of trades ÷ sum of all winning returns</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Today's rules since 2016</div>
+          <p>10th percentile <b>−21.7%</b> · 90th percentile <b>+106.2%</b> · best 5% of trades = <b>55%</b> of all gains</p>
+        </div>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Other terms used in the research</h4>
+        <code class="formula-block">13-week return      = (close 13 weeks after entry ÷ entry close − 1) × 100
+                      gives every signal the same time window, whatever its exit
+percentage points   = plain difference between two percentages
+                      30% → 37% is +7 pp, which is +23% in relative terms (7 ÷ 30)
+return after costs  ≈ return − round-trip cost (brokerage, STT, slippage)
+                      +52.8% with a 1% cost ≈ +51.8%</code>
+      </article>
+    </div>
+
+    <!-- ── Research scores ────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-scores">
+      <div class="formula-section-title">Research scores (not used by the live scanner)</div>
+      <div class="rx-callout rx-callout-blue">
+        <div class="rx-callout-title">Research only</div>
+        <p>These scores come from the 2016–2022 study of 973 stocks shown in the Research deep dive. The scanner today neither filters nor ranks signals with them.</p>
+      </div>
+
+      <article class="fx-card">
+        <h4 class="fx-title">The four technical features</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>Each describes the setup at the moment of a golden cross. The quarter lines split all 2016–2022 signals into four equal groups.</p>
+        <div class="cmp-wrap">
+          <table class="rx-table fx-deftable">
+            <thead><tr><th>Feature</th><th>Formula</th><th>Quarter lines</th><th>M&amp;M, 19 Jun 2020</th></tr></thead>
+            <tbody>
+              <tr><td><b>52-week position</b><br><small>0 = at its 1-year low, 1 = at its high</small></td><td>(close − 52-week low) ÷ (52-week high − 52-week low)</td><td>0.447 / 0.581 / 0.717</td><td>(500.05 − 269.00) ÷ (672.15 − 269.00) = <b>0.573</b></td></tr>
+              <tr><td><b>EMA gap %</b></td><td>(EMA9 − EMA20) ÷ EMA20 × 100</td><td>0.18 / 0.42 / 0.86</td><td>3.3176 ÷ 443.7775 × 100 = <b>0.75%</b></td></tr>
+              <tr><td><b>4-week momentum</b></td><td>(close ÷ close 4 weeks earlier − 1) × 100</td><td>6.4 / 12.1 / 20.4</td><td>(500.05 ÷ 426.35 − 1) × 100 = <b>+17.3%</b></td></tr>
+              <tr><td><b>EMA20 slope</b></td><td>(EMA20 ÷ EMA20 4 weeks earlier − 1) × 100</td><td>0.48 / 1.23 / 2.23</td><td>(443.7775 ÷ 423.5424 − 1) × 100 = <b>+4.78%</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fx-watch"><b>Note:</b> the 52-week range uses daily closes over the previous 52 weeks. The research used split-adjusted closes, so older stocks can differ slightly.</p>
+      </article>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Points and composite score</h4>
+        <code class="formula-block">points per feature:  below 1st quarter line = 0 · 2nd quarter = 1 · 3rd quarter = 2 · top quarter = 3
+composite score   =  sum of the four points  (0 to 12)
+
+quarter lines are recalculated before each signal from EARLIER signals only (no look-ahead)
+the first signals, until 500 earlier ones exist, get no score (521 in 2016–2022)</code>
+        <div class="fx-example">
+          <div class="fx-example-label">🧮 Worked example · M&amp;M</div>
+          <p>1 (52-week position) + 2 (gap) + 2 (momentum) + 3 (slope) = <b>8 of 12</b>. Crosses scoring 8 won 29.2% of the time, yet this one made +52.8%.
+            Scores shift the odds across many trades; they do not predict a single one.</p>
+        </div>
+      </article>
+
+      <div class="rx-card fx-score">
+        <div class="rx-fig-head">
+          <span class="rx-fig-title">Score a cross yourself</span>
+          <span class="rx-seg" role="group" aria-label="Examples">
+            <button type="button" data-score-preset="mm" aria-pressed="true">M&amp;M 2020</button>
+            <button type="button" data-score-preset="strong" aria-pressed="false">Strong setup</button>
+            <button type="button" data-score-preset="weak" aria-pressed="false">Weak setup</button>
+          </span>
+        </div>
+        <div class="fx-score-inputs">
+          <label class="fx-num"><span>52-week position (0–1)</span><input type="number" id="fx-sc-pos" value="0.573" step="0.01" min="0" max="1"></label>
+          <label class="fx-num"><span>EMA gap %</span><input type="number" id="fx-sc-diff" value="0.75" step="0.05"></label>
+          <label class="fx-num"><span>4-week momentum %</span><input type="number" id="fx-sc-mom" value="17.29" step="0.5"></label>
+          <label class="fx-num"><span>EMA20 slope %</span><input type="number" id="fx-sc-slope" value="4.78" step="0.05"></label>
+        </div>
+        <div class="cmp-wrap">
+          <table class="rx-table fx-points">
+            <thead><tr><th>Feature</th><th class="r">Value</th><th>Falls in</th><th class="r">Points</th></tr></thead>
+            <tbody id="fx-sc-points"></tbody>
+          </table>
+        </div>
+        <p class="fx-total" id="fx-sc-total" aria-live="polite"></p>
+        <div class="rx-fig-sub">Share of crosses that gained 10% or more, by exact score (2016–2022, 0–10% trades left out). The highlighted column is your score.</div>
+        <div class="fx-ladder-wrap"><ol class="fx-ladder" id="fx-sc-ladder" aria-label="Win rate by composite score"></ol></div>
+        <p class="rx-footnote">Win rates climb from about 20% at the bottom to about 37% at 10, then level off: 11 and 12 did no better than 10. Quarter lines here are fixed at the 2016–2022 values for illustration.</p>
+        <details class="rx-tableview">
+          <summary>Show the score ladder as a table</summary>
+          <div class="cmp-wrap"><table class="rx-table" id="fx-sc-table"><thead><tr><th>Score</th><th class="r">Gained 10%+</th><th class="r">Signals</th></tr></thead><tbody></tbody></table></div>
+        </details>
+      </div>
+
+      <article class="fx-card">
+        <h4 class="fx-title">Fundamental score (0–100)</h4>
+        <p class="fx-plain"><span class="fx-tag">💬</span>A company-quality score built from financial statements, using a scorecard that matches the type of business. Each metric earns points in bands, for example 3 points at 15% or more, 2 at 12%, 1 at 8%.</p>
+        <div class="cmp-wrap">
+          <table class="rx-table fx-deftable">
+            <thead><tr><th>Scorecard</th><th>Sections and points (total 100)</th></tr></thead>
+            <tbody>
+              <tr><td>Non-financial companies</td><td>Earnings quality 25 · Returns (ROCE, ROE) 20 · Cash flow 15 · Balance sheet 15 · Management 10 · Valuation 15</td></tr>
+              <tr><td>Banks</td><td>Asset quality 25 · Profitability 25 · Growth 15 · Capital 15 · Governance 10 · Valuation 10</td></tr>
+              <tr><td>NBFCs &amp; housing finance</td><td>Asset quality 20 · Funding 20 · Profitability 20 · Growth 15 · Capital 10 · Governance 5 · Valuation 10</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <code class="formula-block">Rejected outright (score 0) if any one is true:
+  net debt ÷ EBITDA > 3× (5× for NBFCs) · interest coverage < 3× · debt ÷ equity > 2×
+  ROCE < −5% · promoter holding < 25%
+  (promoter pledge > 5% is part of the design but not enforced: the data is unavailable)</code>
+        <p class="fx-watch"><b>Watch out:</b> scores use today's financial statements for past signals, a mild look-ahead. Bank metrics like GNPA and CASA are not available, so parts of the bank scorecard use neutral defaults.</p>
+      </article>
+    </div>
+
+    <!-- ── Cheat sheet ────────────────────────────────────────────── -->
+    <div class="formula-section" id="fsec-cheat">
+      <div class="formula-section-title">Cheat sheet: every formula on one page</div>
+      <div class="cmp-wrap">
+        <table class="rx-table fx-cheat">
+          <thead><tr><th>Name</th><th>Formula</th><th>M&amp;M example</th><th>Where</th></tr></thead>
           <tbody>
-            <tr>
-              <td class="ft-name">price_52w_position</td>
-              <td class="ft-formula">
-                <code>(Close − Low_52w) / (High_52w − Low_52w) × 100</code>
-                <small>Position within 52-week range. 0 = at 52w low, 100 = at 52w high.</small>
-              </td>
-              <td>Bottom 25%</td><td>25–50%</td><td>50–75%</td><td>Top 25%</td>
-            </tr>
-            <tr>
-              <td class="ft-name">ema_diff_pct</td>
-              <td class="ft-formula">
-                <code>(EMA9 − EMA20) / EMA20 × 100</code>
-                <small>Spread at cross date — higher = stronger momentum.</small>
-              </td>
-              <td>Weakest</td><td>Moderate</td><td>Strong</td><td>Strongest</td>
-            </tr>
-            <tr>
-              <td class="ft-name">momentum_4w</td>
-              <td class="ft-formula">
-                <code>(Close[t] − Close[t−4]) / Close[t−4] × 100</code>
-                <small>4-week price return ending at the signal date.</small>
-              </td>
-              <td>Negative</td><td>Low +ve</td><td>Moderate</td><td>Strong</td>
-            </tr>
-            <tr>
-              <td class="ft-name">ema20_slope</td>
-              <td class="ft-formula">
-                <code>(EMA20[t] − EMA20[t−4]) / EMA20[t−4] × 100</code>
-                <small>EMA20 slope over 4 weeks — confirms medium-term trend direction.</small>
-              </td>
-              <td>Declining</td><td>Flat</td><td>Rising</td><td>Steeply rising</td>
-            </tr>
+            <tr><td>Weekly close</td><td>last trading day's close in the week</td><td>₹500.05</td><td>Signal Price, CMP</td></tr>
+            <tr><td>EMA</td><td>last EMA + α × (close − last EMA), α = 2 ÷ (period + 1)</td><td>EMA9 ₹447.10 · EMA20 ₹443.78</td><td>EMA9, EMA20</td></tr>
+            <tr><td>EMA Diff %</td><td>(EMA9 − EMA20) ÷ EMA20 × 100</td><td>+0.75%</td><td>EMA Diff %</td></tr>
+            <tr><td>Golden cross</td><td>last week EMA9 ≤ EMA20, this week EMA9 &gt; EMA20</td><td>433.86 ≤ 437.85 → 447.10 &gt; 443.78</td><td>Fresh, History</td></tr>
+            <tr><td>Rising EMA20</td><td>EMA20 higher in each of the last 4 weekly steps</td><td>423.54 → … → 443.78</td><td>rule 3</td></tr>
+            <tr><td>True range</td><td>max(H − L, |H − prev close|, |L − prev close|)</td><td>28.95</td><td>ATR input</td></tr>
+            <tr><td>ATR(14)</td><td>(last ATR × 13 + TR) ÷ 14</td><td>₹50.17</td><td>rule 4</td></tr>
+            <tr><td>Gap rule</td><td>EMA9 − EMA20 ≥ 0.05 × ATR</td><td>3.32 ≥ 2.51</td><td>rule 4</td></tr>
+            <tr><td>Volume rule</td><td>day's volume &gt; average of previous 20 days</td><td>98.1 lakh &gt; 84.4 lakh</td><td>rule 5</td></tr>
+            <tr><td>Death cross</td><td>EMA9 ≤ EMA20 while a buy is open</td><td>23 Jul 2021 at ₹764.20</td><td>History: Closed</td></tr>
+            <tr><td>Breakout %</td><td>(close ÷ highest weekly close 6–2 months ago − 1) × 100</td><td>262 ÷ 250 → +4.8%</td><td>History: Brk %</td></tr>
+            <tr><td>Return % (open)</td><td>(CMP ÷ Signal Price − 1) × 100</td><td>+26.63% on 9 Oct 2020</td><td>Return %</td></tr>
+            <tr><td>Return % (closed)</td><td>(Exit price ÷ Signal Price − 1) × 100</td><td>+52.83%</td><td>Return %</td></tr>
+            <tr><td>₹100 compounding</td><td>100 × (exit ÷ entry) × (exit ÷ entry) …</td><td>100 × 1.528 × 0.896 = ₹136.91</td><td>Returns tab</td></tr>
+            <tr><td>Win rate</td><td>wins ÷ counted trades (3 definitions)</td><td>352 ÷ 941 = 37.4%</td><td>Research, Returns</td></tr>
+            <tr><td>Median</td><td>middle of sorted returns</td><td>−6% of (−12, −9, −6, +18, +160)</td><td>Research, Returns</td></tr>
+            <tr><td>Profit factor</td><td>sum of wins ÷ |sum of losses|</td><td>4.05× since 2016</td><td>Research</td></tr>
+            <tr><td>Expectancy</td><td>win rate × avg win − loss rate × |avg loss|</td><td>+27.4% per trade</td><td>Research</td></tr>
+            <tr><td>Break-even win rate</td><td>|avg loss| ÷ (avg win + |avg loss|)</td><td>12.9%</td><td>Research</td></tr>
+            <tr><td>Composite score</td><td>sum of 4 quarter points (0–12)</td><td>1 + 2 + 2 + 3 = 8</td><td>Research only</td></tr>
           </tbody>
         </table>
       </div>
-
-      <div class="formula-callout fc-amber">
-        <strong>Expanding-window quartiles — no look-ahead:</strong> Quartile boundaries are recomputed from all signals seen <em>before</em> the current one. A 500-signal burn-in period applies — the first 500 signals all receive score 0 while the distribution accumulates. This means live scoring is never contaminated by future data.
-      </div>
-    </div>
-
-    <!-- ── Fundamentals ────────────────────────────────────────────── -->
-    <div class="formula-section" id="fsec-fundamentals">
-      <div class="formula-section-title">Fundamental Scoring (Ranking Only)</div>
-      <div class="formula-intro">Financial metrics determine the <em>priority order</em> of signals — they never decide whether a signal fires. A stock failing every fundamental check still generates a signal if all 6 technical criteria are met.</div>
-
-      <div class="formula-table-wrap">
-        <table class="formula-table">
-          <thead>
-            <tr><th>Factor</th><th>What it measures</th><th>Role</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="ft-name">Tech Score (0–12)</td>
-              <td>Sum of 4 composite scoring features above</td>
-              <td>Higher = higher alert priority</td>
-            </tr>
-            <tr>
-              <td class="ft-name">Fund Score</td>
-              <td>Composite of ROE, Debt/Equity, Revenue growth, Promoter holding %, and other balance-sheet ratios</td>
-              <td>Top-half ≥ 44 used as threshold in backtests; higher = better rank</td>
-            </tr>
-            <tr>
-              <td class="ft-name">Combined Rank</td>
-              <td>Tech Score + Fund Score combined</td>
-              <td>Determines watchlist ordering among signals firing the same week</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="formula-callout fc-blue">
-        <strong>Best backtest result (2016–2022):</strong> Tech ≥ 10 (top-quartile technical) + Fund top-half (score ≥ 44) → <strong>42.2% win rate</strong> (+12.2 pp above the 30.0% baseline), n = 505 signals. Win defined as return_pct ≥ +10%.
-      </div>
-    </div>
-
-    <!-- ── Outcome Metrics ─────────────────────────────────────────── -->
-    <div class="formula-section" id="fsec-metrics">
-      <div class="formula-section-title">Outcome &amp; Backtest Metrics</div>
-
-      <div class="formula-cards">
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">return_pct — Primary Metric</div>
-            <code class="formula-block">return_pct = (exit_price / entry_price − 1) × 100
-
-entry_price = weekly close on Golden Cross signal date
-exit_price  = weekly close on Death Cross date (EMA9 crosses below EMA20)
-
-Open signals → exit_price = latest weekly close (mark-to-market)</code>
-            <div class="formula-note">Win threshold: return_pct ≥ +10%. Loss threshold: return_pct ≤ 0%. Neutral zone (0–10%) excluded from the W/L denominator in win-rate calculations.</div>
-          </div>
-        </div>
-
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">ret_13w — Fixed-Horizon Secondary Metric</div>
-            <code class="formula-block">ret_13w = (price[entry + 13 weeks] / price[entry] − 1) × 100
-
-Fixed 13-week window from entry date — no exit trigger.
-Position is valued at week 13 whether EMA cross still holds or not.</code>
-            <div class="formula-note">Unbiased metric: unlike return_pct, ret_13w is not affected by how long a trend lasts. Each signal gets an identical 13-week evaluation window.</div>
-          </div>
-        </div>
-
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">Win Rate</div>
-            <code class="formula-block">win_rate = winners / (winners + losers) × 100
-
-winners = signals where return_pct ≥ +10%
-losers  = signals where return_pct ≤  0%
-neutral = 0% &lt; return_pct &lt; 10%  → excluded from denominator
-
-Baseline (2016–2022): 2,091 / 6,971 = 30.0%</code>
-          </div>
-        </div>
-
-        <div class="formula-card formula-card-full">
-          <div class="formula-card-body">
-            <div class="formula-card-name">vol_ratio_20d — Volume Gate Input (Criterion 6)</div>
-            <code class="formula-block">vol_ratio_20d = daily_volume(obs_date) / mean(daily_volume, prev 20 trading days)
-
-"prev 20 trading days" = 20 sessions strictly before obs_date (excludes obs_date itself)
-Data source: daily (not weekly) volume series</code>
-          </div>
-        </div>
-      </div>
+      <p class="rx-footnote">Definitions of every term are in the glossary at the end of Research &amp; Backtests.</p>
     </div>
 
   </div>
@@ -1854,6 +2183,7 @@ Data source: daily (not weekly) volume series</code>
 <script src="charts.js"></script>
 <script src="research-data.js"></script>
 <script src="research.js"></script>
+<script src="formulas.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

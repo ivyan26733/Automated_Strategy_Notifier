@@ -468,7 +468,7 @@ const loaders = {
   perf:       loadPerfTab,
   watchlist:  loadWatchlistTab,
   research:   () => { window.NSEResearch?.init(); window.NSECharts?.initResearchCharts() },
-  formulas:   initFormulaNav,
+  formulas:   () => { initFormulaNav(); window.NSEFormulas?.init() },
 }
 
 // Body container per data tab, where a load failure is shown in place.

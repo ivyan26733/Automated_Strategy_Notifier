@@ -531,7 +531,7 @@
   }
 
   function initChapterNav() {
-    const links = $$('.rx-chapnav a')
+    const links = $$('#panel-research .rx-chapnav a')
     if (!links.length || !('IntersectionObserver' in window)) return
     const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]))
     const io = new IntersectionObserver(entries => {
