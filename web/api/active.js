@@ -1,24 +1,15 @@
-const { db, getObsContext, getExcluded, getLatestRunStart, getFreshEmaSet, getEpisodes, send, sendErr, must } = require('./_utils')
+const { getObsContext, getExcluded, getLatestRunStart, getFreshEmaSet, getEpisodes, fetchLatestIndicators, send, sendErr } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
     const { obsDate } = await getObsContext()
     if (!obsDate) return send(res, { obsDate: null, activeCount: 0, rows: [] })
 
-    const { data: rawInds } = must(await db.from('weekly_indicators')
-      .select('symbol, ema9, ema20, ema_difference_pct, weekly_close, observation_date')
-      .gt('ema_difference', 0)
-      .order('observation_date', { ascending: false })
-      .limit(5000), 'weekly_indicators above EMA20')
-
-    if (!rawInds?.length) return send(res, { obsDate, activeCount: 0, rows: [] })
-
-    // Dedup: keep latest observation per symbol
-    const seen = new Set()
-    const inds = []
-    for (const row of rawInds) {
-      if (!seen.has(row.symbol)) { seen.add(row.symbol); inds.push(row) }
-    }
+    // Each stock's latest reading first, THEN the ones above — see
+    // fetchLatestIndicators for why the EMA filter can't go into the query.
+    const latest = await fetchLatestIndicators(obsDate)
+    const inds = [...latest.values()].filter(r => r.ema_difference > 0)
+    if (!inds.length) return send(res, { obsDate, activeCount: 0, rows: [] })
 
     // Exclude circuit + recently-listed
     const excluded = await getExcluded()

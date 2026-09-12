@@ -1,4 +1,4 @@
-const { db, daysAgo, addDays, getObsContext, getExcluded, fetchCmp, parseListingDate, fetchAllPaged, send, sendErr } = require('./_utils')
+const { db, daysAgo, addDays, getObsContext, getExcluded, fetchLatestIndicators, parseListingDate, fetchAllPaged, send, sendErr } = require('./_utils')
 
 // ── Per-symbol timeline ──────────────────────────────────────────────
 // A cross detected on the in-progress weekly bar re-fires on every daily run —
@@ -80,7 +80,7 @@ function median(xs) {
 module.exports = async (req, res) => {
   try {
     const period = parseInt(req.query.period ?? '365', 10)
-    const { obsDate, activeSet } = await getObsContext()
+    const { obsDate } = await getObsContext()
     if (!obsDate) return send(res, { obsDate: null, trades: [], kpis: {} })
 
     const lookbackDays = period === 0 ? 7300 : period
@@ -100,6 +100,8 @@ module.exports = async (req, res) => {
         .order('symbol', { ascending: true })
         .order('signal_date', { ascending: true })
         .order('created_at', { ascending: true })
+        .order('signal_type', { ascending: true }),   // total order: stable .range() pages
+      'signals returns window'
     )
 
     if (!rawSignals.length) return send(res, { obsDate, period, trades: [], kpis: {} })
@@ -113,7 +115,12 @@ module.exports = async (req, res) => {
       bySymbol.get(r.symbol).push(r)
     }
 
-    const cmpMap = await fetchCmp([...bySymbol.keys()].filter(s => activeSet.has(s)))
+    // An open leg is marked to market while the stock's latest reading is still
+    // above EMA20 — the same rule as before, applied to the complete set now
+    // that it's no longer read through a query capped at 1000 rows.
+    const latest = await fetchLatestIndicators(obsDate, [...bySymbol.keys()])
+    const cmpMap = {}
+    for (const [symbol, r] of latest) if (r.ema_difference > 0) cmpMap[symbol] = r.weekly_close
 
     const stockResults = []
     for (const [symbol, rows] of bySymbol) {

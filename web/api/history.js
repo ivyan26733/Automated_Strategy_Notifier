@@ -142,6 +142,8 @@ module.exports = async (req, res) => {
             .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector, stocks(name)', { count: 'exact' })
             .order('signal_date', { ascending: false })
             .order('symbol', { ascending: true })
+            .order('strategy_name', { ascending: true })   // total order: an EMA cross and a
+            .order('signal_type', { ascending: true })     // breakout can share symbol + date
         ).range(rawOffset, rawOffset + CHUNK - 1), 'signals history page')
 
         rawTotal = count ?? 0
@@ -189,7 +191,9 @@ module.exports = async (req, res) => {
         db.from('signals')
           .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector', { count: 'exact' })
           .order('signal_date', { ascending: false })
-          .order('symbol', { ascending: true })   // deterministic tiebreak across range() pages
+          .order('symbol', { ascending: true })
+          .order('strategy_name', { ascending: true })   // total order, so range() pages
+          .order('signal_type', { ascending: true })     // can't overlap or skip rows
       ),
       'signals history full scan'
     )

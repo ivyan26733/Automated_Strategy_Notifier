@@ -46,25 +46,15 @@ function must(res, label) {
   return res
 }
 
-// Latest obs date + set of symbols where EMA9 > EMA20
+// Latest observation date in the table — the "as of" date every tab reports
+// against. Current per-stock readings come from fetchLatestIndicators.
 async function getObsContext() {
   const { data } = must(await db.from('weekly_indicators')
     .select('observation_date')
     .order('observation_date', { ascending: false })
     .limit(1), 'weekly_indicators latest date')
 
-  const obsDate = data?.[0]?.observation_date
-  if (!obsDate) return { obsDate: null, activeSet: new Set() }
-
-  const { data: active } = must(await db.from('weekly_indicators')
-    .select('symbol')
-    .gte('observation_date', daysAgo(obsDate, 7))
-    .gt('ema_difference', 0), 'weekly_indicators active set')
-
-  return {
-    obsDate,
-    activeSet: new Set((active || []).map(r => r.symbol)),
-  }
+  return { obsDate: data?.[0]?.observation_date || null }
 }
 
 // Start time of the most recent COMPLETED scanner run.
@@ -219,6 +209,9 @@ const PAGE_CONCURRENCY = 40
 // can't silently truncate — that's exactly what produced the 578 blank Cross
 // Dates earlier in this project. `buildQuery` receives the query builder
 // (already filtered/ordered) and must NOT call .range() or .limit() itself.
+// Its ORDER BY must be TOTAL (end on a unique key): with no order, or ties
+// left in it, pages fetched concurrently can overlap and skip rows without
+// any error (see fetchEmaHistory).
 //
 // Pages fetch in bounded-concurrency batches, not one at a time: a 40,000-row
 // scan is ~40 pages, and fetched serially that timed out a 2-minute request
@@ -269,21 +262,61 @@ async function getExcluded() {
   ])
 }
 
-// Latest weekly_close per symbol, chunked to avoid PostgREST URL limits
-async function fetchCmp(symbols) {
-  if (!symbols.length) return {}
-  const rows = (await Promise.all(mkChunks(symbols).map(chunk =>
-    db.from('weekly_indicators')
-      .select('symbol, weekly_close, observation_date')
-      .in('symbol', chunk)
+// weekly_indicators holds one row per (symbol, observation_date) and gains a
+// full universe of rows on every scan, so "rows where EMA9 > EMA20" is not
+// "stocks where EMA9 > EMA20": it matches every day a stock was above,
+// including days before it crossed back down, and it runs far past the 1000
+// rows PostgREST returns per request whatever .limit() asks for. That cap
+// silently cut the Active tab to 1000 of 1178 stocks and the Returns active
+// set to 919.
+//
+// So a stock's current reading is always its LATEST row, taken from a window
+// ending at obsDate, fully paged — and callers filter on EMA values only after
+// that reduction. Filtering in the query would let an older positive row stand
+// in for a stock that has since crossed down. The window keeps the scan to a
+// few days of rows instead of the whole growing history; a symbol with no
+// observation inside it (not scanned for over a week) has no current reading.
+// Ordered on the primary key so .range() pages are stable.
+const LATEST_WINDOW_DAYS = 7
+
+async function fetchLatestIndicators(obsDate, symbols = null) {
+  if (symbols) symbols = [...new Set(symbols)]
+  if (!obsDate || (symbols && !symbols.length)) return new Map()
+
+  const since = daysAgo(obsDate, LATEST_WINDOW_DAYS)
+  const query = subset => () => {
+    const q = db.from('weekly_indicators')
+      .select('symbol, observation_date, ema9, ema20, ema_difference, ema_difference_pct, weekly_close', { count: 'exact' })
+      .gte('observation_date', since)
+      .order('symbol', { ascending: true })
       .order('observation_date', { ascending: false })
-      .limit(500)
-      .then(r => must(r, 'weekly_indicators cmp').data || [])
-  ))).flat()
-  const map = {}
-  for (const row of rows) {
-    if (!(row.symbol in map)) map[row.symbol] = row.weekly_close
+    return subset ? q.in('symbol', subset) : q
   }
+
+  // Same wide-list rule as fetchEmaHistory: past a few hundred symbols, scan
+  // the window unfiltered rather than fire many large .in() lists at once.
+  const wide = !symbols || symbols.length > EMA_HISTORY_IN_LIMIT
+  const rows = wide
+    ? await fetchAllPaged(query(null), 'weekly_indicators latest')
+    : (await Promise.all(mkChunks(symbols).map(chunk =>
+        fetchAllPaged(query(chunk), 'weekly_indicators latest')))).flat()
+
+  const wanted = symbols ? new Set(symbols) : null
+  const latest = new Map()
+  for (const r of rows) {
+    if (wanted && !wanted.has(r.symbol)) continue
+    const cur = latest.get(r.symbol)
+    if (!cur || r.observation_date > cur.observation_date) latest.set(r.symbol, r)
+  }
+  return latest
+}
+
+// Latest weekly_close per symbol as of obsDate (looked up when not passed).
+async function fetchCmp(symbols, obsDate) {
+  if (!symbols.length) return {}
+  if (!obsDate) ({ obsDate } = await getObsContext())
+  const map = {}
+  for (const [symbol, r] of await fetchLatestIndicators(obsDate, symbols)) map[symbol] = r.weekly_close
   return map
 }
 
@@ -381,10 +414,18 @@ async function fetchEmaHistory(symbols) {
   const wide = symbols.length > EMA_HISTORY_IN_LIMIT
   const symSet = wide ? new Set(symbols) : null
 
+  // Ordered on the row's unique key (strategy is fixed here). This query used to
+  // have no ORDER BY at all, and unordered .range() pages carry no guarantee of
+  // lining up: fetched concurrently, one 62k-row scan came back with ~10,600
+  // rows duplicated and as many silently missing, which split episodes apart
+  // and made History's Return% totals change from one request to the next.
   const rows = await fetchAllPaged(() => {
     let q = db.from('signals')
       .select('symbol, signal_type, signal_date, price, created_at', { count: 'exact' })
       .eq('strategy_name', 'ema_crossover')
+      .order('symbol', { ascending: true })
+      .order('signal_date', { ascending: true })
+      .order('signal_type', { ascending: true })
     return wide ? q : q.in('symbol', symbols)
   }, 'signals ema history')
 
@@ -402,7 +443,7 @@ module.exports = {
   db,
   daysAgo, addDays, mkChunks,
   send, sendErr, must,
-  getObsContext, getExcluded, fetchCmp, fetchNames, parseListingDate, fetchAllPaged,
+  getObsContext, getExcluded, fetchCmp, fetchLatestIndicators, fetchNames, parseListingDate, fetchAllPaged,
   buildEmaEpisodeIndex, fetchEmaHistory, emaRowKey,
   getLatestRunStart, getFreshEmaSet, getEpisodes, weekStart,
   EMA_WINDOW_DAYS, BRK_WINDOW_DAYS,

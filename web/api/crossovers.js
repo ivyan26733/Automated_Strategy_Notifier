@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
     for (const r of (data || [])) if (!latest[r.symbol]) latest[r.symbol] = r
 
     const episodes = await getEpisodes(symbols)
-    const cmpMap   = await fetchCmp(symbols)
+    const cmpMap   = await fetchCmp(symbols, obsDate)
 
     const rows = symbols.map(sym => {
       const e = episodes.get(sym)

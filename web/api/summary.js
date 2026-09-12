@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
       db.from('signals').select('*', { count: 'exact', head: true }).then(r => must(r, 'signals count')),
     ])
 
-    const { obsDate, activeSet } = await getObsContext()
+    const { obsDate } = await getObsContext()
 
     let freshEmaCount = 0
     let freshBrkCount = 0
