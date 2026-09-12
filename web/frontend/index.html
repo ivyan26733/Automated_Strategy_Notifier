@@ -142,139 +142,511 @@
 <div class="tab-panel" id="panel-research">
   <div class="panel-header">
     <span class="panel-title">Research &amp; Backtests</span>
-    <span class="panel-meta">NSE EMA Golden Cross · 973 stocks · 2016–2022 · 6,971 W/L signals · 6-criteria selective signal · Sep 2026</span>
+    <span class="panel-meta">Plain-English guide · live-rule backtest 2016 – 4 Sep 2026 · analyst deep dive</span>
   </div>
 
   <div class="research-wrap">
 
-    <!-- ── 1. Strategy Mechanism ────────────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Strategy Mechanism</div>
-
-      <div class="stat-chips">
-        <div class="stat-chip">
-          <div class="stat-chip-val c-blue">973</div>
-          <div class="stat-chip-label">NSE Stocks</div>
-          <div class="stat-chip-sub">Universe scanned</div>
+    <!-- ══ Guided story: plain-English first, analyst detail further down ══ -->
+    <section class="rx-hero" aria-labelledby="rx-hero-title">
+      <div class="rx-eyebrow">A 10-minute guide · no maths background needed</div>
+      <h2 class="rx-hero-title" id="rx-hero-title">Does buying golden crosses actually make money?</h2>
+      <p class="rx-hero-lead">
+        We took the <strong>exact six rules the scanner uses today</strong> and replayed them on the weekly charts of every NSE stock
+        from January 2016 to September 2026. Every time a stock passed all six rules we "bought", and we "sold" when the trend turned down.
+        <span data-stat="since2016.current:closed" data-fmt="int">941</span> trades finished. Here is what happened.
+      </p>
+      <div class="rx-tiles">
+        <div class="rx-tile">
+          <div class="rx-tile-val"><span data-stat="since2016.current:win" data-fmt="pct">37.4%</span></div>
+          <div class="rx-tile-label">of trades made money</div>
+          <div class="rx-tile-sub">About 37 in every 100. Most trades lose.</div>
         </div>
-        <div class="stat-chip">
-          <div class="stat-chip-val">11,576</div>
-          <div class="stat-chip-label">Total GC Signals</div>
-          <div class="stat-chip-sub">2016 – Sep 2026</div>
+        <div class="rx-tile">
+          <div class="rx-tile-val"><span class="rx-up" data-stat="since2016.current:med_win" data-fmt="spct">+48.7%</span> <span class="rx-vs">vs</span> <span class="rx-down" data-stat="since2016.current:med_loss" data-fmt="spct">−13.4%</span></div>
+          <div class="rx-tile-label">typical win vs typical loss</div>
+          <div class="rx-tile-sub">Wins are several times bigger than losses.</div>
         </div>
-        <div class="stat-chip">
-          <div class="stat-chip-val c-blue">7,555</div>
-          <div class="stat-chip-label">Closed Signals</div>
-          <div class="stat-chip-sub">2016–2022 · DC has occurred</div>
+        <div class="rx-tile">
+          <div class="rx-tile-val"><span data-stat="since2016.current:pf" data-fmt="x">4.1×</span></div>
+          <div class="rx-tile-label">money won ÷ money lost</div>
+          <div class="rx-tile-sub">With equal money in each trade, winners earned about ₹4 for every ₹1 losers lost.</div>
         </div>
-        <div class="stat-chip">
-          <div class="stat-chip-val">6,971</div>
-          <div class="stat-chip-label">W/L Signals</div>
-          <div class="stat-chip-sub">Neutral 0–10% excluded</div>
-        </div>
-        <div class="stat-chip">
-          <div class="stat-chip-val c-amber">30.0%</div>
-          <div class="stat-chip-label">Baseline Win Rate</div>
-          <div class="stat-chip-sub">No filter · return_pct ≥ 10% = win</div>
+        <div class="rx-tile">
+          <div class="rx-tile-val"><span data-stat="since2016.current:hold_win" data-fmt="raw">52</span> <span class="rx-vs">vs</span> <span data-stat="since2016.current:hold_loss" data-fmt="raw">11</span> wks</div>
+          <div class="rx-tile-label">winners vs losers held</div>
+          <div class="rx-tile-sub">Losers are cut fast; winners are left to run for about a year.</div>
         </div>
       </div>
+      <p class="rx-bigidea"><span aria-hidden="true">💡</span> <strong>The whole strategy in one sentence:</strong> most trades lose a little, a few win big, and those few pay for everything else.</p>
+    </section>
 
-      <p class="research-lead">
-        The strategy scans NSE equities on <strong>weekly OHLCV data</strong> for EMA9 × EMA20 crossovers.
-        A <strong>Golden Cross (GC)</strong> — EMA9 crosses <em>above</em> EMA20 — generates a long entry signal;
-        a <strong>Death Cross (DC)</strong> — EMA9 crosses <em>below</em> EMA20 — is the exit.
-        As of September 2026, a GC fires only when <strong>all six criteria below are simultaneously met</strong>.
-        The first three criteria have always been enforced; the last three (ATR spread, EMA20 slope gate, volume) were
-        added after backtesting showed they improve signal quality. Fundamentals are used for <strong>ranking only</strong> —
-        they never decide whether a signal fires.
+    <nav class="rx-chapnav" aria-label="Guide chapters">
+      <a href="#rx-ch1"><b>1</b> The idea</a>
+      <a href="#rx-ch2"><b>2</b> The 6 rules</a>
+      <a href="#rx-ch3"><b>3</b> The results</a>
+      <a href="#rx-ch4"><b>4</b> The risks</a>
+      <a href="#rx-ch5"><b>5</b> Which rules help</a>
+      <a href="#rx-ch6"><b>6</b> Takeaways &amp; quiz</a>
+      <a href="#rx-ch7"><b>7</b> Deep dive</a>
+      <a href="#rx-glossary"><b>A–Z</b> Glossary</a>
+    </nav>
+
+    <!-- ── Chapter 1 ─────────────────────────────────────────────── -->
+    <section class="rx-chapter" id="rx-ch1" aria-labelledby="rx-ch1-title">
+      <div class="rx-chapter-num">Chapter 1</div>
+      <h3 class="rx-chapter-title" id="rx-ch1-title">The idea: two lines racing on a chart</h3>
+
+      <div class="rx-two-col">
+        <div class="rx-prose">
+          <p>A stock's price jumps around every week. A <dfn class="rx-term" tabindex="0" data-tip="An average of recent prices that updates every week. It smooths out the noise so you can see the direction.">moving average</dfn> smooths that noise into a line that shows the direction.
+            This strategy uses two of them, calculated from <strong>weekly closing prices</strong>:</p>
+          <ul class="rx-list">
+            <li><span class="rx-key rx-key-a" aria-hidden="true"></span><strong>EMA9, the fast line</strong> — follows roughly the last 2 months. Think of a sprinter who reacts quickly.</li>
+            <li><span class="rx-key rx-key-b" aria-hidden="true"></span><strong>EMA20, the slow line</strong> — follows roughly the last 5 months. Think of a marathon runner who changes pace slowly.</li>
+          </ul>
+          <p>When the sprinter overtakes the marathon runner, recent prices are rising faster than the longer trend. That moment is a
+            <dfn class="rx-term" tabindex="0" data-tip="The week the fast line (EMA9) moves above the slow line (EMA20). This is the buy signal.">golden cross</dfn> and it is our <strong>buy</strong>.
+            When the sprinter drops back behind, that is a
+            <dfn class="rx-term" tabindex="0" data-tip="The week the fast line (EMA9) falls back below the slow line (EMA20). This is the sell signal.">death cross</dfn> and it is our <strong>sell</strong>. Nothing else triggers a sale: no target price, no stop-loss.</p>
+        </div>
+        <aside class="rx-callout rx-callout-blue">
+          <div class="rx-callout-title">Why "exponential"?</div>
+          <p>An EMA gives recent weeks more weight than older weeks, so it turns sooner than a simple average.
+            Each week: <code>new EMA = old EMA + α × (this week's close − old EMA)</code>, where α is 0.20 for EMA9 and about 0.095 for EMA20.</p>
+        </aside>
+      </div>
+
+      <figure class="rx-replay" id="rx-replay">
+        <figcaption class="rx-fig-head">
+          <span class="rx-fig-title">Replay a real trade, week by week</span>
+          <span class="rx-seg" role="group" aria-label="Choose a trade">
+            <button type="button" data-trade="M&amp;M" aria-pressed="true">M&amp;M 2020 · a winner</button>
+            <button type="button" data-trade="TCS" aria-pressed="false">TCS 2025 · a loser</button>
+          </span>
+        </figcaption>
+        <p class="rx-fig-sub" id="rx-replay-summary" aria-live="polite"></p>
+        <div class="chart-canvas-wrap chart-mid" id="rx-replay-chartwrap"><canvas id="chart-replay" role="img" aria-label="Weekly price with the EMA9 and EMA20 lines. The shaded area is the time the trade was held."></canvas></div>
+        <div class="rx-controls">
+          <button type="button" class="rx-btn" id="rx-play" aria-pressed="false">▶ Play</button>
+          <label class="rx-slider-label" for="rx-week">Week</label>
+          <input type="range" id="rx-week" min="0" max="10" value="0" step="1">
+          <button type="button" class="rx-btn rx-btn-ghost" data-jump="entry">Go to buy</button>
+          <button type="button" class="rx-btn rx-btn-ghost" data-jump="exit">Go to sell</button>
+        </div>
+        <div class="rx-readout" id="rx-readout" aria-live="polite"></div>
+        <details class="rx-tableview">
+          <summary>Show the weekly numbers as a table</summary>
+          <div class="cmp-wrap">
+            <table class="rx-table" id="rx-replay-table">
+              <thead><tr><th>Week ending</th><th class="r">Close</th><th class="r">EMA9</th><th class="r">EMA20</th><th>What happened</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </details>
+      </figure>
+      <p class="rx-footnote">Prices are weekly closes from the scanner's local data, adjusted for splits and bonuses, so they may differ slightly from prices quoted at the time.</p>
+    </section>
+
+    <!-- ── Chapter 2 ─────────────────────────────────────────────── -->
+    <section class="rx-chapter" id="rx-ch2" aria-labelledby="rx-ch2-title">
+      <div class="rx-chapter-num">Chapter 2</div>
+      <h3 class="rx-chapter-title" id="rx-ch2-title">The 6 rules: a checklist every signal must pass</h3>
+      <p class="rx-prose rx-intro">
+        A crossover on its own happens a lot (roughly <span data-stat="since2016.every:per_year" data-fmt="int">1,669</span> times a year across NSE stocks) and most of those crosses are noise.
+        So the scanner raises a signal only when <strong>all six</strong> boxes are ticked. The ticks below are real numbers from the M&amp;M buy on 19 Jun 2020.
       </p>
 
-      <div class="subsection-label">Signal Selection — 6 Hard Gates (ALL must be satisfied)</div>
-      <div class="criteria-grid">
-        <div class="criteria-item">
-          <div class="criteria-num">1</div>
-          <div class="criteria-content">
-            <div class="criteria-name">EMA9 crosses above EMA20</div>
-            <div class="criteria-formula">prev_EMA9 ≤ prev_EMA20  AND  curr_EMA9 &gt; curr_EMA20</div>
-            <div class="criteria-desc">The core golden cross signal. EMA9 must have been at or below EMA20 last week and now crossed above it this week. Both EMAs computed on weekly closing prices using Wilder's exponential smoothing (alpha = 2/(period+1)).</div>
+      <ol class="rx-rules">
+        <li class="rx-rule">
+          <span class="rx-rule-num">1</span>
+          <div class="rx-rule-body">
+            <div class="rx-rule-name">The fast line crosses above the slow line</div>
+            <div class="rx-rule-why"><b>Why:</b> recent prices are now rising faster than the longer trend.</div>
+            <div class="rx-rule-eg"><span class="rx-ok">✓ Pass</span> EMA9 ₹447.10 is above EMA20 ₹443.78</div>
           </div>
-          <span class="status-badge status-existing">Since V1</span>
+        </li>
+        <li class="rx-rule">
+          <span class="rx-rule-num">2</span>
+          <div class="rx-rule-body">
+            <div class="rx-rule-name">It is a fresh cross</div>
+            <div class="rx-rule-why"><b>Why:</b> we want the week the trend turns, not a stock that has been above for months. Last week the fast line must still have been at or below the slow line.</div>
+            <div class="rx-rule-eg"><span class="rx-ok">✓ Pass</span> The week before: EMA9 ₹433.86, at or below EMA20 ₹437.85</div>
+          </div>
+        </li>
+        <li class="rx-rule">
+          <span class="rx-rule-num">3</span>
+          <div class="rx-rule-body">
+            <div class="rx-rule-name">The slow line has risen 4 weeks in a row</div>
+            <div class="rx-rule-why"><b>Why:</b> a cross while the bigger trend is flat or falling is usually a false start. EMA20 must be higher every single week for the last four weeks.</div>
+            <div class="rx-rule-eg"><span class="rx-ok">✓ Pass</span> EMA20: ₹423.54 → ₹424.76 → ₹430.42 → ₹437.85 → ₹443.78</div>
+          </div>
+        </li>
+        <li class="rx-rule">
+          <span class="rx-rule-num">4</span>
+          <div class="rx-rule-body">
+            <div class="rx-rule-name">The gap between the lines is big enough</div>
+            <div class="rx-rule-why"><b>Why:</b> a hairline cross can flip back next week. The gap must be at least 5% of the stock's typical weekly price swing
+              (<dfn class="rx-term" tabindex="0" data-tip="Average True Range: how much the price typically moves in a week, averaged over 14 weeks. Volatile stocks have a bigger ATR.">ATR</dfn>), so volatile stocks need a wider gap.</div>
+            <div class="rx-rule-eg"><span class="rx-ok">✓ Pass</span> Gap ₹3.32; needed ₹2.51 (5% of a ₹50.17 weekly swing)</div>
+          </div>
+        </li>
+        <li class="rx-rule">
+          <span class="rx-rule-num">5</span>
+          <div class="rx-rule-body">
+            <div class="rx-rule-name">Trading volume is above normal</div>
+            <div class="rx-rule-why"><b>Why:</b> meant to confirm real buying interest. The day's volume must beat its own 20-day average.
+              <em>Chapter 5 shows this rule halves the number of signals without improving results.</em></div>
+            <div class="rx-rule-eg"><span class="rx-ok">✓ Pass</span> 98.1 lakh shares traded vs a 20-day average of 84.4 lakh</div>
+          </div>
+        </li>
+        <li class="rx-rule">
+          <span class="rx-rule-num">6</span>
+          <div class="rx-rule-body">
+            <div class="rx-rule-name">At least 6 weeks of price history</div>
+            <div class="rx-rule-why"><b>Why:</b> moving averages start from the first price, so a newly listed stock shows meaningless "crosses" in its first weeks.</div>
+            <div class="rx-rule-eg"><span class="rx-ok">✓ Pass</span> Decades of weekly prices</div>
+          </div>
+        </li>
+      </ol>
+
+      <div class="rx-callout rx-callout-amber">
+        <div class="rx-callout-title">When does the scanner check?</div>
+        <p>Every weekday evening, using <strong>the current week so far</strong>, so a cross shows up the day it happens instead of waiting for Friday.
+          The trade-off: a cross seen on Wednesday can disappear if the price falls back by Friday's close. This guide's backtest uses only finished weeks.</p>
+      </div>
+
+      <div class="rx-checker">
+        <div class="rx-fig-head">
+          <span class="rx-fig-title">Try the checklist on real stocks: the 32 crosses of 10–11 Sep 2026</span>
         </div>
-        <div class="criteria-item">
-          <div class="criteria-num">2</div>
-          <div class="criteria-content">
-            <div class="criteria-name">Fresh cross only — no re-firing while above</div>
-            <div class="criteria-formula">above_state = False when signal fires · resets when EMA9 ≤ EMA20</div>
-            <div class="criteria-desc">An <code>above</code> state variable prevents duplicate signals while EMA9 stays above EMA20. A new signal can only fire after the state has fully reset (EMA9 dropped back below EMA20 in a subsequent week).</div>
-          </div>
-          <span class="status-badge status-existing">Since V1</span>
+        <p class="rx-fig-sub">On 10 and 11 September, 32 stocks saw EMA9 move above EMA20, and <strong>none became a signal</strong>, which is why the Fresh Crossovers tab was empty.
+          Pick a stock to see which rule stopped it.</p>
+        <div class="rx-checker-grid">
+          <div class="rx-checker-picks" id="rx-checker-picks"></div>
+          <div class="rx-checker-result" id="rx-checker-result" aria-live="polite"></div>
         </div>
-        <div class="criteria-item">
-          <div class="criteria-num">3</div>
-          <div class="criteria-content">
-            <div class="criteria-name">Weekly candle (developing bar included)</div>
-            <div class="criteria-formula">signal date = observation_date of the latest weekly bar, including the in-progress week</div>
-            <div class="criteria-desc">The scanner evaluates the crossover on the current weekly bar even while that week is still open, so a cross is surfaced on the day it happens rather than after Friday's close. <strong>Trade-off:</strong> these signals can repaint — a cross detected mid-week may fall back below EMA20 before the week closes, in which case it was never a confirmed weekly golden cross. Such a stock leaves the Active EMA tab once EMA9 drops back under EMA20.</div>
+      </div>
+    </section>
+
+    <!-- ── Chapter 3 ─────────────────────────────────────────────── -->
+    <section class="rx-chapter" id="rx-ch3" aria-labelledby="rx-ch3-title">
+      <div class="rx-chapter-num">Chapter 3</div>
+      <h3 class="rx-chapter-title" id="rx-ch3-title">The results: ten years of history</h3>
+      <p class="rx-prose rx-intro">
+        <strong>How the test worked.</strong> For every NSE stock we built weekly candles from Jan 2016 to 4 Sep 2026 and ran the scanner's own strategy code on them.
+        When all six rules passed we bought at that week's closing price; we sold at the close of the week EMA9 fell back below EMA20.
+        <span data-stat="since2016.current:closed" data-fmt="int">941</span> trades finished and <span data-stat="since2016.current:open" data-fmt="int">75</span> are still open.
+        Here, a <strong>win means any profit</strong>.
+      </p>
+
+      <figure class="rx-card">
+        <figcaption class="rx-fig-head">
+          <span class="rx-fig-title">Picture 100 trades</span>
+          <span class="rx-seg" role="group" aria-label="Which rules">
+            <button type="button" data-waffle="current" aria-pressed="true">Today's 6 rules</button>
+            <button type="button" data-waffle="every" aria-pressed="false">Old rule: every crossover</button>
+          </span>
+        </figcaption>
+        <div class="rx-waffle-wrap">
+          <div class="rx-waffle" id="rx-waffle" role="img" aria-label="100 trades by outcome"></div>
+          <div>
+            <ul class="rx-legend" id="rx-waffle-legend"></ul>
+            <p class="rx-waffle-caption" id="rx-waffle-caption" aria-live="polite"></p>
+            <p class="rx-footnote">Solid dots are big moves, rings are small ones. Each dot is 1% of finished trades since 2016, ordered from the worst to the best.</p>
           </div>
-          <span class="status-badge status-new">Changed Sep 2026</span>
         </div>
-        <div class="criteria-item criteria-new">
-          <div class="criteria-num">4</div>
-          <div class="criteria-content">
-            <div class="criteria-name">EMA20 monotonically rising for 4 consecutive weeks</div>
-            <div class="criteria-formula">EMA20[i] &gt; EMA20[i−1] &gt; EMA20[i−2] &gt; EMA20[i−3] &gt; EMA20[i−4]</div>
-            <div class="criteria-desc">The medium-term trend must be actively turning up, not just flat. Strictly monotonic: every one of the 4 prior weekly EMA20 values must be lower than the next. A net increase (EMA20[i] &gt; EMA20[i−4]) without monotonicity does not pass — it catches the beginning of trend inflections, not sustained rises that may then reverse.</div>
+      </figure>
+
+      <figure class="rx-card">
+        <figcaption class="rx-fig-head"><span class="rx-fig-title">Why losing more often can still make money</span></figcaption>
+        <p class="rx-fig-sub">The exit rule cuts losers after a few weeks, while winners ride a trend for a year or more. Compare the size of a loss with the size of a win:</p>
+        <div class="rx-diverge" role="table" aria-label="Size of losing and winning trades">
+          <div class="rx-diverge-row" role="row">
+            <span class="rx-diverge-label" role="rowheader">Typical (median)</span>
+            <span class="rx-diverge-left" role="cell"><span class="rx-bar rx-bar-loss" style="--w:13.4"></span><b data-stat="since2016.current:med_loss" data-fmt="spct">−13.4%</b></span>
+            <span class="rx-diverge-right" role="cell"><span class="rx-bar rx-bar-win" style="--w:48.7"></span><b data-stat="since2016.current:med_win" data-fmt="spct">+48.7%</b></span>
           </div>
-          <span class="status-badge status-new">NEW — Sep 2026</span>
+          <div class="rx-diverge-row" role="row">
+            <span class="rx-diverge-label" role="rowheader">Average</span>
+            <span class="rx-diverge-left" role="cell"><span class="rx-bar rx-bar-loss" style="--w:14.4"></span><b data-stat="since2016.current:avg_loss" data-fmt="spct">−14.4%</b></span>
+            <span class="rx-diverge-right" role="cell"><span class="rx-bar rx-bar-win" style="--w:97.4"></span><b data-stat="since2016.current:avg_win" data-fmt="spct">+97.4%</b></span>
+          </div>
+          <div class="rx-diverge-axis" aria-hidden="true"><span>← losing trades</span><span>winning trades →</span></div>
         </div>
-        <div class="criteria-item criteria-new">
-          <div class="criteria-num">5</div>
-          <div class="criteria-content">
-            <div class="criteria-name">EMA9–EMA20 spread ≥ 0.05 × ATR(14) on weekly data</div>
-            <div class="criteria-formula">(EMA9 − EMA20) ≥ 0.05 × ATR(14, weekly OHLC, Wilder's smoothing)</div>
-            <div class="criteria-desc">Filters out vanishingly thin noise crosses where EMA9 barely nudges above EMA20 with no real price separation. The threshold is ATR-scaled — not a fixed percentage — so it automatically adjusts for a stock's own volatility regime. ATR is computed using Wilder's recursive formula seeded on the first 14 true ranges. If ATR data is not yet available (fewer than 15 weekly bars), this gate is skipped.</div>
-          </div>
-          <span class="status-badge status-new">NEW — Sep 2026</span>
+        <p class="rx-footnote">The average winner is about double the typical winner because a handful of trades returned several hundred percent. Plan with the typical figure; treat the big ones as a bonus you cannot predict.</p>
+      </figure>
+
+      <div class="rx-card rx-calc">
+        <div class="rx-fig-head">
+          <span class="rx-fig-title">Try it: put ₹10,000 into each of 100 trades</span>
+          <span class="rx-seg rx-seg-wrap" role="group" aria-label="Presets">
+            <button type="button" data-preset="avg" aria-pressed="true">This strategy</button>
+            <button type="button" data-preset="typical" aria-pressed="false">Cautious (typical)</button>
+            <button type="button" data-preset="old" aria-pressed="false">Old rule</button>
+            <button type="button" data-preset="coin" aria-pressed="false">Coin flip</button>
+          </span>
         </div>
-        <div class="criteria-item criteria-new">
-          <div class="criteria-num">6</div>
-          <div class="criteria-content">
-            <div class="criteria-name">Daily volume on crossover day &gt; 20-day average daily volume</div>
-            <div class="criteria-formula">vol(obs_date) &gt; mean(vol, 20 prior trading days)  →  vol_ratio_20d &gt; 1.0</div>
-            <div class="criteria-desc">Volume on the last trading day of the crossover week must exceed the average of the preceding 20 trading days. If daily data is absent for a stock, this gate is skipped (not treated as a rejection). <strong>Counterintuitive finding:</strong> within tech-filtered signals, low-volume crosses (vol &lt; 20d avg) significantly outperformed high-volume ones in 2016–2022 — see Volume Analysis section below.</div>
+        <p class="rx-fig-sub" id="calc-note" aria-live="polite"></p>
+        <div class="rx-calc-grid">
+          <div class="rx-calc-inputs">
+            <label class="rx-range"><span>Trades that make money <b id="calc-wr-val"></b></span>
+              <input type="range" id="calc-wr" min="5" max="80" step="1" value="37"></label>
+            <label class="rx-range"><span>Average winning trade <b id="calc-win-val"></b></span>
+              <input type="range" id="calc-win" min="5" max="200" step="1" value="97"></label>
+            <label class="rx-range"><span>Average losing trade <b id="calc-loss-val"></b></span>
+              <input type="range" id="calc-loss" min="1" max="50" step="0.5" value="14.5"></label>
           </div>
-          <span class="status-badge status-new">NEW — Sep 2026</span>
+          <div class="rx-calc-out" aria-live="polite">
+            <div class="rx-balance">
+              <div class="rx-balance-row"><span class="rx-balance-track"><span class="rx-bar rx-bar-win" id="calc-bar-won"></span></span><span id="calc-won"></span></div>
+              <div class="rx-balance-row"><span class="rx-balance-track"><span class="rx-bar rx-bar-loss" id="calc-bar-lost"></span></span><span id="calc-lost"></span></div>
+            </div>
+            <div class="rx-calc-net" id="calc-net"></div>
+            <p class="rx-calc-be" id="calc-breakeven"></p>
+          </div>
+        </div>
+        <p class="rx-footnote">The formula: <code>average per trade = win rate × average win − loss rate × average loss</code>. Traders call this <dfn class="rx-term" tabindex="0" data-tip="The average profit or loss per trade once winners and losers are combined. Positive means the strategy makes money over many trades.">expectancy</dfn>. Before brokerage, taxes and slippage.</p>
+      </div>
+
+      <h4 class="rx-h4">Every headline number, explained</h4>
+      <div class="rx-statgrid">
+        <div class="rx-stat"><b data-stat="since2016.current:closed" data-fmt="int">941</b><span>finished trades</span><small>Plus <span data-stat="since2016.current:open" data-fmt="int">75</span> still open, not counted in results.</small></div>
+        <div class="rx-stat"><b>~<span data-stat="since2016.current:per_year" data-fmt="int">96</span></b><span>signals a year</span><small>Across all NSE stocks, roughly 2 a week.</small></div>
+        <div class="rx-stat"><b data-stat="since2016.current:win" data-fmt="pct">37.4%</b><span>made any profit</span><small>The win rate.</small></div>
+        <div class="rx-stat"><b data-stat="since2016.current:big10" data-fmt="pct">29.5%</b><span>gained 10% or more</span><small>The stricter win definition used in the Deep dive.</small></div>
+        <div class="rx-stat"><b data-stat="since2016.current:doubled" data-fmt="pct">10.8%</b><span>doubled or better</span><small>About 1 trade in 9.</small></div>
+        <div class="rx-stat"><b data-stat="since2016.current:median" data-fmt="spct">−7.4%</b><span>the middle trade</span><small>Half did better, half did worse. The typical trade is a small loss.</small></div>
+        <div class="rx-stat"><b data-stat="since2016.current:mean" data-fmt="spct">+27.5%</b><span>average per trade</span><small>Pulled far above the middle trade by the big winners.</small></div>
+        <div class="rx-stat"><b data-stat="since2016.current:p10" data-fmt="spct">−21.7%</b><span>worst 10% lost at least</span><small>The death cross exit usually stops losses around 10–25%.</small></div>
+        <div class="rx-stat"><b data-stat="since2016.current:p90" data-fmt="spct">+106.2%</b><span>best 10% gained at least</span><small>This is where the money is made.</small></div>
+        <div class="rx-stat"><b><span data-stat="since2016.current:hold" data-fmt="raw">18</span> weeks</b><span>typical holding time</span><small>Winners about a year, losers under 3 months.</small></div>
+      </div>
+      <p class="rx-footnote">Trading costs of 0.5–1% per round trip (brokerage, STT, slippage) lower every trade by that amount. That barely changes the average trade (+27.5%) but makes the typical losing trade about 1% worse.</p>
+    </section>
+
+    <!-- ── Chapter 4 ─────────────────────────────────────────────── -->
+    <section class="rx-chapter" id="rx-ch4" aria-labelledby="rx-ch4-title">
+      <div class="rx-chapter-num">Chapter 4</div>
+      <h3 class="rx-chapter-title" id="rx-ch4-title">The risks: read this before trusting any backtest</h3>
+
+      <figure class="rx-card">
+        <figcaption class="rx-fig-head"><span class="rx-fig-title">Share of trades that made money, by the year they were bought</span></figcaption>
+        <p class="rx-fig-sub">The line marks the ten-year average (<span id="rx-years-avg">Average 37.4%</span>). Good and bad years swing far above and below it.</p>
+        <div class="rx-years-wrap">
+          <ol class="rx-years" id="rx-years" aria-label="Win rate by entry year"></ol>
+        </div>
+        <p class="rx-footnote">2026 is marked "too early": most of its trades are still open, and the only finished ones are the quick losers. Open trades are usually the winners still running, so recent years look worse than they will end up.</p>
+        <details class="rx-tableview">
+          <summary>Show the yearly numbers as a table</summary>
+          <div class="cmp-wrap">
+            <table class="rx-table" id="rx-years-table">
+              <thead><tr><th>Year bought</th><th class="r">Signals</th><th class="r">Finished</th><th class="r">Still open</th><th class="r">Made money</th><th class="r">Middle trade</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </details>
+      </figure>
+
+      <div class="rx-risks">
+        <div class="rx-risk">
+          <div class="rx-risk-icon" aria-hidden="true">🌧️</div>
+          <div class="rx-risk-title">Bad years come in pairs</div>
+          <p>In 2018–2019 only <strong>12%</strong> of 106 signals made money. In 2024–2025 it was <strong>23%</strong> of 199.
+            You need the patience and the money to keep taking signals through a year or two of mostly losing trades.</p>
+        </div>
+        <div class="rx-risk">
+          <div class="rx-risk-icon" aria-hidden="true">🎯</div>
+          <div class="rx-risk-title">A few trades make the money</div>
+          <p>The best 5% of trades produced <strong><span data-stat="since2016.current:top5_share" data-fmt="raw">55</span>%</strong> of all the profit.
+            Skip signals because they "look bad" and you may skip the one that pays for the whole year.</p>
+        </div>
+        <div class="rx-risk">
+          <div class="rx-risk-icon" aria-hidden="true">📉</div>
+          <div class="rx-risk-title">It has been getting weaker</div>
+          <p>Trades that made money: <strong>46%</strong> before 2016, <strong>39%</strong> in 2016–2022 and <strong>35%</strong> since 2023.
+            Money won per ₹1 lost fell from about ₹5.9 to ₹4.5 to ₹3.3. Still profitable, but the edge is shrinking.</p>
+        </div>
+        <div class="rx-risk">
+          <div class="rx-risk-icon" aria-hidden="true">🏁</div>
+          <div class="rx-risk-title">Most trades lag the market</div>
+          <p>Compared with the Nifty Midcap index over the same weeks, only <strong>30%</strong> of trades did better (trades since 2010).
+            The average trade still beat the index by 13 points, again thanks to the big winners.</p>
+        </div>
+        <div class="rx-risk">
+          <div class="rx-risk-icon" aria-hidden="true">🧺</div>
+          <div class="rx-risk-title">You need room for many positions</div>
+          <p>Since 2016 about <strong>54 trades</strong> were open at the same time on average, and up to 124 at the peak.
+            Following every signal with equal money needs a large account, or a rule for choosing among signals.</p>
         </div>
       </div>
 
-      <div class="subsection-label">Signal Labels &amp; Outcome Metrics</div>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-name">return_pct — primary metric</div>
-          <div class="feature-formula">(DC exit price − GC entry price) / GC entry price × 100</div>
-          <div class="feature-desc">Total GC→DC return. Primary outcome for 2016–2022 because all signals in that window are fully resolved (DC has occurred and the trade is closed). Win = ≥ 10%, Loss = &lt; 0%, Neutral = 0–10%.</div>
+      <div class="rx-callout rx-callout-amber">
+        <div class="rx-callout-title">What this backtest cannot see</div>
+        <ul class="rx-list rx-list-tight">
+          <li><strong>Companies that no longer exist.</strong> Only stocks listed today were tested. Firms that were delisted or collapsed are missing, which flatters the results.</li>
+          <li><strong>Mid-week signals.</strong> The test uses finished weeks; the live scanner also reacts to the unfinished week, so live signals can come earlier, or appear and then vanish.</li>
+          <li><strong>Real prices and costs.</strong> Trades are filled at the exact weekly close with no brokerage, tax or slippage in the headline numbers.</li>
+          <li><strong>The future.</strong> Price data ends 4 Sep 2026. Past results describe how the rules behaved, not a promise of returns.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── Chapter 5 ─────────────────────────────────────────────── -->
+    <section class="rx-chapter" id="rx-ch5" aria-labelledby="rx-ch5-title">
+      <div class="rx-chapter-num">Chapter 5</div>
+      <h3 class="rx-chapter-title" id="rx-ch5-title">Which rules help: three versions compared</h3>
+      <p class="rx-prose rx-intro">Same stocks, same years (2016 to Sep 2026), same buy-and-sell mechanics. Only the checklist changes.</p>
+
+      <div class="cmp-wrap">
+        <table class="rx-table rx-variants" id="rx-variants">
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col" class="r">Every crossover<small>the old rule</small></th>
+              <th scope="col" class="r">Rules 1–4 &amp; 6<small>no volume rule</small></th>
+              <th scope="col" class="r is-live">Today's 6 rules<small>what the scanner runs</small></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="rx-insights">
+        <div class="rx-insight">
+          <div class="rx-insight-title">The trend rules do the heavy lifting</div>
+          <p>Requiring a fresh cross, a rising slow line and a real gap cuts signals by nearly 90% and lifts the share of winning trades from 32% to 38%. Winners get much bigger (typical +34% → +46%).</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-name">ret_13w — secondary metric</div>
-          <div class="feature-formula">Return from GC entry price to 13 weeks later (fixed horizon)</div>
-          <div class="feature-desc">Unbiased across all years including 2023–2026 open signals. Used in Phase 1 factor analysis to study feature importance without survivorship bias from variable hold durations. Win definition: ≥ 10% in 13 weeks.</div>
+        <div class="rx-insight">
+          <div class="rx-insight-title">The volume rule halves signals without helping</div>
+          <p>Adding the volume check cuts signals from about 201 to 96 a year, but the win rate stays level (37.9% → 37.4%) and the average trade slips (+31.5% → +27.5%). It filters out as many good trades as bad ones.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-name">Win / Loss Label</div>
-          <div class="feature-formula">Win = return_pct ≥ 10%  ·  Loss = return_pct &lt; 0%</div>
-          <div class="feature-desc">Of 7,555 closed signals, 584 are neutral (0–10%) and are excluded from win-rate calculations. The model is evaluated on its ability to separate clear winners from clear losers. Baseline win rate among W/L signals: <strong>30.0%</strong>.</div>
-        </div>
-        <div class="feature-card">
-          <div class="feature-name">Expanding-Window Scoring</div>
-          <div class="feature-formula">Quartile boundaries = computed from all prior signals only · burn-in = 500</div>
-          <div class="feature-desc">All feature scores use expanding-window quartile breakpoints. A signal in 2018 is scored using boundaries computed from 2016–2017 signals only — zero lookahead bias. The first 500 signals are excluded from scoring during the burn-in period.</div>
+        <div class="rx-insight">
+          <div class="rx-insight-title">Stricter rules mean bigger swings both ways</div>
+          <p>The filtered trades are stronger-trending stocks, so the typical loser is a little worse (−10% → −13%) while the typical winner is much better. The trade-off pays off.</p>
         </div>
       </div>
-    </div>
+
+      <div class="rx-callout rx-callout-blue">
+        <div class="rx-callout-title">What about volume in the earlier research?</div>
+        <p>A separate 2016–2022 study (win = +10% or more) found <strong>no clear volume effect overall</strong>: crosses on above-average volume won 31.0% of the time, quieter ones 29.1%.
+          Among the highest-scoring crosses, quieter volume did better (41.1% vs 35.3%), but not in every year, and from 2023 on the gap nearly disappeared (41.9% vs 40.6%).
+          Taken together: there is no reliable evidence that the volume rule improves results in either direction. Details are in the Deep dive.</p>
+      </div>
+
+      <div class="rx-callout">
+        <div class="rx-callout-title">Two different "win rates" on this page</div>
+        <p><strong>Chapters 1–5</strong> count any profit as a win and test the rules the scanner actually runs today.
+          The <strong>Deep dive</strong> is earlier research on 973 stocks that counts only gains of <strong>+10% or more</strong> as wins and leaves out the 0–10% trades, so its numbers look lower (a 30% starting point).
+          It found a stronger way to <em>rank</em> signals (technical score ≥ 10 plus good fundamentals: 42% vs 30%), but the scanner does not yet filter on it, so treat those figures as research, not as the live strategy's results.</p>
+      </div>
+    </section>
+
+    <!-- ── Chapter 6 ─────────────────────────────────────────────── -->
+    <section class="rx-chapter" id="rx-ch6" aria-labelledby="rx-ch6-title">
+      <div class="rx-chapter-num">Chapter 6</div>
+      <h3 class="rx-chapter-title" id="rx-ch6-title">Five things to remember, then check yourself</h3>
+      <ol class="rx-takeaways">
+        <li><b>It follows trends.</b> Buy when the fast weekly average crosses above the slow one, sell when it crosses back. No predictions, no targets.</li>
+        <li><b>Expect to be wrong most of the time.</b> About 63 in 100 trades lose, usually by 10–15%, and are closed within about three months.</li>
+        <li><b>The profit comes from rare, long winners.</b> The typical winner made about +49% and was held for about a year. Missing them is the biggest risk.</li>
+        <li><b>Results swing hard by year.</b> 2018–19 and 2024–25 were poor, and the edge has been shrinking.</li>
+        <li><b>Backtests flatter reality.</b> Missing delisted stocks, perfect prices and no costs. Treat these numbers as a best case, not a promise.</li>
+      </ol>
+
+      <div class="rx-quiz">
+        <div class="rx-quiz-q" data-explain="Winners averaged several times the size of losers, so 37 wins out of 100 more than pay for 63 losses.">
+          <div class="rx-quiz-prompt"><b>1.</b> Only about 37 in 100 trades make money. How can the strategy still be profitable?</div>
+          <div class="rx-quiz-opts">
+            <button type="button" class="rx-quiz-opt" data-ok="0">It sells losing trades before they lose anything</button>
+            <button type="button" class="rx-quiz-opt" data-ok="1">Its winning trades are much bigger than its losing trades</button>
+            <button type="button" class="rx-quiz-opt" data-ok="0">It only takes trades in good years</button>
+          </div>
+          <p class="rx-quiz-fb" aria-live="polite"></p>
+        </div>
+        <div class="rx-quiz-q" data-explain="Rule 3 requires EMA20 to rise in each of the last 4 weeks. A slow line that has been falling means the bigger trend has not turned, so there is no signal.">
+          <div class="rx-quiz-prompt"><b>2.</b> EMA9 has just crossed above EMA20, but EMA20 fell for the last three weeks. Does the scanner signal?</div>
+          <div class="rx-quiz-opts">
+            <button type="button" class="rx-quiz-opt" data-ok="0">Yes, a golden cross is a golden cross</button>
+            <button type="button" class="rx-quiz-opt" data-ok="1">No, the slow line must have risen 4 weeks in a row</button>
+          </div>
+          <p class="rx-quiz-fb" aria-live="polite"></p>
+        </div>
+        <div class="rx-quiz-q" data-explain="Long runs of losers are normal for this strategy, and the best 5% of trades made over half the profit. Skipping signals after a losing run risks missing exactly those trades.">
+          <div class="rx-quiz-prompt"><b>3.</b> Your last six signals all lost money. What does the history suggest?</div>
+          <div class="rx-quiz-opts">
+            <button type="button" class="rx-quiz-opt" data-ok="0">The strategy has stopped working, so stop taking signals</button>
+            <button type="button" class="rx-quiz-opt" data-ok="1">Losing runs are normal; the rare big winners are why you keep going</button>
+            <button type="button" class="rx-quiz-opt" data-ok="0">Only take the signals from stocks that look strongest</button>
+          </div>
+          <p class="rx-quiz-fb" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Chapter 7: analyst deep dive (collapsed sections) ─────── -->
+    <section class="rx-chapter rx-chapter-deep" id="rx-ch7" aria-labelledby="rx-ch7-title">
+      <div class="rx-chapter-num">Chapter 7</div>
+      <h3 class="rx-chapter-title" id="rx-ch7-title">Deep dive: the full research, for analysts</h3>
+      <p class="rx-prose rx-intro">Every table and chart from the research, unchanged in substance. Each section opens with a one-line summary; click to expand.
+        Note that these studies use the stricter <strong>win = +10% or more</strong> definition, with 0–10% trades left out.</p>
+    </section>
+
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Live-Rule Backtest — Full Statistics</span><span class="rx-deep-sum">The numbers behind Chapters 3–5, by rule version and by period, including trades before 2016.</span></summary>
+
+      <p class="research-lead">
+        The scanner's <code>EmaCrossoverStrategy</code> replayed on completed weekly candles for 2,076 NSE stocks with local price history (1991 – 4 Sep 2026; first qualifying signal in 2005).
+        A cross-check against the strategy's own <code>generate_signals</code> found 0 mismatches. Entry = close of the golden-cross week; exit = close of the first week with EMA9 ≤ EMA20.
+        Win = return &gt; 0. Returns are per trade, equal weight, before costs. Profit factor = sum of winning returns ÷ sum of losing returns.
+      </p>
+
+      <div class="subsection-label">By rule version — all history</div>
+      <div class="cmp-wrap">
+        <table class="cmp-table">
+          <thead><tr><th>Metric</th><th class="r">Every cross (old)</th><th class="r">Rules without volume</th><th class="r">Current 6 rules</th></tr></thead>
+          <tbody>
+            <tr><td class="strat-name">Trades closed / open now</td><td class="mono r">27,875 / 1,060</td><td class="mono r">3,431 / 177</td><td class="mono r">1,688 / 75</td></tr>
+            <tr><td class="strat-name">Signals per year</td><td class="mono r">817</td><td class="mono r">115</td><td class="mono r">56</td></tr>
+            <tr><td class="strat-name">Win rate (return &gt; 0)</td><td class="wr">34.2%</td><td class="wr">41.4%</td><td class="wr">41.4%</td></tr>
+            <tr><td class="strat-name">Gained ≥ 10%</td><td class="mono r">27.1%</td><td class="mono r">33.9%</td><td class="mono r">34.4%</td></tr>
+            <tr><td class="strat-name">Average / median return</td><td class="mono r">+32.6% / −6.3%</td><td class="mono r">+40.9% / −6.3%</td><td class="mono r">+35.4% / −6.7%</td></tr>
+            <tr><td class="strat-name">Average win / average loss</td><td class="mono r">+119.2% / −12.4%</td><td class="mono r">+119.5% / −14.6%</td><td class="mono r">+107.6% / −15.6%</td></tr>
+            <tr><td class="strat-name">Profit factor</td><td class="mono r">4.98</td><td class="mono r">5.79</td><td class="mono r">4.87</td></tr>
+            <tr><td class="strat-name">Median hold (weeks)</td><td class="mono r">15</td><td class="mono r">20</td><td class="mono r">20</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection-label">Current 6 rules — by period</div>
+      <div class="cmp-wrap">
+        <table class="cmp-table">
+          <thead><tr><th>Metric</th><th class="r">Before 2016</th><th class="r">2016–2022</th><th class="r">2023 – Sep 2026</th></tr></thead>
+          <tbody>
+            <tr><td class="strat-name">Trades closed / open now</td><td class="mono r">747 / 0</td><td class="mono r">568 / 0</td><td class="mono r">373 / 75</td></tr>
+            <tr><td class="strat-name">Signals per year</td><td class="mono r">36</td><td class="mono r">81</td><td class="mono r">123</td></tr>
+            <tr><td class="strat-name">Win rate (return &gt; 0)</td><td class="wr">46.3%</td><td class="wr">39.1%</td><td class="wr">34.9%</td></tr>
+            <tr><td class="strat-name">Average / median return</td><td class="mono r">+45.3% / −5.0%</td><td class="mono r">+32.1% / −6.7%</td><td class="mono r">+20.3% / −8.1%</td></tr>
+            <tr><td class="strat-name">Average win / average loss</td><td class="mono r">+117.9% / −17.4%</td><td class="mono r">+105.6% / −15.0%</td><td class="mono r">+83.4% / −13.4%</td></tr>
+            <tr><td class="strat-name">Profit factor</td><td class="mono r">5.86</td><td class="mono r">4.50</td><td class="mono r">3.33</td></tr>
+            <tr><td class="strat-name">Median hold (weeks)</td><td class="mono r">24</td><td class="mono r">20</td><td class="mono r">17</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection-label">Other measurements — current 6 rules, all history</div>
+      <ul class="gap-list">
+        <li class="gap-item gap-info"><div><span class="gap-title">Outcome spread</span><span class="gap-desc">Percentiles: 10th −23.2% · 25th −15.7% · median −6.7% · 75th +36.8% · 90th +117.7%. Doubled or better: 12.7%. Lost 20% or more: 15.0%. Best trade PAGEIND 2009 → 2015, +3,170%; worst AURUM 2020, −96.5%.</span></div></li>
+        <li class="gap-item gap-info"><div><span class="gap-title">Concentration and streaks</span><span class="gap-desc">Top 5% of trades produce 53% of all winning return points. Longest losing streak (trades in entry order across stocks): 70; longest winning streak: 36. Trades exiting within 4 weeks (7.2%) never won.</span></div></li>
+        <li class="gap-item gap-info"><div><span class="gap-title">Versus Nifty Midcap (trades from 2010, n = 1,258)</span><span class="gap-desc">Beat the index over the same holding period 29.8% of the time; average excess +13.3 pts, median −9.6 pts. Midcap above its 40-week average: win 36.4% (n=981); below: 41.9% (n=277). India VIX &gt; 20 at entry: win 48.0% (n=304); VIX &lt; 15: 35.4% (n=461).</span></div></li>
+        <li class="gap-item gap-info"><div><span class="gap-title">Costs and open positions</span><span class="gap-desc">Round-trip cost of 0.5%: win 41.1%, median −7.2%; 1.0%: win 40.5%, median −7.7%. The 75 open trades, marked to the 8 Sep 2026 close: 69% in profit, median +11.8%.</span></div></li>
+      </ul>
+      <p class="research-note">Survivorship: only currently listed symbols were tested. Completed candles only; the live scanner also evaluates the developing week. This replaces an earlier table that approximated the rules with proxies (<code>ema20_slope &gt; 0</code>, <code>ema_diff_pct &gt; 0.5%</code>).</p>
+    </details>
 
     <!-- ── 2. Technical Factor Analysis ────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Phase 1 — Technical Factor Analysis</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Phase 1 — Technical Factor Analysis</span><span class="rx-deep-sum">Four chart measurements scored 0–12. Crosses scoring 10+ won 37% of the time vs 30% for all crosses.</span></summary>
 
       <p class="research-lead">
         Four technical features measured at the moment of the Golden Cross were studied for predictive power on both <code>ret_13w</code> and <code>return_pct</code>. Each feature is converted to a 0–3 point score using expanding-window quartile boundaries (burn-in: 500 signals). The four scores are summed into a <strong>Composite Score (0–12)</strong> that acts as the primary technical quality filter. A higher composite score means all four technical conditions simultaneously indicate a high-quality entry.
@@ -355,119 +727,11 @@
       <p class="research-note" style="margin-top:10px">
         Phase 1 was also run on <code>ret_13w</code> across 2016–2026 (all signals including open). On that metric: composite ≥ 9 gives +7.2 pp lift, composite ≥ 10 gives +8.5 pp lift, baseline 28.8%. Numbers differ from above because ret_13w uses a fixed 13-week horizon, a different win definition, and includes 2023–2026 signals.
       </p>
-    </div>
-
-    <!-- ── 2b. 6-Criteria Conjunction — Backtest Impact ────────── -->
-    <div class="research-section">
-      <div class="research-section-title">6-Criteria Conjunction — Backtest Impact vs Previous Strategies</div>
-
-      <p class="research-lead">
-        The conjunction (AND of all 6 hard gates) is <strong>not</strong> equivalent to the composite score filter used in previous backtests.
-        The composite score awards partial credit — a signal can score 10/12 by being excellent on three features and mediocre on the fourth.
-        The conjunction requires <em>all conditions simultaneously</em>. Since the ATR-spread criterion is not pre-computed in the historical
-        dataset, the table below uses proxies: <code>ema20_slope &gt; 0</code> ≈ criterion 4, <code>ema_diff_pct &gt; 0.5%</code> ≈ criterion 5,
-        <code>vol_ratio_20d ≥ 1.0</code> = criterion 6 exactly.
-      </p>
-
-      <div class="impl-note">
-        <strong>How to read the proxy:</strong> The proxy conjunction is an approximation — ema20_slope&gt;0 is weaker than strict monotonic 4-week rising, and ema_diff_pct&gt;0.5% is a flat percentage threshold vs the true ATR-scaled gate. Actual live signal counts will differ from the proxy. The proxy understates strictness, so actual 6-criteria signals will be fewer than 1,680.
-      </div>
-
-      <div class="cmp-wrap">
-        <table class="cmp-table">
-          <thead>
-            <tr>
-              <th style="min-width:320px">Strategy / Gate Combination</th>
-              <th class="r">Win Rate</th>
-              <th class="r">Lift</th>
-              <th class="r">N Signals</th>
-              <th class="r">Signal %</th>
-              <th class="r">Avg Return</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="strat-name">Baseline — no filter, all W/L signals</td>
-              <td class="wr">30.0%</td>
-              <td class="lift-zero">—</td>
-              <td class="mono r">6,971</td>
-              <td class="mono r">100%</td>
-              <td class="mono r">+28.5%</td>
-            </tr>
-            <tr>
-              <td class="strat-name">Gate 4 proxy: EMA20 rising (slope &gt; 0)</td>
-              <td class="wr">30.2%</td>
-              <td class="lift-pos">+0.2 pp</td>
-              <td class="mono r">6,081</td>
-              <td class="mono r">87%</td>
-              <td class="mono r">+29.5%</td>
-            </tr>
-            <tr>
-              <td class="strat-name">Gate 6: Daily vol &gt; 20-day avg (vol_ratio_20d ≥ 1.0)</td>
-              <td class="wr">31.0%</td>
-              <td class="lift-pos">+1.0 pp</td>
-              <td class="mono r">3,431</td>
-              <td class="mono r">49%</td>
-              <td class="mono r">+27.1%</td>
-            </tr>
-            <tr>
-              <td class="strat-name">Gate 5 proxy: EMA spread &gt; 0.5% (ema_diff_pct)</td>
-              <td class="wr">34.6%</td>
-              <td class="lift-pos">+4.6 pp</td>
-              <td class="mono r">3,111</td>
-              <td class="mono r">45%</td>
-              <td class="mono r">+37.0%</td>
-            </tr>
-            <tr class="conj-row">
-              <td class="strat-name">All 3 proxy gates combined (≈ criteria 4+5+6)</td>
-              <td class="wr">34.3%</td>
-              <td class="lift-pos">+4.3 pp</td>
-              <td class="mono r">1,680</td>
-              <td class="mono r">24%</td>
-              <td class="mono r">+33.2%</td>
-            </tr>
-            <tr class="conj-row">
-              <td class="strat-name">All 3 proxy gates + Tech composite ≥ 9</td>
-              <td class="wr">34.1%</td>
-              <td class="lift-pos">+4.1 pp</td>
-              <td class="mono r">994</td>
-              <td class="mono r">14%</td>
-              <td class="mono r">+33.3%</td>
-            </tr>
-            <tr class="conj-row">
-              <td class="strat-name">All 3 proxy gates + Tech composite ≥ 10</td>
-              <td class="wr">34.9%</td>
-              <td class="lift-pos">+4.9 pp</td>
-              <td class="mono r">745</td>
-              <td class="mono r">11%</td>
-              <td class="mono r">+39.0%</td>
-            </tr>
-            <tr style="opacity:.55">
-              <td class="strat-name" style="color:var(--text-3)">← Previous best: Tech ≥ 10 only (for comparison)</td>
-              <td class="wr" style="color:var(--text-3)">37.3%</td>
-              <td style="font-family:var(--font-mono);text-align:right;color:var(--text-3)">+7.3 pp</td>
-              <td class="mono r" style="color:var(--text-3)">1,174</td>
-              <td class="mono r" style="color:var(--text-3)">17%</td>
-              <td class="mono r" style="color:var(--text-3)">+45.2%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p class="research-note" style="margin-top:12px">
-        <strong>Key insight:</strong> The 6-criteria conjunction reduces signals to ~745 (proxy) vs 1,174 for composite ≥10, but win rate
-        drops from 37.3% to 34.9%. The conjunction and the composite score are not equivalent filters.
-        The composite score with its partial-credit model is a better predictor at the population level than a strict AND conjunction.
-        This does not mean the criteria are wrong — the new gates filter <em>signal generation</em> for quality reasons beyond predictive
-        win rate alone (e.g. filtering thin noise crosses via ATR gate; ensuring trend is genuinely turning via monotonic EMA20 rise).
-        The composite score is complementary: use the 6 criteria to select signals, then use the composite score and fundamental rank
-        to prioritize among those that pass.
-      </p>
-    </div>
+    </details>
 
     <!-- ── 3. Fundamental Scoring ────────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Phase 2 — Fundamental Scoring System</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Phase 2 — Fundamental Scoring System</span><span class="rx-deep-sum">How 973 companies were scored 0–100 on profits, debt, cash flow, management and valuation.</span></summary>
 
       <p class="research-lead">
         All 973 backtest stocks were scored on fundamental quality using financial data from yfinance (income statement, balance sheet, cash flow, ~FY2025 data) and promoter holding from Screener.in. Each stock receives a <strong>0–100 fundamental score</strong> via a structured scorecard matched to the company type. <strong>Fundamentals are used for ranking only — not as a hard gate.</strong> The technical composite score decides which signals to take; the fundamental score decides which among those to prioritize.
@@ -567,11 +831,11 @@
       <p class="research-note">
         Thresholds in the backtest (≥ 44 for top-half, ≥ 60 for top-Q) are computed across all 973 stocks including hard-rejected ones (which score 0). Hard-rejected stocks form the natural bottom of the distribution — this is intentional.
       </p>
-    </div>
+    </details>
 
     <!-- ── 4. Strategy Comparison ────────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Backtest — All Strategy Variants (2016–2022)</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Backtest — All Strategy Variants (2016–2022)</span><span class="rx-deep-sum">A high technical score plus good fundamentals gave the best research result: 42% vs 30%. Not what the scanner filters on today.</span></summary>
 
       <p class="research-lead">
         All strategies tested on the same 6,971 winner/loser signals from 2016–2022 closed GC events across 973 NSE stocks. <strong>Win rate</strong> = fraction with return_pct ≥ 10%. <strong>Lift</strong> = win rate minus the 30.0% no-filter baseline. <strong>Average return</strong> is the equal-weight mean GC→DC return (right-skewed by multi-bagger winners, which drives mean well above median).
@@ -675,29 +939,27 @@
       <p class="research-note" style="margin-top:10px">
         Strategies combining hard-rejection + Tech + Fund top-half/Q produce identical results to the Tech + Fund rows above — the hard-rejection filter adds nothing on top of the technical filter in practice, because the rejected stocks rarely pass the composite ≥ 9/10 threshold to begin with.
       </p>
-    </div>
+    </details>
 
     <!-- ── 4b. Volume Factor Analysis ───────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Volume Factor Analysis — Counterintuitive Finding</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Volume Factor Analysis — Mixed Evidence</span><span class="rx-deep-sum">Volume made little difference overall; a quiet-volume edge among top-scored crosses was uneven and faded after 2022.</span></summary>
 
       <p class="research-lead">
         Signal criterion 6 requires the crossover day's daily volume to exceed the 20-day average — the intuition being that
-        high volume confirms smart-money participation. The backtest tells a different story.
+        high volume confirms real buying interest. The evidence is mixed.
         Using the <strong>exact criterion measure</strong> (<code>vol_ratio_20d ≥ 1.0</code> — daily vol vs its 20-day average on the GC week),
-        low-volume signals (<code>vol_ratio_20d &lt; 1.0</code>) <em>consistently outperform</em> high-volume signals within every tech-filtered subset.
+        volume barely matters across all signals (31.0% vs 29.1%). Within tech-filtered subsets, low-volume signals (<code>vol_ratio_20d &lt; 1.0</code>) did better in 2016–2022, but the edge was uneven by year and shrank to about 1 pp after 2022.
       </p>
 
       <div class="vol-callout">
         <div class="vol-callout-icon">⚠</div>
         <div>
-          <div class="vol-callout-title">Counterintuitive Finding: Low Volume Outperforms High Volume</div>
+          <div class="vol-callout-title">Mixed Evidence: A Quiet-Volume Edge That Did Not Last</div>
           <div class="vol-callout-body">
             Within tech-filtered signals (composite ≥ 10), the win rate for low-volume crosses is <strong>41.1%</strong> (+11.1 pp lift)
             vs <strong>35.3%</strong> (+5.3 pp) for high-volume crosses — a 5.8 pp gap favoring LOW volume.
-            This pattern holds in 5 of 7 individual years, with the largest gap in 2017 (44.2% low vol vs 27.4% high vol).
-            Criterion 6 as currently specified (vol &gt; 20d avg) filters <em>in</em> the weaker signals and filters <em>out</em> the stronger ones.
-            This criterion is implemented as specified; the data is shown here so the team can decide whether to revise it.
+            Low volume led in 5 of 7 years at composite ≥ 10 (2016 and 2019 went the other way). But across all 6,971 signals volume made almost no difference (high 31.0% vs low 29.1%); from 2023 onward the composite ≥ 10 gap shrank to about 1 pp (high 40.6% vs low 41.9%, n = 313 / 172); and in the live-rule backtest, removing the volume rule left the win rate level while doubling the number of signals. There is no reliable evidence that the volume gate helps or hurts; its main effect is fewer signals.
           </div>
         </div>
       </div>
@@ -707,7 +969,7 @@
       <figure class="chart-box" id="chartbox-volume">
         <figcaption class="chart-title">Win rate by volume level</figcaption>
         <div class="chart-canvas-wrap"><canvas id="chart-volume"></canvas></div>
-        <figcaption class="chart-note">Low-volume bars sitting above their high-volume counterparts is the counterintuitive result: within tech-filtered signals, quieter volume outperformed.</figcaption>
+        <figcaption class="chart-note">Across all signals the high- and low-volume bars are nearly level. The low-volume lead appears only in the tech-filtered rows, and it faded after 2022.</figcaption>
       </figure>
 
       <div class="cmp-wrap">
@@ -855,17 +1117,13 @@
         </table>
       </div>
       <p class="research-note" style="margin-top:10px">
-        Low-volume outperforms high-volume in 5 of 7 years. The largest reversal is 2017: high vol 27.4% vs low vol 44.2% — a 16.8 pp gap.
-        2019 is the one year where they tie (7.8% vs 7.9%). The finding is consistent enough across years to be structural, not a single-year fluke.
-        <strong>Possible interpretation:</strong> within stocks that already pass the technical composite filter, crosses occurring on
-        <em>relatively quiet</em> volume may represent gradual institutional accumulation, while high-volume crosses may reflect retail
-        momentum-chasing after the move is already partially priced in.
+        At Tech ≥ 9, low volume led in most years, most clearly in 2017 (44.2% vs 27.4%); 2016 went the other way and 2019 was a tie. The swings are large relative to the sample sizes and the gap shrank after 2022, so this should not be read as a structural effect.
       </p>
-    </div>
+    </details>
 
     <!-- ── 5. Year-Stratified ────────────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Year-Stratified Win Rates</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Year-Stratified Win Rates</span><span class="rx-deep-sum">Every filter rises and falls with the market. 2018–19 were bad for all of them, 2020 good for all.</span></summary>
 
       <p class="research-lead">
         Win rate by calendar year of GC entry date. 2018 and 2019 were structurally weak market years (IL&amp;FS crisis, NBFC liquidity squeeze, election uncertainty — many midcaps fell 40–70%). 2020 was anomalously strong (post-COVID V-shaped bounce drove a large number of EMA crossovers). The combined strategy's largest absolute alpha over baseline appears in <strong>2022 (+16.6 pp) and 2019 (+7.3 pp)</strong> — distressed market conditions where fundamental quality most differentiates survivors from laggards.
@@ -963,11 +1221,11 @@
         <span class="wr-low">■ &lt; 25%</span> &nbsp;·&nbsp;
         Baseline column shown in muted color — it is the control, not a strategy. Small sample sizes (&lt; 30 signals) in 2016 and 2021 for the strictest filters — treat those numbers as directional, not statistically conclusive.
       </p>
-    </div>
+    </details>
 
     <!-- ── 6. Fund Ranking Within Tech Filter ───────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Fundamental Ranking Within Tech-Filtered Signals</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Fundamental Ranking Within Tech-Filtered Signals</span><span class="rx-deep-sum">Among good technical setups, better companies won more often: 33% → 37% → 39%.</span></summary>
 
       <p class="research-lead">
         After applying the technical composite filter, do stocks with higher fundamental scores actually win more often? This directly tests whether fundamental score adds genuine signal on top of the technical filter, or whether it is just eliminating high-quality stocks that would have won anyway. A monotonic increase Q2 → Q3 → Q4 confirms the score is predictive.
@@ -1070,11 +1328,11 @@
       <p class="research-note" style="margin-top:8px">
         Monotonic pattern holds at the stricter tech ≥ 10 threshold. Q3's average return of +68.5% reflects the subset where strong fundamentals and strong technical momentum align simultaneously — when those win, they tend to be multi-baggers. The skew is real but so is the sample size (288 signals over 7 years = ~41/year, statistically meaningful).
       </p>
-    </div>
+    </details>
 
     <!-- ── 7. Return Distribution ────────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Return Distribution &amp; Expectancy per Trade</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Return Distribution &amp; Expectancy per Trade</span><span class="rx-deep-sum">Most trades lose a little and a few win big; filters make winners bigger rather than losers rarer.</span></summary>
 
       <p class="research-lead">
         GC→DC returns are highly right-skewed: the <strong>median is negative</strong> (most trades lose money or barely break even, because many GC signals are false starts that exit quickly at a small loss), while the <strong>mean is strongly positive</strong> because winning trades can return 100–500%+ while losers are typically capped at −15 to −25% (the death cross cuts the position before catastrophic loss). The practical metric is <strong>expectancy = P(win) × avg_winner_return + P(loss) × avg_loser_return</strong>.
@@ -1157,17 +1415,17 @@
       <p class="research-note" style="margin-top:10px">
         Filtered strategies show <em>wider</em> loss distributions (Q10 becomes more negative) because they concentrate on higher-beta, momentum-driven stocks that also fall harder when the signal fails. The tradeoff is worth it: Q90 improves from 102% to 156%+ and expectancy nearly doubles. The win/loss ratio for winners vs losers is ~8–10× across all strategies (avg winner +123–152%, avg loser −12 to −19%) — the strategy relies on the asymmetry of winners vs losers, not on raw win rate.
       </p>
-    </div>
+    </details>
 
     <!-- ── 8. Key Conclusions ────────────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Key Conclusions</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Key Conclusions</span><span class="rx-deep-sum">What the research found, and which parts the live scanner uses.</span></summary>
 
       <div class="findings-grid">
         <div class="finding finding-best">
-          <div class="finding-label">Best Strategy Found</div>
+          <div class="finding-label">Best Filter Found in Research</div>
           <div class="finding-stat">+12.2 pp</div>
-          <div class="finding-text">Tech composite ≥ 10 + Fundamental top-half (score ≥ 44) achieves <strong>42.2% win rate</strong> vs 30.0% baseline. Generates ~70 actionable signals per year. Average return per closed trade: +54.6%. This is the recommended live-trading configuration.</div>
+          <div class="finding-text">Tech composite ≥ 10 + Fundamental top-half (score ≥ 44) achieves <strong>42.2% win rate</strong> vs 30.0% baseline. Generates ~70 actionable signals per year. Average return per closed trade: +54.6%. This is the best filter found in research. The live scanner does not filter on it (it runs the six rules), so judge live results against the live-rule backtest in Chapters 3–5.</div>
         </div>
         <div class="finding finding-info">
           <div class="finding-label">Fundamentals Alone = Weak Signal</div>
@@ -1195,9 +1453,9 @@
           <div class="finding-text">Some stocks with high fundamental scores (e.g. CASTROLIND: score=68, ROCE=63%) are structural GC losers due to their long-term price pattern generating repeated false crossovers. A stock blacklist mechanism is designed but not yet implemented in the live scanner.</div>
         </div>
         <div class="finding finding-warn">
-          <div class="finding-label">Volume Gate Inverts Expected Result</div>
-          <div class="finding-stat">−5.8 pp</div>
-          <div class="finding-text">Criterion 6 (vol &gt; 20d avg) was hypothesized to improve signal quality by confirming momentum. In practice, within tech-filtered (composite ≥ 10) signals, the high-volume subset achieves 35.3% WR vs 41.1% for the low-volume subset — a 5.8 pp penalty from enforcing the volume gate. The pattern holds in 5 of 7 years. The criterion is implemented as specified and the decision to keep, revise, or remove it rests with the team. If reversed (require vol &lt; 20d avg), the best configuration becomes Tech ≥ 10 + low vol at 41.1% (+11.1 pp).</div>
+          <div class="finding-label">Volume Gate: Mixed Evidence</div>
+          <div class="finding-stat">½ the signals</div>
+          <div class="finding-text">The volume rule was expected to confirm momentum. Across all signals it made almost no difference (31.0% vs 29.1%). Within composite ≥ 10, high-volume crosses trailed low-volume ones in 2016–2022 (35.3% vs 41.1%), but the gap shrank to about 1 pp in 2023–2026, and in the live-rule backtest dropping the rule kept the win rate level (37.9% vs 37.4% since 2016) while doubling the number of signals. Its main effect is fewer signals, not better ones.</div>
         </div>
         <div class="finding finding-info">
           <div class="finding-label">6-Criteria Signal — Live Since Sep 2026</div>
@@ -1205,17 +1463,17 @@
           <div class="finding-text">The scanner now enforces all 6 signal selection criteria. The three new gates added in Sep 2026 are: (4) EMA20 monotonically rising for 4 consecutive weeks; (5) EMA9–EMA20 spread ≥ 0.05 × ATR(14) — ATR-scaled to the stock's own volatility; (6) daily volume on crossover day &gt; 20-day average. These run as hard gates in signal generation — not scoring features. The composite score and fundamental rank are still applied for prioritization <em>after</em> a signal fires.</div>
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- ── 9. Data Gaps ───────────────────────────────────────── -->
-    <div class="research-section">
-      <div class="research-section-title">Data Gaps &amp; Known Limitations</div>
+    <details class="research-section rx-deep">
+      <summary class="research-section-title"><span class="rx-deep-title">Data Gaps &amp; Known Limitations</span><span class="rx-deep-sum">Missing data, look-ahead risks and features not built yet.</span></summary>
 
       <ul class="gap-list">
         <li class="gap-item gap-done">
           <span class="gap-icon">✓</span>
           <div>
-            <span class="gap-title">Signal Criteria 2–4 — EMA20 Slope Gate, ATR Spread Gate, Volume Gate — Now Implemented</span>
+            <span class="gap-title">Signal Rules 4–6 — EMA20 Slope Gate, ATR Spread Gate, Volume Gate — Now Implemented</span>
             <span class="gap-desc">Previously only 3 of 6 signal criteria were enforced. As of September 2026, the scanner implements all six: (4) EMA20 monotonically rising for 4 weeks — strict monotonic check at generation time; (5) EMA9–EMA20 spread ≥ 0.05 × ATR(14) computed with Wilder's smoothing on weekly OHLC data; (6) daily volume on obs_date &gt; 20-day average daily volume, with graceful skip if daily data is absent. These are hard gates in signal generation, not post-hoc filters.</span>
           </div>
         </li>
@@ -1262,8 +1520,32 @@
           </div>
         </li>
       </ul>
-    </div>
+    </details>
 
+
+    <!-- ── Glossary ──────────────────────────────────────────────── -->
+    <section class="rx-chapter" id="rx-glossary" aria-labelledby="rx-glossary-title">
+      <div class="rx-chapter-num">A–Z</div>
+      <h3 class="rx-chapter-title" id="rx-glossary-title">Glossary: every term in plain words</h3>
+      <dl class="rx-glossary">
+        <div><dt>ATR (Average True Range)</dt><dd>How far a stock's price typically moves in a week, averaged over 14 weeks. A volatile stock has a large ATR.</dd></div>
+        <div><dt>Backtest</dt><dd>Replaying a set of trading rules on past prices to see how they would have done. It shows how rules behaved, not what will happen next.</dd></div>
+        <div><dt>Closed vs open trade</dt><dd>A closed trade has been sold (a death cross happened). An open trade is still held; its result is not final.</dd></div>
+        <div><dt>Death cross</dt><dd>The week EMA9 falls back below EMA20. This strategy's only sell signal.</dd></div>
+        <div><dt>EMA (exponential moving average)</dt><dd>An average of past prices that gives recent weeks more weight, so it turns sooner than a plain average. EMA9 uses about 9 weeks, EMA20 about 20.</dd></div>
+        <div><dt>Expectancy</dt><dd>The average result per trade once winners and losers are combined: win rate × average win − loss rate × average loss.</dd></div>
+        <div><dt>Golden cross</dt><dd>The week EMA9 moves above EMA20. The starting point of a buy signal, if all six rules pass.</dd></div>
+        <div><dt>Median (typical)</dt><dd>The middle value when results are sorted: half did better, half did worse. Unlike the average, a few huge trades cannot pull it up.</dd></div>
+        <div><dt>Average (mean)</dt><dd>All results added up and divided by the number of trades. Big winners pull it far above the median here.</dd></div>
+        <div><dt>Percentage points (pp)</dt><dd>The plain difference between two percentages. 30% to 37% is +7 pp (not +7%).</dd></div>
+        <div><dt>Profit factor</dt><dd>Total money won by winning trades ÷ total money lost by losing trades, with equal money in each trade. Above 1 means profitable.</dd></div>
+        <div><dt>Repaint</dt><dd>A signal seen during an unfinished week that disappears by the week's close because the price moved back.</dd></div>
+        <div><dt>Signal</dt><dd>A golden cross that passed all six rules, so the scanner lists it.</dd></div>
+        <div><dt>Survivorship bias</dt><dd>Testing only companies that still exist today. Firms that failed are left out, which makes past results look better than they were.</dd></div>
+        <div><dt>Volume (20-day average)</dt><dd>The number of shares traded in a day, compared with the average of the 20 trading days before it.</dd></div>
+        <div><dt>Win rate</dt><dd>The share of finished trades counted as wins. In Chapters 1–5 a win is any profit; in the Deep dive it is a gain of 10% or more.</dd></div>
+      </dl>
+    </section>
   </div>
 </div>
 
@@ -1351,7 +1633,7 @@ vol_avg_20d = mean(daily volume, 20 trading days before obs_date)
 vol_ratio   = vol_obs / vol_avg_20d
 
 PASS if: vol_ratio > 1.0  (today's volume above its 20-day average)</code>
-            <div class="formula-note">⚠ Counterintuitive backtest finding: within tech-filtered signals (2016–2022), LOW volume signals outperform — Tech≥10 + low vol = 41.1% WR vs Tech≥10 + high vol = 35.3% WR. Gate is implemented as specified; see Research &amp; Backtests for full analysis before adjusting.</div>
+            <div class="formula-note">Backtest note: this gate roughly halves the number of signals without improving the win rate (37.9% without it vs 37.4% with it, 2016 – Sep 2026). Earlier research found a low-volume edge within Tech≥10 signals in 2016–2022 (41.1% vs 35.3%) that shrank to about 1 pp after 2022. See Research &amp; Backtests, Chapter 5.</div>
           </div>
         </div>
       </div>
@@ -1570,6 +1852,8 @@ Data source: daily (not weekly) volume series</code>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="charts.js"></script>
+<script src="research-data.js"></script>
+<script src="research.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

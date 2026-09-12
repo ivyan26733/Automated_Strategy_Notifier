@@ -30,6 +30,14 @@ function palette() {
     text:   tok('--text-2', '#475569'),
     faint:  tok('--text-4', '#94A3B8'),
     line:   tok('--border', '#E2E8F0'),
+    surface: tok('--card', '#FFFFFF'),
+    // Chart-only steps, validated for contrast and colour-blind separation against the
+    // card surface in each theme (the site's --green/--blue fail the dark lightness band)
+    win:    tok('--viz-win',   '#059669'),
+    loss:   tok('--viz-loss',  '#DC2626'),
+    vizA:   tok('--viz-a',     '#1D4ED8'),
+    vizB:   tok('--viz-b',     '#B45309'),
+    muted:  tok('--viz-muted', '#9CA3AF'),
   }
 }
 
@@ -527,4 +535,4 @@ function renderReturnsCharts(trades) {
   })
 }
 
-window.NSECharts = { initResearchCharts, renderReturnsCharts, CHARTS_OK }
+window.NSECharts = { initResearchCharts, renderReturnsCharts, CHARTS_OK, mount, alpha, tok }

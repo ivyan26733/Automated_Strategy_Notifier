@@ -467,7 +467,7 @@ const loaders = {
   history:    () => loadHistoryTab(true),
   perf:       loadPerfTab,
   watchlist:  loadWatchlistTab,
-  research:   () => window.NSECharts?.initResearchCharts(),
+  research:   () => { window.NSEResearch?.init(); window.NSECharts?.initResearchCharts() },
   formulas:   initFormulaNav,
 }
 
