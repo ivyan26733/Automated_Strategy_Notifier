@@ -6,7 +6,9 @@ module.exports = async (req, res) => {
       db.from('scanner_runs').select('started_at,finished_at,status').order('created_at', { ascending: false }).limit(1)
         .then(r => must(r, 'scanner_runs latest')),
       db.from('stocks').select('*', { count: 'exact', head: true }).then(r => must(r, 'stocks count')),
-      db.from('signals').select('*', { count: 'exact', head: true }).then(r => must(r, 'signals count')),
+      // Same rows History lists — death crosses are shown as exits, not signals.
+      db.from('signals').select('*', { count: 'exact', head: true }).neq('signal_type', 'death_cross')
+        .then(r => must(r, 'signals count')),
     ])
 
     const { obsDate } = await getObsContext()

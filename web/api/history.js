@@ -30,13 +30,14 @@ function buildRows(clean, cmpMap, names, episodeIndex) {
   return clean.map(r => {
     const ep = r.strategy_name === 'ema_crossover' ? episodeIndex.get(emaRowKey(r)) : null
 
-    let price = r.price, cmp, return_pct, status = null
+    let price = r.price, cmp, return_pct, status = null, exit_date = null
     if (ep) {
       price = ep.entryPrice
       if (ep.exitDate != null) {
         cmp = ep.exitPrice
         return_pct = ep.entryPrice ? (ep.exitPrice / ep.entryPrice - 1) * 100 : null
         status = 'closed'
+        exit_date = ep.exitDate
       } else {
         cmp = cmpMap[r.symbol] ?? null
         return_pct = (cmp != null && ep.entryPrice) ? (cmp / ep.entryPrice - 1) * 100 : null
@@ -53,7 +54,7 @@ function buildRows(clean, cmpMap, names, episodeIndex) {
       signal_date:        r.signal_date,
       strategy_name:      r.strategy_name,
       signal_type:        r.signal_type,
-      price, cmp, return_pct, status,
+      price, cmp, return_pct, status, exit_date,
       ema_difference_pct: r.ema_difference_pct,
       breakout_pct:       r.breakout_pct,
       sector:             r.sector,
@@ -95,7 +96,12 @@ module.exports = async (req, res) => {
     const wlOnly        = val(watchlistOnly) === '1'
     const watchlistSet  = wlOnly ? new Set((val(watchlist) || '').split(',').filter(Boolean)) : null
 
+    // History lists entries: golden crosses and breakouts. A death cross isn't a
+    // row of its own — it shows on the golden cross it ended, as Status = Closed
+    // with that exit's date and price (see buildRows). Filtered in the query so
+    // the count and the page-filling loop below only ever see listable rows.
     const applyFilters = q => {
+      q = q.neq('signal_type', 'death_cross')
       if (strategyVal) q = q.eq('strategy_name', strategyVal)
       if (symbolVal)   q = q.ilike('symbol', `%${symbolVal}%`)
       if (sectorVal)   q = q.ilike('sector', `%${sectorVal}%`)

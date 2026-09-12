@@ -215,7 +215,7 @@ async function loadHistoryTab(reset = false) {
   }
 
   historyTotal = d.total
-  el('meta-history').textContent = `${fmt.num(historyTotal)} total signals · Return% is the real entry→exit trade for EMA crossovers, marked to today only while still open`
+  el('meta-history').textContent = `${fmt.num(historyTotal)} golden crosses & breakouts · a golden cross that later hit its death cross shows as Closed, with Return% from entry to that exit; open ones are marked to today`
 
   const cols = [
     { label: '★',            key: '_star',              cls: 'star-col', fmt: v => starCell(v) },
@@ -227,6 +227,7 @@ async function loadHistoryTab(reset = false) {
     { label: 'Status',       key: 'status',             cls: '',         fmt: v => v === 'open'
         ? '<span class="badge badge-green">Open</span>'
         : v === 'closed' ? '<span class="badge badge-red">Closed</span>' : '<span class="muted">—</span>' },
+    { label: 'Exit Date',    key: 'exit_date',          cls: 'mono',     fmt: v => v ? fmt.date(v) : '—' },
     { label: 'Signal Price', key: 'price',              cls: 'num r',    fmt: v => fmt.price(v) },
     { label: 'Exit/CMP',     key: 'cmp',                cls: 'num r',    fmt: v => fmt.price(v) },
     { label: 'Return%',      key: 'return_pct',         cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
