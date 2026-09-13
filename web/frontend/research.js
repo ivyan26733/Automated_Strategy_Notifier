@@ -514,7 +514,7 @@
   }
 
   // ══════════════════════════════════════════════════════════════════
-  // Quiz, chapter nav, deep-dive charts
+  // Quiz, reading timeline, deep-dive charts
   // ══════════════════════════════════════════════════════════════════
   function initQuiz() {
     $$('.rx-quiz-q').forEach(q => {
@@ -530,19 +530,110 @@
     })
   }
 
-  function initChapterNav() {
-    const links = $$('#panel-research .rx-chapnav a')
-    if (!links.length || !('IntersectionObserver' in window)) return
-    const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]))
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (!e.isIntersecting) return
-        links.forEach(a => a.removeAttribute('aria-current'))
-        const a = byId.get(e.target.id)
-        if (a) { a.setAttribute('aria-current', 'true'); a.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) }
-      })
-    }, { rootMargin: '-180px 0px -65% 0px' })
-    byId.forEach((_, id) => { const s = document.getElementById(id); if (s) io.observe(s) })
+  // The left-hand reading timeline follows the scroll: the chapter under the
+  // reading line is active, chapters above it are done, and a dot travels down
+  // the rail in proportion to how far through the current chapter you are. On
+  // narrower screens the same list is a sticky row of chips (see styles.css).
+  function initTimeline() {
+    const panel = $('#panel-research')
+    const nav = $('.rx-timeline', panel)
+    const main = $('.rx-main', panel)
+    if (!nav || !main) return
+    const track = $('.rx-tl-track', nav)
+    const items = $$('.rx-tl-item', nav)
+    const links = items.map(li => $('.rx-tl-link', li))
+    const nodes = items.map(li => $('.rx-tl-node', li))
+    const targets = links.map(a => document.getElementById(a.getAttribute('href').slice(1)))
+    if (!items.length || targets.some(t => !t)) return
+
+    const rail = $('.rx-tl-rail', nav), fill = $('.rx-tl-fill', nav), runner = $('.rx-tl-runner', nav)
+    const pctEl = $('.rx-tl-pct b', nav), leftEl = $('.rx-tl-left', nav)
+    const wide = window.matchMedia('(min-width: 1024px)')
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const behavior = () => (reduce.matches ? 'auto' : 'smooth')
+
+    // Reading time from the words actually on screen (closed deep-dive sections don't count).
+    let minutes = 10
+    const countWords = () => {
+      const words = (main.innerText || '').split(/\s+/).filter(Boolean).length
+      minutes = Math.max(1, Math.round(words / 230))
+    }
+
+    let active = -1, queued = false, settleUntil = 0
+    // requestAnimationFrame is paused in background tabs and some embedded views; the timeout
+    // makes sure a queued update still runs, so the flag can never stay stuck.
+    const schedule = () => {
+      if (queued) return
+      queued = true
+      requestAnimationFrame(update)
+      setTimeout(() => { if (queued) update() }, 120)
+    }
+
+    // Keep the active entry visible inside the timeline itself, never by scrolling the page.
+    function reveal(link) {
+      const box = wide.matches ? nav : track
+      const lr = link.getBoundingClientRect(), br = box.getBoundingClientRect()
+      if (wide.matches) {
+        if (box.scrollHeight > box.clientHeight + 1) box.scrollTo({ top: box.scrollTop + lr.top - br.top - (br.height - lr.height) / 2, behavior: behavior() })
+      } else {
+        box.scrollTo({ left: box.scrollLeft + lr.left - br.left - (br.width - lr.width) / 2, behavior: behavior() })
+      }
+    }
+
+    function update() {
+      queued = false
+      if (!panel.classList.contains('active')) return
+      const line = wide.matches ? 140 : 190   // just below the sticky header and tabs (and the chip row)
+      const tops = targets.map(t => t.getBoundingClientRect().top)
+      const box = main.getBoundingClientRect()
+
+      let i = 0
+      tops.forEach((top, k) => { if (top <= line + 1) i = k })
+      const end = i + 1 < tops.length ? tops[i + 1] : box.bottom
+      const within = Math.min(1, Math.max(0, (line - tops[i]) / Math.max(1, end - tops[i])))
+      const read = Math.min(1, Math.max(0, (line - box.top) / Math.max(1, box.height - (innerHeight - line))))
+
+      if (i !== active) {
+        items.forEach((li, k) => {
+          li.classList.toggle('is-done', k < i)
+          li.classList.toggle('is-active', k === i)
+          if (k === i) links[k].setAttribute('aria-current', 'step')
+          else links[k].removeAttribute('aria-current')
+        })
+        active = i
+        settleUntil = performance.now() + 500   // subtitles open and close: keep the dot aligned while they move
+        reveal(links[i])
+      }
+      items[i].style.setProperty('--p', within.toFixed(3))
+      nav.style.setProperty('--rx-read', read.toFixed(3))
+      if (pctEl) pctEl.textContent = `${Math.round(read * 100)}%`
+      if (leftEl) leftEl.textContent = read > 0.985 ? 'All read, nice work' : `About ${Math.max(1, Math.ceil(minutes * (1 - read)))} min left`
+
+      if (wide.matches && rail && fill && runner) {
+        const tr = track.getBoundingClientRect()
+        const ys = nodes.map(n => { const r = n.getBoundingClientRect(); return r.top - tr.top + r.height / 2 })
+        const y = i + 1 < ys.length ? ys[i] + (ys[i + 1] - ys[i]) * within : ys[i]
+        rail.style.top = `${ys[0]}px`
+        rail.style.height = `${ys[ys.length - 1] - ys[0]}px`
+        fill.style.height = `${y - ys[0]}px`
+        runner.style.transform = `translateY(${y}px)`
+      }
+      if (performance.now() < settleUntil) schedule()
+    }
+
+    const jump = (e, target) => { e.preventDefault(); target.scrollIntoView({ behavior: behavior(), block: 'start' }) }
+    links.forEach((a, k) => a.addEventListener('click', e => jump(e, targets[k])))
+    $('.rx-tl-top', nav)?.addEventListener('click', e => jump(e, targets[0]))
+
+    main.addEventListener('toggle', () => { countWords(); schedule() }, true)   // <details> toggle doesn't bubble
+    addEventListener('scroll', schedule, { passive: true })
+    addEventListener('resize', schedule)
+    wide.addEventListener?.('change', () => { active = -1; schedule() })
+    $('.tab-btn[data-tab="research"]')?.addEventListener('click', () => requestAnimationFrame(() => { active = -1; countWords(); schedule() }))
+
+    countWords()
+    nav.classList.add('is-ready')
+    schedule()
   }
 
   // Charts inside a closed <details> are laid out at zero size; resize them on open.
@@ -557,7 +648,7 @@
   function init() {
     if (started || !DATA) return
     started = true
-    const steps = [fillStats, initReplay, initChecker, initWaffle, initCalc, initYears, initVariants, initQuiz, initChapterNav, initDeepDive]
+    const steps = [fillStats, initReplay, initChecker, initWaffle, initCalc, initYears, initVariants, initQuiz, initTimeline, initDeepDive]
     for (const step of steps) {
       try { step() } catch (err) { console.warn('[research]', step.name, 'failed:', err) }
     }

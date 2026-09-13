@@ -148,10 +148,37 @@
     <span class="panel-meta">Plain-English guide · live-rule backtest 2016 – 4 Sep 2026 · analyst deep dive</span>
   </div>
 
-  <div class="research-wrap">
+  <div class="research-wrap rx-layout">
+
+    <!-- Reading timeline: follows the scroll (research.js initTimeline); a chip row on narrow screens -->
+    <nav class="rx-timeline" aria-label="Guide chapters">
+      <div class="rx-tl-head">
+        <span class="rx-tl-kicker">Reading path</span>
+        <span class="rx-tl-pct"><b>0%</b> read</span>
+      </div>
+      <div class="rx-tl-bar" aria-hidden="true"><span></span></div>
+      <div class="rx-tl-track">
+        <span class="rx-tl-rail" aria-hidden="true"><span class="rx-tl-fill"></span></span>
+        <span class="rx-tl-runner" aria-hidden="true"></span>
+        <ol class="rx-tl-list">
+          <li class="rx-tl-item" style="--i:0"><a class="rx-tl-link" href="#rx-start"><span class="rx-tl-node">Go</span><span class="rx-tl-text"><span class="rx-tl-title">Start here</span><span class="rx-tl-sub">Does buying golden crosses make money?</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:1"><a class="rx-tl-link" href="#rx-ch1"><span class="rx-tl-node">1</span><span class="rx-tl-text"><span class="rx-tl-title">The idea</span><span class="rx-tl-sub">Two lines racing on a chart</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:2"><a class="rx-tl-link" href="#rx-ch2"><span class="rx-tl-node">2</span><span class="rx-tl-text"><span class="rx-tl-title">The 6 rules</span><span class="rx-tl-sub">A checklist every signal must pass</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:3"><a class="rx-tl-link" href="#rx-ch3"><span class="rx-tl-node">3</span><span class="rx-tl-text"><span class="rx-tl-title">The results</span><span class="rx-tl-sub">Ten years of history</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:4"><a class="rx-tl-link" href="#rx-ch4"><span class="rx-tl-node">4</span><span class="rx-tl-text"><span class="rx-tl-title">The risks</span><span class="rx-tl-sub">Read this before trusting a backtest</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:5"><a class="rx-tl-link" href="#rx-ch5"><span class="rx-tl-node">5</span><span class="rx-tl-text"><span class="rx-tl-title">Which rules help</span><span class="rx-tl-sub">Three versions compared</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:6"><a class="rx-tl-link" href="#rx-ch6"><span class="rx-tl-node">6</span><span class="rx-tl-text"><span class="rx-tl-title">Takeaways &amp; quiz</span><span class="rx-tl-sub">Five things to remember, then check yourself</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:7"><a class="rx-tl-link" href="#rx-ch7"><span class="rx-tl-node">7</span><span class="rx-tl-text"><span class="rx-tl-title">Deep dive</span><span class="rx-tl-sub">The full research, for analysts</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+          <li class="rx-tl-item" style="--i:8"><a class="rx-tl-link" href="#rx-glossary"><span class="rx-tl-node">Az</span><span class="rx-tl-text"><span class="rx-tl-title">Glossary</span><span class="rx-tl-sub">Every term in plain words</span><span class="rx-tl-mini" aria-hidden="true"><span></span></span></span></a></li>
+        </ol>
+      </div>
+      <div class="rx-tl-foot"><span class="rx-tl-left">About 10 min left</span><a class="rx-tl-top" href="#rx-start">↑ Top</a></div>
+    </nav>
+
+    <div class="rx-main">
 
     <!-- ══ Guided story: plain-English first, analyst detail further down ══ -->
-    <section class="rx-hero" aria-labelledby="rx-hero-title">
+    <section class="rx-hero" id="rx-start" aria-labelledby="rx-hero-title">
       <div class="rx-eyebrow">A 10-minute guide · no maths background needed</div>
       <h2 class="rx-hero-title" id="rx-hero-title">Does buying golden crosses actually make money?</h2>
       <p class="rx-hero-lead">
@@ -184,16 +211,6 @@
       <p class="rx-bigidea"><span aria-hidden="true">💡</span> <strong>The whole strategy in one sentence:</strong> most trades lose a little, a few win big, and those few pay for everything else.</p>
     </section>
 
-    <nav class="rx-chapnav" aria-label="Guide chapters">
-      <a href="#rx-ch1"><b>1</b> The idea</a>
-      <a href="#rx-ch2"><b>2</b> The 6 rules</a>
-      <a href="#rx-ch3"><b>3</b> The results</a>
-      <a href="#rx-ch4"><b>4</b> The risks</a>
-      <a href="#rx-ch5"><b>5</b> Which rules help</a>
-      <a href="#rx-ch6"><b>6</b> Takeaways &amp; quiz</a>
-      <a href="#rx-ch7"><b>7</b> Deep dive</a>
-      <a href="#rx-glossary"><b>A–Z</b> Glossary</a>
-    </nav>
 
     <!-- ── Chapter 1 ─────────────────────────────────────────────── -->
     <section class="rx-chapter" id="rx-ch1" aria-labelledby="rx-ch1-title">
@@ -1549,6 +1566,7 @@
         <div><dt>Win rate</dt><dd>The share of finished trades counted as wins. In Chapters 1–5 a win is any profit; in the Deep dive it is a gain of 10% or more; on the Returns tab it is a stock whose ₹100 ends above ₹100.</dd></div>
       </dl>
     </section>
+    </div><!-- /.rx-main -->
   </div>
 </div>
 
