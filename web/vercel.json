@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "functions": {
+    "api/history.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/frontend/$1" }
   ]

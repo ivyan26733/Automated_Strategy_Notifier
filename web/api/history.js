@@ -150,7 +150,13 @@ async function getDataset() {
   const fresh = cache && now - cache.builtAt < MAX_AGE_MS
   if (fresh && now - cache.checkedAt < CHECK_EVERY_MS) return cache
 
-  const runKey = await getLatestRunStart()
+  let runKey
+  try {
+    runKey = await getLatestRunStart()
+  } catch (e) {
+    if (cache) return cache   // a blip on this small check shouldn't fail a request a warm cache can answer
+    throw e
+  }
   if (fresh && cache.runKey === runKey) { cache.checkedAt = now; return cache }
 
   if (!building || building.runKey !== runKey) {
@@ -227,6 +233,9 @@ module.exports = async (req, res) => {
     const page     = Math.min(pages, Math.max(1, parseInt(q.page, 10) || 1))
     const offset   = (page - 1) * pageSize
 
+    // Each cold instance builds its own copy; letting the CDN answer repeats of
+    // the same URL keeps a burst of visitors from starting many builds at once.
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
     send(res, {
       total, page, pageSize, pages, sort, dir,
       obsDate: ds.obsDate,
