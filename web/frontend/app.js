@@ -1,10 +1,9 @@
 /* NSE Stock Screener — frontend (thin client, all data from /api/*) */
 
 // ── State ─────────────────────────────────────────────────────────
-let historyPage    = 1
-let historyTotal   = 0
+let historyQuery   = { page: 1, pageSize: 50, sort: 'signal_date', dir: 'desc' }
+let historyReq     = 0
 let historyFilters = {}
-let historyAllRows = []
 let sortState      = {}
 let loaded         = {}
 let globalFilters  = { returnPct: null, watchlistOnly: false }
@@ -180,44 +179,9 @@ async function loadActiveTab() {
 }
 
 // ── Tab 4: Signal History ─────────────────────────────────────────
-async function loadHistoryTab(reset = false) {
-  const container = el('body-history')
-  const scanning = globalFilters.returnPct !== null || globalFilters.watchlistOnly
-  if (reset) {
-    historyPage = 1; historyAllRows = []
-    loading(container, scanning ? 'Scanning full signal history for Return%/Watchlist filters — a few seconds' : '')
-  }
-
-  // Return% and Watchlist-only are "global" filters (apply across every tab), but
-  // History is server-paginated — unlike the fully-loaded tabs, filtering here
-  // client-side would only ever see whatever page is currently in memory. They're
-  // threaded through as real query params so the server filters end-to-end and
-  // "Load More" pages through actual matches instead of hunting for them.
-  const globalParams = {}
-  if (globalFilters.returnPct !== null) globalParams.minReturn = globalFilters.returnPct
-  if (globalFilters.watchlistOnly) {
-    globalParams.watchlistOnly = '1'
-    globalParams.watchlist = [...getWatchlist()].join(',')
-  }
-
-  const params = new URLSearchParams(
-    Object.fromEntries(
-      Object.entries({ page: historyPage, ...historyFilters, ...globalParams })
-        .filter(([, v]) => v !== undefined && v !== null && v !== '')
-    )
-  )
-  const d = await apiFetch(`/api/history?${params}`)
-
-  if (!d.rows?.length) {
-    if (reset) empty(container, 'No signals match your filters.')
-    el('load-more-history').hidden = true
-    return
-  }
-
-  historyTotal = d.total
-  el('meta-history').textContent = `${fmt.num(historyTotal)} golden crosses & breakouts · a golden cross that later hit its death cross shows as Closed, with Return% from entry to that exit; open ones are marked to today`
-
-  const cols = [
+// Sorting, filters and page numbers are all applied by the server across every
+// signal on record — the page on screen is just one slice of that result.
+const HISTORY_COLS = [
     { label: '★',            key: '_star',              cls: 'star-col', fmt: v => starCell(v) },
     { label: 'Date',         key: 'signal_date',        cls: 'mono',     fmt: v => fmt.date(v) },
     { label: 'Symbol',       key: 'symbol',             cls: 'sym',      fmt: v => esc(v) },
@@ -234,20 +198,125 @@ async function loadHistoryTab(reset = false) {
     { label: 'EMA Diff%',    key: 'ema_difference_pct', cls: 'pct r',   fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
     { label: 'Brk%',         key: 'breakout_pct',       cls: 'pct r',   fmt: v => v != null ? `<span class="pos">${fmt.pct(v)}</span>` : '—' },
     { label: 'Sector',       key: 'sector',             cls: 'muted',    fmt: v => esc(v) },
-  ]
+]
+const HISTORY_TEXT_COLS = new Set(['symbol', 'name', 'strategy_name', 'signal_type', 'status', 'sector'])
 
-  const newRows = d.rows.map(r => ({ ...r, _star: r.symbol }))
-  historyPage++
+function historySortLabel(sort, dir) {
+  const label = HISTORY_COLS.find(c => c.key === sort)?.label || 'Date'
+  const words = sort === 'signal_date' || sort === 'exit_date' ? (dir === 'desc' ? 'newest first' : 'oldest first')
+    : HISTORY_TEXT_COLS.has(sort) ? (dir === 'asc' ? 'A → Z' : 'Z → A')
+    : (dir === 'desc' ? 'high → low' : 'low → high')
+  return `${label}, ${words}`
+}
 
-  if (reset) {
-    historyAllRows = newRows
-    renderTable(container, 'history', cols, historyAllRows)
-  } else {
-    historyAllRows = historyAllRows.concat(newRows)
-    appendRows('table-history', cols, newRows)
+// reset = back to page 1 (tab opened, filters changed). Page, sort and page-size
+// changes keep the current table on screen, dimmed, until the new page arrives.
+async function loadHistoryTab(reset = false) {
+  const container = el('body-history')
+  const bars = [el('pager-history-top'), el('pager-history')]
+  if (reset) historyQuery.page = 1
+  const req = ++historyReq
+  const busy = [container, ...bars]
+  if (container.querySelector('table')) busy.forEach(b => b.classList.add('is-busy'))
+  else {
+    loading(container, 'Sorting and filtering every signal on record — the first load after a scan takes a few seconds')
+    renderHistoryPager(null)
   }
 
-  el('load-more-history').hidden = !d.hasMore
+  // Return% and Watchlist-only are global filters; here they're sent to the server
+  // so they apply to all signals, not only to the page on screen.
+  const params = { ...historyQuery, ...historyFilters }
+  if (globalFilters.returnPct !== null) params.minReturn = globalFilters.returnPct
+  if (globalFilters.watchlistOnly) {
+    params.watchlistOnly = '1'
+    params.watchlist = [...getWatchlist()].join(',')
+  }
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''))
+
+  let d
+  try {
+    d = await apiFetch(`/api/history?${qs}`)
+  } catch (e) {
+    if (req !== historyReq) return
+    busy.forEach(b => b.classList.remove('is-busy'))
+    renderHistoryPager(null)
+    throw e
+  }
+  if (req !== historyReq) return   // a newer page, sort or filter request replaced this one
+  busy.forEach(b => b.classList.remove('is-busy'))
+
+  historyQuery.page = d.page
+  const filtered = Object.values(historyFilters).some(Boolean) || globalFilters.returnPct !== null || globalFilters.watchlistOnly
+  el('meta-history').textContent = `${fmt.num(d.total)} golden crosses & breakouts${filtered ? ' match your filters' : ''} · sorted by ${historySortLabel(d.sort, d.dir)} · Closed = the cross later hit its death cross (Return% is entry → exit); Open = marked to today`
+
+  if (!d.rows.length) {
+    empty(container, 'No signals match your filters.', 'Try a wider date range or clear a filter.')
+    renderHistoryPager(null)
+    return
+  }
+  renderTable(container, 'history', HISTORY_COLS, d.rows.map(r => ({ ...r, _star: r.symbol })), {
+    server: { col: d.sort, dir: d.dir, onSort: sortHistory },
+  })
+  renderHistoryPager(d)
+}
+
+// First click on a column: dates and numbers high→low (newest first), text A→Z.
+function sortHistory(col) {
+  if (historyQuery.sort === col) historyQuery.dir = historyQuery.dir === 'asc' ? 'desc' : 'asc'
+  else { historyQuery.sort = col; historyQuery.dir = HISTORY_TEXT_COLS.has(col) ? 'asc' : 'desc' }
+  historyQuery.page = 1
+  navHistory()
+}
+
+// A failed page change shows the error in place of the table, with a retry.
+function navHistory(scrollToTop = false) {
+  if (scrollToTop) {
+    const top = el('panel-history').getBoundingClientRect().top + scrollY - 110
+    if (top < scrollY) scrollTo({ top, behavior: 'smooth' })
+  }
+  loadHistoryTab(false).catch(e => {
+    console.error('History page error:', e)
+    failed(el('body-history'), () => navHistory())
+  })
+}
+
+// 1 … 4 5 [6] 7 8 … 682 — first, last, and two either side of the current page.
+function pageList(page, pages) {
+  const keep = [...new Set([1, pages, page - 2, page - 1, page, page + 1, page + 2])]
+    .filter(p => p >= 1 && p <= pages).sort((a, b) => a - b)
+  const out = []
+  keep.forEach((p, i) => {
+    const prev = keep[i - 1]
+    if (prev && p - prev === 2) out.push(prev + 1)
+    else if (prev && p - prev > 2) out.push(null)
+    out.push(p)
+  })
+  return out
+}
+
+function renderHistoryPager(d) {
+  const top = el('pager-history-top'), bottom = el('pager-history')
+  if (!d || !d.total) { top.hidden = bottom.hidden = true; return }
+
+  const first = (d.page - 1) * d.pageSize + 1
+  const last  = Math.min(d.total, d.page * d.pageSize)
+  const info  = `<span class="pager-info">Showing <b>${fmt.num(first)}–${fmt.num(last)}</b> of <b>${fmt.num(d.total)}</b> · page <b>${fmt.num(d.page)}</b> of <b>${fmt.num(d.pages)}</b></span>`
+  const btn   = (page, html, label, attrs = '') => `<button type="button" class="pager-btn" data-page="${page}" aria-label="${label}"${attrs}>${html}</button>`
+  const step  = (page, html, label) => btn(page, html, label, page < 1 || page > d.pages || page === d.page ? ' disabled' : '')
+  const prev  = step(d.page - 1, '‹<span class="pager-word"> Prev</span>', 'Previous page')
+  const next  = step(d.page + 1, '<span class="pager-word">Next </span>›', 'Next page')
+  const nums  = pageList(d.page, d.pages).map(p => p == null
+    ? '<span class="pager-gap" aria-hidden="true">…</span>'
+    : btn(p, fmt.num(p), `Page ${p}`, p === d.page ? ' aria-current="page" disabled' : '')).join('')
+
+  top.innerHTML = `${info}<div class="pager-pages">${prev}${next}</div>`
+  bottom.innerHTML = `${info}
+    <div class="pager-pages">${step(1, '«', 'First page')}${prev}${nums}${next}${step(d.pages, '»', 'Last page')}</div>
+    <div class="pager-tools">
+      <label>Rows <select class="filter-select" data-pager="size">${[25, 50, 100].map(n => `<option value="${n}"${n === d.pageSize ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label>Go to page <input class="filter-input" type="number" min="1" max="${d.pages}" inputmode="numeric" data-pager="jump" placeholder="${d.page}"></label>
+    </div>`
+  top.hidden = bottom.hidden = false
 }
 
 // ── Tab 5: Crossover Returns ──────────────────────────────────────
@@ -377,12 +446,16 @@ async function loadWatchlistTab() {
 }
 
 // ── Table Renderer ────────────────────────────────────────────────
-function renderTable(container, tabId, cols, rows) {
+// opts.server = { col, dir, onSort }: the rows are one page the API already
+// filtered and sorted across all data, so neither step may run again here —
+// a header click asks the server for a new sort instead.
+function renderTable(container, tabId, cols, rows, opts = {}) {
+  const server = opts.server
   let display = rows
-  if (globalFilters.returnPct !== null) {
+  if (!server && globalFilters.returnPct !== null) {
     display = display.filter(r => r.return_pct != null && r.return_pct >= globalFilters.returnPct)
   }
-  if (globalFilters.watchlistOnly) {
+  if (!server && globalFilters.watchlistOnly) {
     const wl = getWatchlist()
     display = display.filter(r => wl.has(r.symbol))
   }
@@ -393,13 +466,16 @@ function renderTable(container, tabId, cols, rows) {
     return
   }
 
-  const ss = sortState[tabId] || {}
-  const sorted = sortRows(display, ss.col, ss.dir)
+  const ss = server || sortState[tabId] || {}
+  const sorted = server ? display : sortRows(display, ss.col, ss.dir)
 
   const head = cols.map(c => {
-    const sc = ss.col === c.key ? (ss.dir === 'asc' ? 'sorted-asc' : 'sorted-desc') : ''
-    const noSort = c.cls?.includes('star-col') ? ' style="cursor:default"' : ''
-    return `<th class="${c.cls || ''} ${sc}" data-tab="${tabId}" data-col="${c.key}"${noSort}>${c.label}</th>`
+    const on = ss.col === c.key
+    const sc = on ? (ss.dir === 'asc' ? 'sorted-asc' : 'sorted-desc') : ''
+    const star = c.cls?.includes('star-col')
+    const attrs = star ? ' style="cursor:default"'
+      : (on ? ` aria-sort="${ss.dir === 'asc' ? 'ascending' : 'descending'}"` : '') + (server ? ' title="Sort all matching signals"' : '')
+    return `<th class="${c.cls || ''} ${sc}" data-tab="${tabId}" data-col="${c.key}"${attrs}>${c.label}</th>`
   }).join('')
 
   const body = sorted.map(row =>
@@ -415,23 +491,11 @@ function renderTable(container, tabId, cols, rows) {
     if (th.classList.contains('star-col')) return
     th.addEventListener('click', () => {
       const col = th.dataset.col, tab = th.dataset.tab
+      if (server) return server.onSort(col)
       const cur = sortState[tab] || {}
       sortState[tab] = { col, dir: cur.col === col && cur.dir === 'asc' ? 'desc' : 'asc' }
       renderTable(container, tabId, cols, rows)
     })
-  })
-}
-
-function appendRows(tableId, cols, rows) {
-  const tbody = document.querySelector(`#${tableId} tbody`)
-  if (!tbody) return
-  rows.forEach(row => {
-    const tr = document.createElement('tr')
-    tr.innerHTML = cols.map(c => {
-      const val = c.fmt ? c.fmt(row[c.key]) : (row[c.key] == null ? '—' : esc(String(row[c.key])))
-      return `<td class="${c.cls || ''}">${val}</td>`
-    }).join('')
-    tbody.appendChild(tr)
   })
 }
 
@@ -512,21 +576,35 @@ el('filter-reset').addEventListener('click', () => {
   switchTab('history')
 })
 
-// A failed "Load more" keeps the rows already on screen and turns the button
-// into a retry, instead of replacing the whole table with an error.
-el('load-more-history').addEventListener('click', async () => {
-  const btn = el('load-more-history')
-  btn.disabled = true
-  try {
-    await loadHistoryTab(false)
-    btn.textContent = 'Load more'
-  } catch (e) {
-    console.error('Load more error:', e)
-    btn.textContent = "Couldn't load more — try again"
-    btn.hidden = false
-  } finally {
-    btn.disabled = false
-  }
+;['filter-symbol', 'filter-sector', 'filter-from', 'filter-to'].forEach(id =>
+  el(id).addEventListener('keydown', e => { if (e.key === 'Enter') el('filter-apply').click() }))
+
+// ── History Page Numbers ──────────────────────────────────────────
+function jumpHistoryPage(input) {
+  const n = parseInt(input.value, 10)
+  if (!Number.isFinite(n)) return
+  historyQuery.page = Math.min(+input.max || 1, Math.max(1, n))
+  navHistory(true)
+}
+
+;['pager-history-top', 'pager-history'].forEach(id => {
+  const bar = el(id)
+  bar.addEventListener('click', e => {
+    const b = e.target.closest('button[data-page]')
+    if (!b || b.disabled) return
+    historyQuery.page = +b.dataset.page
+    navHistory(id === 'pager-history')   // from the bottom bar, go back up to the table's start
+  })
+  bar.addEventListener('change', e => {
+    const kind = e.target.dataset.pager
+    if (kind === 'size') {
+      historyQuery.pageSize = +e.target.value
+      historyQuery.page = 1
+      navHistory()
+    } else if (kind === 'jump') {
+      jumpHistoryPage(e.target)
+    }
+  })
 })
 
 document.querySelectorAll('.tab-btn').forEach(btn => {

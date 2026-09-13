@@ -1,31 +1,44 @@
 const {
-  db, getExcluded, fetchCmp, fetchNames, fetchAllPaged,
-  buildEmaEpisodeIndex, fetchEmaHistory, emaRowKey,
-  send, sendErr, must,
+  db, must, send, sendErr,
+  getExcluded, getObsContext, getLatestRunStart, fetchLatestIndicators, fetchAllPaged,
+  buildEmaEpisodeIndex, emaRowKey,
 } = require('./_utils')
 
-const PAGE_SIZE = 50
-
-// `names` is optional: the fast path still joins stocks(name) per-row (cheap at
-// 50 rows), the full-scan path passes a symbol->name map instead (see fetchNames).
+// Signal History is sorted, filtered and paginated over EVERY listable signal —
+// not just the rows on screen. Return%, Status, Exit Date and Exit/CMP aren't
+// stored columns: they come from matching each golden cross to its real trade
+// episode (buildEmaEpisodeIndex) and to today's price. So the database can't
+// ORDER BY or filter on them, and the only way to sort "Return% high → low"
+// across 20+ years of signals is to build the whole list once and work on that.
 //
+// The built list is kept in memory per warm function instance and reused until
+// a newer successful scanner run exists (or MAX_AGE_MS passes), so a header
+// click or page change costs a sort/slice in memory, not a database scan.
+
+const PAGE_SIZES        = [25, 50, 100]
+const DEFAULT_PAGE_SIZE = 50
+const ROW_CAP           = 1000        // PostgREST's per-request row limit
+const SYMBOL_GROUP      = 25          // ~30 signals per stock → one request per group
+const GROUP_CONCURRENCY = 12
+const CHECK_EVERY_MS    = 60 * 1000   // how often to look for a newer scanner run
+const MAX_AGE_MS        = 30 * 60 * 1000
+
+const SIGNAL_COLS = 'signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector, created_at'
+
+// Sortable columns and how they compare. Anything else falls back to date.
+const SORTS = {
+  signal_date: 'date', exit_date: 'date',
+  symbol: 'text', name: 'text', strategy_name: 'text', signal_type: 'text', status: 'text', sector: 'text',
+  price: 'num', cmp: 'num', return_pct: 'num', ema_difference_pct: 'num', breakout_pct: 'num',
+}
+const TEXT_ASC_DEFAULT = new Set(['symbol', 'name', 'strategy_name', 'signal_type', 'status', 'sector'])
+
 // Return% for an ema_crossover row is matched to its real trade episode, not
 // computed against today's price: closed shows the actual entry->exit return
 // with Exit/CMP set to the exit price; still-open shows the unrealized return
-// marked to today, same as before. A signal from years ago that already exited
-// no longer inherits a decade of unrelated price drift. breakout_6m has no
-// exit-signal counterpart to match against, so it keeps the previous
-// mark-to-today calculation unchanged.
-//
-// Price is also taken from the episode (ep.entryPrice), not the raw row's own
-// price. A cross re-fires on every daily run while its weekly bar is still
-// developing, so a row DATED after the real entry can still belong to that
-// same episode — e.g. a genuine entry on Sep 2 re-fires again on Sep 8 and
-// Sep 9 (see buildEmaEpisodeIndex). Showing that later row's own raw price as
-// "Signal Price" while computing Return% from the Sep 2 entry would put two
-// numbers on one row that don't reconcile with each other. Using the episode's
-// entry price for every row it touches keeps Price / Exit-CMP / Return%
-// internally consistent no matter which underlying duplicate is being shown.
+// marked to today. breakout_6m has no exit-signal counterpart, so it is marked
+// to today. Price is the episode's entry price, so Price / Exit-CMP / Return%
+// on one row always reconcile even when the row is a re-fire of that entry.
 function buildRows(clean, cmpMap, names, episodeIndex) {
   return clean.map(r => {
     const ep = r.strategy_name === 'ema_crossover' ? episodeIndex.get(emaRowKey(r)) : null
@@ -50,7 +63,7 @@ function buildRows(clean, cmpMap, names, episodeIndex) {
 
     return {
       symbol:             r.symbol,
-      name:               names ? (names[r.symbol] || '') : (r.stocks?.name || ''),
+      name:               names[r.symbol] || '',
       signal_date:        r.signal_date,
       strategy_name:      r.strategy_name,
       signal_type:        r.signal_type,
@@ -63,188 +76,162 @@ function buildRows(clean, cmpMap, names, episodeIndex) {
 }
 
 // A cross re-fires on every daily run while its weekly bar is still developing
-// (see buildEmaEpisodeIndex), leaving several rows — one per re-fire date —
-// for the SAME real entry or exit. Only the row whose own signal_date matches
-// the episode's actual entry/exit date is the real event; every other row
-// mapped to that same episode is a same-priced echo of it and must not be
-// displayed. breakout_6m has no episode concept here (episodeIndex only ever
-// holds ema_crossover keys), so every one of its rows passes through unchanged
-// — that strategy's own re-fire behavior is a separate, strategy-level issue,
-// not something this display-layer filter should paper over.
+// (see buildEmaEpisodeIndex), leaving several rows for the SAME real entry or
+// exit. Only the row whose own signal_date matches the episode's actual
+// entry/exit date is the real event; the rest are echoes and aren't listed.
+// breakout_6m rows have no episode and pass through unchanged.
 function isEpisodeAnchor(r, episodeIndex) {
   if (r.strategy_name !== 'ema_crossover') return true
   const ep = episodeIndex.get(emaRowKey(r))
-  if (!ep) return true   // no episode on record (e.g. orphan leading death_cross) — nothing to collapse against
+  if (!ep) return true   // no episode on record (e.g. orphan leading death_cross)
   const boundary = r.signal_type === 'golden_cross' ? ep.entryDate : ep.exitDate
   return boundary === r.signal_date
 }
 
+// Every signals row, fetched a group of stocks at a time. Deep .range() offsets
+// over the whole table cost ~1s each on this database (27s for a full read);
+// an .in() on a few symbols uses the symbol index from offset 0 (~6s in total).
+// A group holding more than ROW_CAP rows keeps paging within that group.
+async function fetchAllSignals(symbols) {
+  const groups = []
+  for (let i = 0; i < symbols.length; i += SYMBOL_GROUP) groups.push(symbols.slice(i, i + SYMBOL_GROUP))
+
+  const out = []
+  let next = 0
+  await Promise.all(Array.from({ length: GROUP_CONCURRENCY }, async () => {
+    while (next < groups.length) {
+      const group = groups[next++]
+      for (let from = 0; ; from += ROW_CAP) {
+        const { data } = must(await db.from('signals')
+          .select(SIGNAL_COLS)
+          .in('symbol', group)
+          .order('symbol').order('signal_date').order('strategy_name').order('signal_type')   // total order: stable pages
+          .range(from, from + ROW_CAP - 1), 'signals history')
+        out.push(...(data || []))
+        if (!data || data.length < ROW_CAP) break
+      }
+    }
+  }))
+  return out
+}
+
+async function buildDataset(runKey) {
+  const [stocks, excluded, { obsDate }] = await Promise.all([
+    fetchAllPaged(() => db.from('stocks').select('symbol, name', { count: 'exact' }).order('symbol'), 'stocks names'),
+    getExcluded(),
+    getObsContext(),
+  ])
+  // signals.symbol references stocks, so grouping by the stock list reaches every row.
+  const [signals, latest] = await Promise.all([
+    fetchAllSignals(stocks.map(s => s.symbol)),
+    fetchLatestIndicators(obsDate),
+  ])
+
+  const names = {}
+  for (const s of stocks) names[s.symbol] = s.name
+  const cmpMap = {}
+  for (const [symbol, r] of latest) cmpMap[symbol] = r.weekly_close
+
+  // The episode index needs every golden AND death cross; the list itself shows
+  // entries only — a death cross appears as Status = Closed on the cross it ended.
+  const episodeIndex = buildEmaEpisodeIndex(signals.filter(r => r.strategy_name === 'ema_crossover'))
+  const listable = signals.filter(r =>
+    r.signal_type !== 'death_cross' && !excluded.has(r.symbol) && isEpisodeAnchor(r, episodeIndex))
+
+  const now = Date.now()
+  return { runKey, obsDate, builtAt: now, checkedAt: now, rows: buildRows(listable, cmpMap, names, episodeIndex), sorted: new Map() }
+}
+
+let cache = null
+let building = null   // { runKey, promise } — concurrent requests share one build
+
+async function getDataset() {
+  const now = Date.now()
+  const fresh = cache && now - cache.builtAt < MAX_AGE_MS
+  if (fresh && now - cache.checkedAt < CHECK_EVERY_MS) return cache
+
+  const runKey = await getLatestRunStart()
+  if (fresh && cache.runKey === runKey) { cache.checkedAt = now; return cache }
+
+  if (!building || building.runKey !== runKey) {
+    const promise = buildDataset(runKey)
+      .then(ds => { cache = ds; return ds })
+      .finally(() => { if (building?.promise === promise) building = null })
+    building = { runKey, promise }
+  }
+  return building.promise
+}
+
+const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
+
+// Blanks sort last in both directions; ties fall back to newest date, then
+// symbol, strategy and type, so every page boundary is stable.
+function sortedRows(ds, sort, dir) {
+  const key = `${sort}:${dir}`
+  if (ds.sorted.has(key)) return ds.sorted.get(key)
+
+  const kind = SORTS[sort]
+  const sign = dir === 'asc' ? 1 : -1
+  const blank = v => v == null || v === ''
+  const cmpVal = kind === 'num'  ? (a, b) => a - b
+               : kind === 'date' ? (a, b) => (a < b ? -1 : a > b ? 1 : 0)   // ISO dates order as text
+               : collator.compare
+
+  const out = [...ds.rows].sort((x, y) => {
+    const a = x[sort], b = y[sort]
+    if (blank(a) !== blank(b)) return blank(a) ? 1 : -1
+    if (!blank(a)) { const c = cmpVal(a, b); if (c) return sign * c }
+    if (x.signal_date !== y.signal_date) return x.signal_date < y.signal_date ? 1 : -1
+    if (x.symbol !== y.symbol) return x.symbol < y.symbol ? -1 : 1
+    if (x.strategy_name !== y.strategy_name) return x.strategy_name < y.strategy_name ? -1 : 1
+    return x.signal_type < y.signal_type ? -1 : x.signal_type > y.signal_type ? 1 : 0
+  })
+  ds.sorted.set(key, out)
+  return out
+}
+
 module.exports = async (req, res) => {
   try {
-    const { page = '1', strategy, symbol, sector, from, to, minReturn, watchlistOnly, watchlist } = req.query
-    const pageNum = Math.max(1, parseInt(page, 10))
-    const offset  = (pageNum - 1) * PAGE_SIZE
-
+    const q = req.query
     // Strip "undefined" / "null" strings that URLSearchParams can inject
-    const val = v => (v && v !== 'undefined' && v !== 'null') ? v : undefined
-    const strategyVal   = val(strategy)
-    const symbolVal     = val(symbol)
-    const sectorVal     = val(sector)
-    const fromVal       = val(from)
-    const toVal         = val(to)
-    const minReturnVal  = val(minReturn) != null ? parseFloat(val(minReturn)) : null
-    const wlOnly        = val(watchlistOnly) === '1'
-    const watchlistSet  = wlOnly ? new Set((val(watchlist) || '').split(',').filter(Boolean)) : null
+    const val = v => (typeof v === 'string' && v.trim() && v !== 'undefined' && v !== 'null') ? v.trim() : undefined
 
-    // History lists entries: golden crosses and breakouts. A death cross isn't a
-    // row of its own — it shows on the golden cross it ended, as Status = Closed
-    // with that exit's date and price (see buildRows). Filtered in the query so
-    // the count and the page-filling loop below only ever see listable rows.
-    const applyFilters = q => {
-      q = q.neq('signal_type', 'death_cross')
-      if (strategyVal) q = q.eq('strategy_name', strategyVal)
-      if (symbolVal)   q = q.ilike('symbol', `%${symbolVal}%`)
-      if (sectorVal)   q = q.ilike('sector', `%${sectorVal}%`)
-      if (fromVal)     q = q.gte('signal_date', fromVal)
-      if (toVal)       q = q.lte('signal_date', toVal)
-      return q
-    }
+    const sort     = SORTS[val(q.sort)] ? val(q.sort) : 'signal_date'
+    const dirParam = val(q.dir)
+    const dir      = dirParam === 'asc' || dirParam === 'desc' ? dirParam : (TEXT_ASC_DEFAULT.has(sort) ? 'asc' : 'desc')
+    const pageSize = PAGE_SIZES.includes(parseInt(q.pageSize, 10)) ? parseInt(q.pageSize, 10) : DEFAULT_PAGE_SIZE
 
-    const excluded = await getExcluded()
+    const strategy  = val(q.strategy)
+    const symbol    = val(q.symbol)?.toUpperCase()
+    const sector    = val(q.sector)?.toLowerCase()
+    const from      = val(q.from)
+    const to        = val(q.to)
+    const minRet    = val(q.minReturn) != null ? parseFloat(val(q.minReturn)) : NaN
+    const minReturn = Number.isFinite(minRet) ? minRet : null
+    // Watchlist membership lives in the browser's localStorage, so it's sent along.
+    const watchlist = val(q.watchlistOnly) === '1' ? new Set((val(q.watchlist) || '').split(',').filter(Boolean)) : null
 
-    // Return% and Watchlist-only filter on values that aren't stored columns —
-    // return_pct is now matched against each row's real trade episode, and
-    // watchlist membership lives in the browser's localStorage. The DB can't
-    // filter on either, so a naive per-page fetch (fast path below) only checks
-    // the 50 rows on the current page: with these filters active, most pages come
-    // back with zero matches and "Load More" degenerates into a hunt. Fixed by
-    // fetching every row matching the cheap filters, computing return_pct for
-    // all of them, filtering, and paginating the RESULT — so the requested page
-    // always has real rows to show (or genuinely doesn't exist).
-    const needsFullScan = minReturnVal != null || wlOnly
+    const ds = await getDataset()
+    const matches = r =>
+      (!strategy  || r.strategy_name === strategy) &&
+      (!symbol    || r.symbol.includes(symbol)) &&
+      (!sector    || (r.sector || '').toLowerCase().includes(sector)) &&
+      (!from      || r.signal_date >= from) &&
+      (!to        || r.signal_date <= to) &&
+      (minReturn == null || (r.return_pct != null && r.return_pct >= minReturn)) &&
+      (!watchlist || watchlist.has(r.symbol))
 
-    if (!needsFullScan) {
-      // Fast path, but re-fire duplicates (see isEpisodeAnchor) have to be
-      // dropped before a page can be filled from raw rows — a plain single
-      // .range() can no longer promise 50 real rows once some raw rows in
-      // that range are echoes of an episode already shown elsewhere. A
-      // re-fire duplicate sits within a few rows of its anchor (same
-      // developing week), so fetch in growing chunks and keep going only
-      // until enough SURVIVING rows exist to fill this page plus one more
-      // (to know whether a further page exists) — that stays close to the
-      // cost of a plain .range() for ordinary page depths, instead of
-      // scanning the whole table the way the filtered path below must.
-      const CHUNK = PAGE_SIZE * 3
-      const target = offset + PAGE_SIZE + 1
-      let episodeIndex = new Map()
-      const historySeenSyms = new Set()
-      let collected = []
-      let rawOffset = 0
-      let rawTotal = 0
-
-      while (collected.length < target) {
-        const { data, count } = must(await applyFilters(
-          db.from('signals')
-            .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector, stocks(name)', { count: 'exact' })
-            .order('signal_date', { ascending: false })
-            .order('symbol', { ascending: true })
-            .order('strategy_name', { ascending: true })   // total order: an EMA cross and a
-            .order('signal_type', { ascending: true })     // breakout can share symbol + date
-        ).range(rawOffset, rawOffset + CHUNK - 1), 'signals history page')
-
-        rawTotal = count ?? 0
-
-        const chunk = (data || []).filter(r => !excluded.has(r.symbol))
-        const newEmaSyms = [...new Set(
-          chunk.filter(r => r.strategy_name === 'ema_crossover' && !historySeenSyms.has(r.symbol)).map(r => r.symbol)
-        )]
-        if (newEmaSyms.length) {
-          const hist = await fetchEmaHistory(newEmaSyms)
-          const idx = buildEmaEpisodeIndex(hist)
-          for (const [k, v] of idx) episodeIndex.set(k, v)
-          for (const s of newEmaSyms) historySeenSyms.add(s)
-        }
-
-        for (const r of chunk) {
-          if (!isEpisodeAnchor(r, episodeIndex)) continue   // drop re-fire duplicate
-          collected.push(r)
-        }
-
-        if (!data || data.length < CHUNK) break   // raw table exhausted
-        rawOffset += CHUNK
-      }
-
-      const pageRaw  = collected.slice(offset, offset + PAGE_SIZE)
-      const hasMore  = collected.length > offset + PAGE_SIZE
-      const cmpMap   = await fetchCmp(pageRaw.map(r => r.symbol))
-
-      return send(res, {
-        total:    rawTotal,
-        page:     pageNum,
-        pageSize: PAGE_SIZE,
-        hasMore,
-        rows:     buildRows(pageRaw, cmpMap, null, episodeIndex),
-      })
-    }
-
-    // Full-scan path. Paginated with .range() (see fetchAllPaged) so a wide
-    // date range can't silently truncate the way a bare .limit() did before.
-    // No stocks(name) join here — joining on every one of tens of thousands of
-    // rows to fetch a name that repeats per symbol measured 2x slower than
-    // fetching bare and looking names up for the ~1-2k distinct symbols after.
-    const allMatching = await fetchAllPaged(() =>
-      applyFilters(
-        db.from('signals')
-          .select('signal_date, strategy_name, signal_type, symbol, price, ema_difference_pct, breakout_pct, sector', { count: 'exact' })
-          .order('signal_date', { ascending: false })
-          .order('symbol', { ascending: true })
-          .order('strategy_name', { ascending: true })   // total order, so range() pages
-          .order('signal_type', { ascending: true })     // can't overlap or skip rows
-      ),
-      'signals history full scan'
-    )
-
-    let clean = allMatching.filter(r => !excluded.has(r.symbol))
-    if (watchlistSet) clean = clean.filter(r => watchlistSet.has(r.symbol))
-
-    const distinctSyms = [...new Set(clean.map(r => r.symbol))]
-    const emaSyms = [...new Set(clean.filter(r => r.strategy_name === 'ema_crossover').map(r => r.symbol))]
-
-    // Filtering must use the SAME return_pct being displayed, so the episode
-    // match has to run over the full candidate set here, not just the page
-    // eventually shown — this is the expensive part of an unnarrowed Return%
-    // scan (emaSyms can approach the whole universe), same cost class as the
-    // 10Y/All-time button on the Returns tab.
-    //
-    // fetchEmaHistory is run on its own, not folded into the Promise.all below:
-    // it already opens up to PAGE_CONCURRENCY (40) connections internally for a
-    // scan this wide, and stacking fetchCmp's and fetchNames' own chunked
-    // concurrency on top of that in the same instant is what caused an
-    // intermittent "fetch failed" under load — the combined burst exceeded a
-    // connection limit that none of the three would hit on its own.
-    const emaHistory = await fetchEmaHistory(emaSyms)
-    const [cmpMap, names] = await Promise.all([fetchCmp(distinctSyms), fetchNames(distinctSyms)])
-    const episodeIndex = buildEmaEpisodeIndex(emaHistory)
-
-    // Same re-fire collapse as the fast path above: keep only the row that IS
-    // its episode's real entry/exit date, drop every echo of it.
-    clean = clean.filter(r => isEpisodeAnchor(r, episodeIndex))
-
-    let rows = buildRows(clean, cmpMap, names, episodeIndex)
-
-    if (minReturnVal != null) {
-      rows = rows.filter(r => r.return_pct != null && r.return_pct >= minReturnVal)
-    }
-
-    const total = rows.length
-    const paged = rows.slice(offset, offset + PAGE_SIZE)
+    const filtered = sortedRows(ds, sort, dir).filter(matches)   // filter keeps the sort order
+    const total    = filtered.length
+    const pages    = Math.max(1, Math.ceil(total / pageSize))
+    const page     = Math.min(pages, Math.max(1, parseInt(q.page, 10) || 1))
+    const offset   = (page - 1) * pageSize
 
     send(res, {
-      total,
-      page:     pageNum,
-      pageSize: PAGE_SIZE,
-      hasMore:  offset + PAGE_SIZE < total,
-      rows:     paged,
+      total, page, pageSize, pages, sort, dir,
+      obsDate: ds.obsDate,
+      hasMore: page < pages,
+      rows:    filtered.slice(offset, offset + pageSize),
     })
   } catch (e) {
     sendErr(res, e.message)

@@ -312,16 +312,33 @@ td.muted { color: var(--text-4); font-size: 13px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Load More ───────────────────────────────────────────────────── */
-.load-more-bar {
-  display: flex; justify-content: center; padding: 20px;
+/* Page numbers (Signal History) */
+.pager {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 10px 18px; padding: 12px 22px;
   border-top: 1px solid var(--border); background: var(--card);
 }
-.load-more-btn {
-  font-size: 14px; font-weight: 600; padding: 10px 32px;
-  border: 1px solid var(--border-md); border-radius: var(--radius);
-  color: var(--text-2); background: var(--card); transition: all .15s;
+.pager[hidden] { display: none; }
+.pager-top { border-top: 0; border-bottom: 1px solid var(--border); padding: 8px 22px; }
+.pager-info { font-size: 13.5px; color: var(--text-3); }
+.pager-info b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pager-pages { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.pager-btn {
+  min-width: 36px; height: 36px; padding: 0 10px;
+  border: 1px solid var(--border-md); border-radius: var(--radius-sm);
+  background: var(--card); color: var(--text-2);
+  font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: all .15s;
 }
-.load-more-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+.pager-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+.pager-btn[aria-current="page"] { background: var(--blue); border-color: var(--blue); color: #fff; cursor: default; }
+.pager-btn:disabled:not([aria-current]) { opacity: .4; cursor: default; }
+.pager-gap { min-width: 20px; text-align: center; color: var(--text-4); }
+.pager-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; font-size: 13.5px; color: var(--text-3); }
+.pager-tools label { display: flex; align-items: center; gap: 6px; }
+.pager-tools .filter-select { padding: 6px 28px 6px 10px; }
+.pager-tools .filter-input { width: 80px; padding: 6px 8px; }
+.is-busy { opacity: .5; pointer-events: none; transition: opacity .15s; }
 
 /* ── Star / Watchlist ────────────────────────────────────────────── */
 .star-btn {
@@ -434,6 +451,8 @@ th.star-col:hover { color: var(--text-3) !important; }
   .tab-btn     { padding: 0 14px; font-size: 13px; }
 
   .panel-header, .filters { padding: 10px 16px; }
+  .pager, .pager-top { padding: 10px 16px; justify-content: center; }
+  .pager-word  { display: none; }
 
   thead th, td { padding: 10px 12px; }
   td.name      { max-width: 130px; }
