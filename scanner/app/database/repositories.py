@@ -122,6 +122,20 @@ def start_scanner_run(stocks_requested: int) -> int:
     return result.data[0]["id"]
 
 
+_PROGRESS_FIELDS = {"stocks_processed", "stocks_failed", "signals_created"}
+
+
+def update_scanner_run_progress(run_id: int, **counts: int) -> None:
+    """Record in-flight counts on a running scanner_runs row.
+
+    The website's "Update data" panel reads these while a scan is underway;
+    finish_scanner_run overwrites them with the final numbers.
+    """
+    fields = {k: v for k, v in counts.items() if k in _PROGRESS_FIELDS}
+    if fields:
+        get_client().table("scanner_runs").update(fields).eq("id", run_id).execute()
+
+
 def finish_scanner_run(
     run_id: int,
     *,

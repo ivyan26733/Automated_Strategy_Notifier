@@ -24,6 +24,10 @@
   </h1>
   <div class="header-side header-right">
     <span class="last-scan" id="last-scan"></span>
+    <button type="button" class="scan-btn" id="scan-btn" title="Run the scanner now instead of waiting for the 4:30 PM update">
+      <svg class="scan-btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      <span class="scan-btn-text" id="scan-btn-text">Update data</span>
+    </button>
   </div>
 </header>
 
@@ -2200,11 +2204,29 @@ the first signals, until 500 earlier ones exist, get no score (521 in 2016–202
   </div>
 </div>
 
+<!-- Manual data update: progress panel (scanner-ui.js) -->
+<section class="scan-panel" id="scan-panel" aria-label="Data update progress" data-phase="idle" hidden>
+  <div class="scan-head">
+    <span class="scan-orb" aria-hidden="true"></span>
+    <strong class="scan-title" id="scan-title">Updating data</strong>
+    <span class="scan-pct" id="scan-pct">0%</span>
+    <button type="button" class="scan-close" id="scan-close" aria-label="Hide progress">×</button>
+  </div>
+  <p class="scan-word" id="scan-word" aria-hidden="true">Percolating…</p>
+  <div class="scan-bar" id="scan-bar" role="progressbar" aria-label="Update progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="scan-fill" id="scan-fill"></span></div>
+  <p class="scan-phase" id="scan-phase" role="status" aria-live="polite"></p>
+  <ol class="scan-steps" id="scan-steps" aria-hidden="true">
+    <li>Queue</li><li>Setup</li><li>Prices</li><li>Stocks</li><li>Save</li>
+  </ol>
+  <div class="scan-foot"><span id="scan-time"></span><a id="scan-log" href="#" target="_blank" rel="noopener" hidden>View log ↗</a></div>
+</section>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="charts.js"></script>
 <script src="research-data.js"></script>
 <script src="research.js"></script>
 <script src="formulas.js"></script>
 <script src="app.js"></script>
+<script src="scanner-ui.js"></script>
 </body>
 </html>

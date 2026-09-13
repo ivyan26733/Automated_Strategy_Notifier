@@ -15,6 +15,7 @@ from app.data.weekly import build_weekly
 from app.database.repositories import (
     finish_scanner_run,
     start_scanner_run,
+    update_scanner_run_progress,
     upsert_signals,
     upsert_stocks,
     upsert_weekly_indicators,
@@ -112,6 +113,14 @@ def _process_stock(stock: Stock) -> tuple[list[Signal], dict[str, Any] | None, s
     return signals, indicator, None
 
 
+def _report_progress(run_id: int, **counts: int) -> None:
+    """Best-effort live progress for the website; a failed write must never stop a scan."""
+    try:
+        update_scanner_run_progress(run_id, **counts)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"Progress update skipped: {exc}")
+
+
 # ---------------------------------------------------------------------------
 # Main runner
 # ---------------------------------------------------------------------------
@@ -191,7 +200,9 @@ def run(
         if (i + 1) % 100 == 0:
             pct = (i + 1) / len(stocks) * 100
             logger.info(f"  {i+1:>5}/{len(stocks)}  ({pct:.0f}%)  signals so far: {len(all_signals)}")
+            _report_progress(run_id, stocks_processed=processed, stocks_failed=len(failures))
 
+    _report_progress(run_id, stocks_processed=processed, stocks_failed=len(failures))
     logger.info(f"Processing done. Processed: {processed:,}  Failed: {len(failures):,}  Signals: {len(all_signals):,}")
 
     # Step 6 — batch upsert indicators
@@ -208,6 +219,8 @@ def run(
             batch = all_signals[start:start + batch_size]
             upsert_signals(batch)
             signals_created += len(batch)
+            if (start // batch_size + 1) % 10 == 0:
+                _report_progress(run_id, signals_created=signals_created)
 
     # Step 8 — finish run record
     status        = "failed" if len(failures) == len(stocks) else "success"

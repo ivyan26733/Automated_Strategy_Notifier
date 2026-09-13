@@ -167,6 +167,107 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 .last-scan { font-size: 13px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 860px) { .last-scan { display: none; } }
 
+/* ── Manual data update: header button + floating progress panel ── */
+.header-right { gap: 14px; }
+.scan-btn {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  height: 34px; padding: 0 14px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap;
+  background: linear-gradient(140deg, #3B82F6 0%, #1D4ED8 100%);
+  box-shadow: 0 2px 8px rgba(29, 78, 216, .28);
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.scan-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(29, 78, 216, .36); }
+.scan-btn:disabled { opacity: .7; cursor: progress; transform: none; }
+.scan-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.scan-btn-text { font-variant-numeric: tabular-nums; }
+.scan-btn.is-running .scan-btn-icon { animation: scan-spin 1s linear infinite; }
+@keyframes scan-spin { to { transform: rotate(360deg); } }
+
+.scan-panel {
+  position: fixed; right: 20px; bottom: 20px; z-index: 200;
+  width: min(380px, calc(100vw - 24px)); padding: 16px 18px 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .18), 0 2px 6px rgba(15, 23, 42, .08);
+  animation: scan-pop .35s cubic-bezier(.2, .8, .2, 1.1);
+}
+.scan-panel[hidden] { display: none; }
+@keyframes scan-pop { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+
+.scan-head { display: flex; align-items: center; gap: 10px; }
+.scan-orb { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--blue); animation: scan-orb 1.6s ease-out infinite; }
+@keyframes scan-orb { from { box-shadow: 0 0 0 0 rgba(59, 130, 246, .5); } to { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); } }
+.scan-title { flex: 1; font-size: 14.5px; font-weight: 700; color: var(--text); }
+.scan-pct { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums; }
+.scan-close { width: 26px; height: 26px; border-radius: 50%; font-size: 18px; line-height: 1; color: var(--text-3); }
+.scan-close:hover { background: var(--muted-bg); color: var(--text); }
+.scan-close:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+/* The whimsical word: gradient text with a moving sheen, a fresh entrance per word */
+.scan-word {
+  margin: 12px 0 10px; min-height: 22px; font-size: 15px; font-weight: 600; color: var(--blue);
+  background: linear-gradient(90deg, var(--blue) 0%, #8B5CF6 45%, var(--blue) 90%) 0 0 / 200% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: scan-sheen 3s linear infinite;
+}
+.scan-word.is-in { animation: scan-word-in .45s ease both, scan-sheen 3s linear infinite; }
+@keyframes scan-word-in { from { opacity: 0; transform: translateY(6px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes scan-sheen { to { background-position: -200% 0; } }
+
+.scan-bar { position: relative; height: 10px; border-radius: 999px; overflow: hidden; background: var(--muted-bg); border: 1px solid var(--border); }
+.scan-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0; overflow: hidden; border-radius: inherit;
+  background: linear-gradient(90deg, #3B82F6, #1D4ED8); transition: width .9s cubic-bezier(.2, .8, .2, 1);
+}
+.scan-fill::after {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .24) 0 10px, transparent 10px 20px);
+  background-size: 40px 100%; animation: scan-stripes 1s linear infinite;
+}
+@keyframes scan-stripes { to { background-position: 40px 0; } }
+
+.scan-phase { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--text-2); }
+
+.scan-steps { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+.scan-steps li { position: relative; padding-top: 10px; font-size: 11.5px; font-weight: 600; text-align: center; color: var(--text-4); transition: color .3s; }
+.scan-steps li::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: 4px; background: var(--border); transition: background .4s; }
+.scan-steps li.is-done { color: var(--text-3); }
+.scan-steps li.is-done::before { background: var(--blue); }
+.scan-steps li.is-active { color: var(--blue); }
+.scan-steps li.is-active::before { background: linear-gradient(90deg, var(--blue-bd), var(--blue), var(--blue-bd)) 0 0 / 200% 100%; animation: scan-sheen 1.4s linear infinite; }
+
+.scan-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums;
+}
+.scan-foot:has(#scan-time:empty):has(#scan-log[hidden]) { display: none; }
+.scan-foot a { color: var(--blue); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.scan-foot a:hover { text-decoration: underline; }
+
+/* End states */
+.scan-panel[data-phase="done"] .scan-fill { background: linear-gradient(90deg, #10B981, #059669); }
+.scan-panel[data-phase="done"] .scan-orb { background: var(--green); animation: none; }
+.scan-panel[data-phase="done"] .scan-pct { color: var(--green); }
+.scan-panel[data-phase="failed"] .scan-fill { background: var(--red); }
+.scan-panel[data-phase="failed"] .scan-orb { background: var(--red); animation: none; }
+.scan-panel[data-phase="failed"] .scan-pct { color: var(--red); }
+.scan-panel:is([data-phase="done"], [data-phase="failed"]) .scan-fill::after { display: none; }
+.scan-panel:is([data-phase="done"], [data-phase="failed"]) .scan-word { animation: scan-word-in .45s ease both; }
+.scan-panel:is([data-phase="setup-needed"], [data-phase="error"]) :is(.scan-word, .scan-bar, .scan-steps, .scan-pct) { display: none; }
+.scan-panel:is([data-phase="setup-needed"], [data-phase="error"]) .scan-orb { background: var(--amber); animation: none; }
+
+@media (max-width: 640px) {
+  .scan-btn { width: 34px; padding: 0; justify-content: center; }
+  .scan-btn-text { display: none; }
+  .scan-panel { left: 12px; right: 12px; bottom: 12px; width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-panel, .scan-word, .scan-word.is-in, .scan-fill::after, .scan-orb,
+  .scan-steps li.is-active::before, .scan-btn.is-running .scan-btn-icon { animation: none; }
+  .scan-fill { transition: none; }
+}
+
 /* ── KPI Bar ─────────────────────────────────────────────────────── */
 .kpi-bar {
   display: grid; grid-template-columns: repeat(3, 1fr);
