@@ -9,16 +9,20 @@
 <body>
 
 <header class="app-header">
-  <div class="header-left">
-    <div class="brand-icon">NSE</div>
-    <span class="brand-name">Stock Screener</span>
-    <span class="brand-tag">V1</span>
-  </div>
-  <div class="header-right">
+  <div class="header-side header-left">
     <div class="scanner-status">
-      <span class="dot" id="run-dot"></span>
-      <span id="run-text">Connecting…</span>
+      <span class="dot" id="run-dot" aria-hidden="true"></span>
+      <span class="status-text" id="run-text">Connecting…</span>
     </div>
+  </div>
+  <h1 class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5.5-5.5 4 4L21 7"/><path d="M15 7h6v6"/></svg>
+    </span>
+    <span class="brand-name"><span class="brand-nse">NSE</span> Stock Screener</span>
+    <span class="brand-tag" title="Version 2">V2</span>
+  </h1>
+  <div class="header-side header-right">
     <span class="last-scan" id="last-scan"></span>
   </div>
 </header>

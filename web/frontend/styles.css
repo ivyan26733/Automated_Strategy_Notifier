@@ -125,33 +125,47 @@ body { font-family: var(--font-ui); background: var(--page); color: var(--text);
 button { cursor: pointer; font-family: inherit; border: none; background: none; color: inherit; }
 
 /* ── Header ──────────────────────────────────────────────────────── */
+/* Brand centred between two equal side columns, so it stays optically centred
+   whatever the status and last-scan text say. Height stays 60px: the sticky
+   tab bar and in-page navs are positioned against it. */
 .app-header {
   position: sticky; top: 0; z-index: 100;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; height: 60px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center; gap: 16px;
+  padding: 0 24px; height: 60px;
   background: var(--card); border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: inset 0 3px 0 var(--blue), var(--shadow-sm);
 }
-.header-left { display: flex; align-items: center; gap: 10px; }
-.brand-icon {
-  width: 34px; height: 34px; border-radius: 8px;
-  background: var(--blue); display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #fff; letter-spacing: -.5px;
+.header-side  { display: flex; align-items: center; min-width: 0; }
+.header-right { justify-content: flex-end; }
+
+.brand { display: flex; align-items: center; gap: 10px; font-size: inherit; font-weight: inherit; white-space: nowrap; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center; color: #fff;
+  background: linear-gradient(140deg, #3B82F6 0%, #1D4ED8 100%);
+  box-shadow: 0 2px 8px rgba(29, 78, 216, .3), inset 0 1px 0 rgba(255, 255, 255, .22);
 }
-.brand-name { font-size: 17px; font-weight: 700; color: var(--text); }
+.brand-name { font-size: 18px; font-weight: 700; letter-spacing: -.015em; color: var(--text); }
+.brand-nse  { color: var(--blue); }
 .brand-tag {
-  font-size: 12px; font-weight: 500; color: var(--text-3);
-  background: var(--muted-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 2px 7px;
+  font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; letter-spacing: .05em; line-height: 1.5;
+  color: var(--blue); background: var(--blue-bg); border: 1px solid var(--blue-bd);
+  border-radius: 999px; padding: 1px 9px;
 }
-.header-right { display: flex; align-items: center; gap: 16px; }
-.scanner-status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-3); }
+
+.scanner-status {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  font-size: 13px; font-weight: 500; color: var(--text-2);
+  padding: 5px 12px 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--muted-bg);
+}
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-md); flex-shrink: 0; }
 .dot.ok  { background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
 .dot.err { background: var(--red); }
 .dot.run { background: var(--amber); animation: blink 1.2s infinite; }
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
-.last-scan { font-size: 13px; color: var(--text-4); }
+.last-scan { font-size: 13px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 860px) { .last-scan { display: none; } }
 
 /* ── KPI Bar ─────────────────────────────────────────────────────── */
 .kpi-bar {
@@ -439,9 +453,15 @@ th.star-col:hover { color: var(--text-3) !important; }
 
 /* ── Mobile ──────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .app-header  { padding: 0 16px; height: 54px; }
-  .last-scan   { display: none; }
-  .brand-name  { font-size: 15px; }
+  .app-header  { padding: 0 12px; gap: 8px; }
+  .brand       { gap: 8px; }
+  .brand-mark  { width: 30px; height: 30px; border-radius: 9px; }
+  .brand-mark svg { width: 17px; height: 17px; }
+  .brand-name  { font-size: 16px; }
+  .brand-tag   { font-size: 10.5px; padding: 1px 7px; }
+  /* Status collapses to its dot; the words stay for screen readers */
+  .scanner-status { padding: 6px; }
+  .status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   .kpi-bar     { grid-template-columns: repeat(2, 1fr); }
   .kpi-chip    { padding: 14px 16px; }
@@ -462,6 +482,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 
 @media (max-width: 400px) {
+  .brand-name  { font-size: 15px; }
   .kpi-value   { font-size: 20px; }
   .kpi-label   { font-size: 11px; }
   .tab-btn     { padding: 0 10px; font-size: 12px; }
