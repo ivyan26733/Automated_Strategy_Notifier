@@ -10,6 +10,15 @@ ATR_PERIOD      = 14
 ATR_SPREAD_K    = 0.05   # spread must be >= ATR_SPREAD_K × ATR(14)
 EMA20_RISE_WEKS = 4      # monotonic rise required over this many consecutive weeks
 
+# Entry gates. Rolled back on 20 Sep 2026 to the plain fresh weekly golden
+# cross the scanner ran from 1 Sep until 9 Sep (commit 5b54096 added the three
+# gates below): with all of them on, days passed with no signal at all and the
+# Fresh Crossovers tab stayed empty. Each gate is still written out in
+# generate_signals — flip a flag to True to put it back, nothing else changes.
+REQUIRE_EMA20_RISING = False   # criterion 2: EMA20 up 4 weeks in a row
+REQUIRE_ATR_SPREAD   = False   # criterion 3: EMA9-EMA20 gap >= 0.05 x ATR(14)
+REQUIRE_VOLUME       = False   # criterion 4: cross-day volume > 20-day average
+
 
 def _compute_atr(weekly: pd.DataFrame, period: int = ATR_PERIOD) -> pd.Series:
     """
@@ -73,21 +82,25 @@ def _daily_vol_above_20d(daily: pd.DataFrame | None, obs_date) -> bool | None:
 
 class EmaCrossoverStrategy(Strategy):
     """
-    Weekly EMA-9 / EMA-20 Golden Crossover — 6-criteria selective version.
+    Weekly EMA-9 / EMA-20 Golden Crossover — plain fresh-cross version.
 
-    ALL six criteria must be satisfied for a signal to fire:
+    A signal fires when EMA9 crosses above EMA20 on the weekly series and the
+    previous week's EMA9 was not already above it (fresh cross only, enforced
+    by the `above` state variable). This is the rule the scanner ran from
+    1 Sep 2026 and was rolled back to on 20 Sep 2026.
 
-    1. EMA9 crosses above EMA20 on the current completed weekly candle.
+    Three further gates are implemented but switched OFF at the top of this
+    module (REQUIRE_EMA20_RISING / REQUIRE_ATR_SPREAD / REQUIRE_VOLUME):
+
     2. EMA20 has risen monotonically for the 4 weeks preceding the cross:
        EMA20[i] > EMA20[i-1] > EMA20[i-2] > EMA20[i-3] > EMA20[i-4].
     3. EMA9–EMA20 spread ≥ 0.05 × ATR(14) on weekly data (ATR-based minimum
        spread; filters out thin / noise crosses regardless of % magnitude).
     4. Volume on the last trading day of the crossover week > 20-day average
        daily volume. If daily data is absent the gate is skipped (not rejected).
-    5. Crossover occurs on a completed weekly candle (enforced by the weekly
-       DataFrame having only non-developing rows in the historical loop).
-    6. Previous week's EMA9 was NOT already above EMA20 (fresh cross only;
-       enforced by the `above` state variable).
+
+    The runner passes the developing weekly bar, so a cross surfaces on the day
+    it happens rather than at Friday's close, and can repaint.
 
     Also emits `death_cross` when EMA9 falls back below EMA20 while a position
     is open — the exit side of the same state machine. Unlike golden_cross,
@@ -115,18 +128,19 @@ class EmaCrossoverStrategy(Strategy):
         *,
         daily: pd.DataFrame | None = None,
     ) -> list[Signal]:
-        min_rows = EMA20_RISE_WEKS + 2   # need i >= EMA20_RISE_WEKS + 1 in the loop
-        if weekly is None or len(weekly) < min_rows:
+        # Only the EMA20-rising gate needs weeks of history before the cross.
+        lookback = EMA20_RISE_WEKS if REQUIRE_EMA20_RISING else 0
+        if weekly is None or len(weekly) < lookback + 2:
             return []
 
         e9  = ema9(weekly["Close"])
         e20 = ema20(weekly["Close"])
-        atr = _compute_atr(weekly)
+        atr = _compute_atr(weekly) if REQUIRE_ATR_SPREAD else None
 
         signals: list[Signal] = []
         above = False   # True while EMA9 has been above EMA20 since last crossover
 
-        for i in range(EMA20_RISE_WEKS + 1, len(weekly)):
+        for i in range(lookback + 1, len(weekly)):
             prev9, prev20 = e9.iloc[i - 1], e20.iloc[i - 1]
             curr9, curr20 = e9.iloc[i],     e20.iloc[i]
 
@@ -138,27 +152,31 @@ class EmaCrossoverStrategy(Strategy):
                     if prev9 <= prev20:
                         # ── Criterion 2: EMA20 monotonically rising for 4 weeks ──
                         # e20_vals[0] = current, [1] = 1 week ago, …
-                        e20_vals = [e20.iloc[i - k] for k in range(EMA20_RISE_WEKS + 1)]
-                        if not all(e20_vals[k] > e20_vals[k + 1] for k in range(EMA20_RISE_WEKS)):
-                            above = True
-                            continue
-
-                        # ── Criterion 3: spread ≥ 0.05 × ATR(14) ────────────────
-                        curr_atr = atr.iloc[i]
-                        if not pd.isna(curr_atr) and curr_atr > 0:
-                            if (curr9 - curr20) < ATR_SPREAD_K * curr_atr:
+                        if REQUIRE_EMA20_RISING:
+                            e20_vals = [e20.iloc[i - k] for k in range(EMA20_RISE_WEKS + 1)]
+                            if not all(e20_vals[k] > e20_vals[k + 1] for k in range(EMA20_RISE_WEKS)):
                                 above = True
                                 continue
 
-                        # ── Criterion 4: daily volume > 20-day average ────────────
+                        # ── Criterion 3: spread ≥ 0.05 × ATR(14) ────────────────
+                        if REQUIRE_ATR_SPREAD:
+                            curr_atr = atr.iloc[i]
+                            if not pd.isna(curr_atr) and curr_atr > 0:
+                                if (curr9 - curr20) < ATR_SPREAD_K * curr_atr:
+                                    above = True
+                                    continue
+
                         row      = weekly.iloc[i]
                         obs_date = row["observation_date"]
-                        vol_ok   = _daily_vol_above_20d(daily, obs_date)
-                        if vol_ok is False:   # None → skip gate, False → reject
-                            above = True
-                            continue
 
-                        # ── Signal passes all criteria → emit ────────────────────
+                        # ── Criterion 4: daily volume > 20-day average ────────────
+                        if REQUIRE_VOLUME:
+                            vol_ok   = _daily_vol_above_20d(daily, obs_date)
+                            if vol_ok is False:   # None → skip gate, False → reject
+                                above = True
+                                continue
+
+                        # ── Signal passes every enabled gate → emit ────────────────────
                         signal_date = obs_date.date() if hasattr(obs_date, "date") else obs_date
                         diff        = curr9 - curr20
                         diff_pct    = (diff / curr20) * 100.0 if curr20 else None

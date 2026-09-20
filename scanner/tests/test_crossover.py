@@ -104,7 +104,10 @@ def test_state_resets_after_bearish_cross():
     # Phase 3: price rises again → second golden cross
     weekly  = make_weekly([150.0] * 20 + [50.0] * 20 + [150.0] * 20)
     signals = STRATEGY.generate_signals("TEST.NS", weekly, "", "")
-    assert len(signals) == 2, f"Expected 2 signals, got {len(signals)}: {_signal_dates(signals)}"
+    # The drop between the two rises also emits a death_cross; count entries only.
+    golden  = [s for s in signals if s.signal_type == "golden_cross"]
+    assert len(golden) == 2, f"Expected 2 golden crosses, got {len(golden)}: {_signal_dates(golden)}"
+    assert sum(s.signal_type == "death_cross" for s in signals) == 1
 
 
 # ---------------------------------------------------------------------------
