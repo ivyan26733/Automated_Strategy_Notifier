@@ -347,7 +347,11 @@
     $$('#panel-formulas .formula-nav-btn').forEach(b => b.addEventListener('click', () => {
       $$('#panel-formulas .formula-nav-btn').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
       if (!wrap || !nav) return
-      const top = wrap.getBoundingClientRect().top + window.scrollY - 110
+      // The sticky chrome is 108px with the tab bar and 112px with the phone
+      // drawer; read the token rather than hardcode one of them.
+      const shellTop = parseInt(getComputedStyle(document.documentElement)
+        .getPropertyValue('--shell-top'), 10) || 108
+      const top = wrap.getBoundingClientRect().top + window.scrollY - (shellTop + 2)
       if (window.scrollY > top) window.scrollTo({ top: Math.max(top, 0) })
     }))
   }

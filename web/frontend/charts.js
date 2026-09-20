@@ -187,7 +187,7 @@ function initResearchCharts() {
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: 14 } },
+        layout: { padding: { top: 16, right: 14 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -283,6 +283,7 @@ function initResearchCharts() {
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 16, right: 14 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -382,8 +383,10 @@ const baselinePlugin = {
       ctx.setLineDash([])
       ctx.font = '10px system-ui, sans-serif'
       ctx.fillStyle = opts.color || '#94A3B8'
-      ctx.textAlign = 'center'
-      ctx.fillText(opts.label, x, chartArea.top - 4)
+      // Near the right edge a centred label would run past the plot, so anchor
+      // it to the right instead of overflowing.
+      ctx.textAlign = x > chartArea.right - 45 ? 'right' : 'center'
+      ctx.fillText(opts.label, x, Math.max(chartArea.top - 4, 10))
     }
     ctx.restore()
   },
@@ -426,6 +429,14 @@ function renderReturnsCharts(trades) {
   }
   const box = document.getElementById('chartbox-returns')
   if (box) box.hidden = false
+
+  // One bar per sector at a readable pitch, instead of squeezing up to 16 into
+  // the stylesheet's fixed height.
+  const sectorWrap = document.getElementById('chart-returns-sector')?.parentElement
+  if (sectorWrap) {
+    const sectors = new Set(withRet.map(t => t.sector).filter(Boolean)).size
+    sectorWrap.style.height = Math.max(260, Math.min(sectors, 16) * 26 + 64) + 'px'
+  }
 
   // ── Distribution histogram ───────────────────────────────────────
   mount('chart-returns-dist', p => {
@@ -499,7 +510,7 @@ function renderReturnsCharts(trades) {
     return {
       type: 'bar',
       data: {
-        labels: rows.map(r => `${r.name}  (n=${r.n})`),
+        labels: rows.map(r => r.name),
         datasets: [{
           label: 'Median return',
           data: rows.map(r => r.med),
@@ -525,7 +536,18 @@ function renderReturnsCharts(trades) {
         },
         scales: {
           x: { ...pctAxis(p), grid: grid(p) },
-          y: { grid: { display: false }, ticks: { color: p.text, font: { size: 11 } } },
+          y: {
+            grid: { display: false },
+            ticks: {
+              color: p.text,
+              font: { size: window.innerWidth < 640 ? 10 : 11 },
+              // Truncate rather than let a long sector name eat the plot area.
+              callback(v) {
+                const t = this.getLabelForValue(v)
+                return t.length > 16 ? t.slice(0, 15) + '…' : t
+              },
+            },
+          },
         },
       },
     }

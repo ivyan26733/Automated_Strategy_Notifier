@@ -62,18 +62,30 @@
   </select>
   <div class="gf-sep"></div>
   <button class="btn btn-secondary" id="gf-watchlist-only">☆ Watchlist only</button>
-  <span class="gf-reset" id="gf-reset">Clear filters</span>
+  <button type="button" class="gf-reset" id="gf-reset">Clear filters</button>
 </div>
 
-<nav class="tab-bar">
-  <button class="tab-btn active" data-tab="crossovers">Fresh EMA Crossovers</button>
-  <button class="tab-btn"        data-tab="active">Active EMA</button>
-  <button class="tab-btn"        data-tab="history">Signal History</button>
-  <button class="tab-btn"        data-tab="perf">📈 Returns</button>
-  <button class="tab-btn"        data-tab="watchlist">☆ Watchlist<span class="wl-count" id="wl-count"></span></button>
-  <button class="tab-btn"        data-tab="research">Research &amp; Backtests</button>
-  <button class="tab-btn"        data-tab="formulas">📋 Formula Sheet</button>
+<div class="nav-shell">
+  <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="tab-bar">
+    <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+    <span class="nav-toggle-label">Sections<b id="nav-current">Fresh EMA Crossovers</b></span>
+  </button>
+
+<nav class="tab-bar" id="tab-bar" aria-label="Sections">
+  <div class="nav-drawer-head">
+    <span>Sections</span>
+    <button type="button" class="nav-close" id="nav-close" aria-label="Close menu">&times;</button>
+  </div>
+  <button class="tab-btn active" data-tab="crossovers"><span class="tab-full">Fresh EMA Crossovers</span><span class="tab-short">Fresh</span></button>
+  <button class="tab-btn"        data-tab="active"><span class="tab-full">Active EMA</span><span class="tab-short">Active</span></button>
+  <button class="tab-btn"        data-tab="history"><span class="tab-full">Signal History</span><span class="tab-short">History</span></button>
+  <button class="tab-btn"        data-tab="perf"><span class="tab-full">📈 Returns</span><span class="tab-short">📈 Returns</span></button>
+  <button class="tab-btn"        data-tab="watchlist"><span class="tab-full">☆ Watchlist</span><span class="tab-short">☆ List</span><span class="wl-count" id="wl-count"></span></button>
+  <button class="tab-btn"        data-tab="research"><span class="tab-full">Research &amp; Backtests</span><span class="tab-short">Research</span></button>
+  <button class="tab-btn"        data-tab="formulas"><span class="tab-full">📋 Formula Sheet</span><span class="tab-short">📋 Formulas</span></button>
 </nav>
+  <div class="nav-backdrop" id="nav-backdrop" hidden></div>
+</div>
 
 <!-- Fresh EMA Crossovers -->
 <div class="tab-panel active" id="panel-crossovers">
@@ -105,10 +117,12 @@
       <option value="ema_crossover">EMA Crossover</option>
       <option value="breakout_6m">6M Breakout</option>
     </select>
-    <input class="filter-input" id="filter-symbol" type="text" placeholder="Symbol…"  style="width:110px">
-    <input class="filter-input" id="filter-sector" type="text" placeholder="Sector…"  style="width:130px">
-    <input class="filter-input" id="filter-from"   type="date" style="width:138px">
-    <input class="filter-input" id="filter-to"     type="date" style="width:138px">
+    <input class="filter-input" id="filter-symbol" type="text" placeholder="Symbol…">
+    <input class="filter-input" id="filter-sector" type="text" placeholder="Sector…">
+    <label class="filter-field"><span>From</span>
+      <input class="filter-input" id="filter-from" type="date"></label>
+    <label class="filter-field"><span>To</span>
+      <input class="filter-input" id="filter-to"   type="date"></label>
     <button class="btn btn-primary"   id="filter-apply">Apply</button>
     <button class="btn btn-secondary" id="filter-reset">Reset</button>
   </div>

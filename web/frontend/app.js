@@ -105,17 +105,17 @@ async function loadCrossoverTab() {
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },
     { label: 'Symbol',       key: 'symbol',            cls: 'sym',      fmt: v => esc(v) },
     { label: 'Name',         key: 'name',              cls: 'name',     fmt: v => esc(v) },
-    { label: 'Cross Date',   key: 'signal_date',       cls: 'mono',     fmt: v => fmt.date(v) },
-    { label: 'Held',         key: 'signal_date',       cls: 'mono',     fmt: v => fmt.days(v) },
-    { label: 'Signal Price', key: 'price',             cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Cross Date',   key: 'signal_date',       cls: 'mono hide-xs', fmt: v => fmt.date(v) },
+    { label: 'Held',         key: '_held',             cls: 'mono hide-xs', fmt: v => fmt.days(v) },
+    { label: 'Signal Price', key: 'price',             cls: 'num r hide-sm', fmt: v => fmt.price(v) },
     { label: 'CMP',          key: 'cmp',               cls: 'num r',    fmt: v => fmt.price(v) },
     { label: 'Return%',      key: 'return_pct',        cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'EMA9',         key: 'ema9',              cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'EMA20',        key: 'ema20',             cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'EMA Diff%',    key: 'ema_difference_pct',cls: 'pct r',   fmt: v => `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'Sector',       key: 'sector',            cls: 'muted',    fmt: v => esc(v) },
+    { label: 'EMA9',         key: 'ema9',              cls: 'num r hide-xs', fmt: v => fmt.price(v) },
+    { label: 'EMA20',        key: 'ema20',             cls: 'num r hide-xs', fmt: v => fmt.price(v) },
+    { label: 'EMA Diff%',    key: 'ema_difference_pct',cls: 'pct r hide-sm', fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
+    { label: 'Sector',       key: 'sector',            cls: 'muted hide-xs', fmt: v => esc(v) },
   ]
-  renderTable(container, 'crossovers', cols, d.rows.map(r => ({ ...r, _star: r.symbol })))
+  renderTable(container, 'crossovers', cols, d.rows.map(r => ({ ...r, _star: r.symbol, _held: r.signal_date })))
 }
 
 // ── Tab 2: 6-Month Breakouts ──────────────────────────────────────
@@ -165,17 +165,17 @@ async function loadActiveTab() {
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },
     { label: 'Symbol',       key: 'symbol',            cls: 'sym',      fmt: v => esc(v) },
     { label: 'Name',         key: 'name',              cls: 'name',     fmt: v => esc(v) },
-    { label: 'Cross Date',   key: 'signal_date',       cls: 'mono',     fmt: v => fmt.date(v) },
-    { label: 'Held',         key: 'signal_date',       cls: 'mono',     fmt: v => fmt.days(v) },
-    { label: 'Signal Price', key: 'signal_price',      cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'CMP',          key: 'cmp',               cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Cross Date',   key: 'signal_date',       cls: 'mono hide-sm', fmt: v => fmt.date(v) },
+    { label: 'Held',         key: '_held',             cls: 'mono',     fmt: v => fmt.days(v) },
+    { label: 'Signal Price', key: 'signal_price',      cls: 'num r hide-sm', fmt: v => fmt.price(v) },
+    { label: 'CMP',          key: 'cmp',               cls: 'num r hide-sm', fmt: v => fmt.price(v) },
     { label: 'Return%',      key: 'return_pct',        cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'EMA9',         key: 'ema9',              cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'EMA20',        key: 'ema20',             cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'EMA Diff%',    key: 'ema_difference_pct',cls: 'pct r',   fmt: v => `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'Sector',       key: 'sector',            cls: 'muted',    fmt: v => esc(v) },
+    { label: 'EMA9',         key: 'ema9',              cls: 'num r hide-xs', fmt: v => fmt.price(v) },
+    { label: 'EMA20',        key: 'ema20',             cls: 'num r hide-xs', fmt: v => fmt.price(v) },
+    { label: 'EMA Diff%',    key: 'ema_difference_pct',cls: 'pct r hide-sm', fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
+    { label: 'Sector',       key: 'sector',            cls: 'muted hide-xs', fmt: v => esc(v) },
   ]
-  renderTable(container, 'active', cols, d.rows.map(r => ({ ...r, _star: r.symbol })))
+  renderTable(container, 'active', cols, d.rows.map(r => ({ ...r, _star: r.symbol, _held: r.signal_date })))
 }
 
 // ── Tab 4: Signal History ─────────────────────────────────────────
@@ -186,18 +186,18 @@ const HISTORY_COLS = [
     { label: 'Date',         key: 'signal_date',        cls: 'mono',     fmt: v => fmt.date(v) },
     { label: 'Symbol',       key: 'symbol',             cls: 'sym',      fmt: v => esc(v) },
     { label: 'Name',         key: 'name',               cls: 'name',     fmt: v => esc(v) },
-    { label: 'Strategy',     key: 'strategy_name',      cls: '',         fmt: v => fmt.strat(v) },
-    { label: 'Type',         key: 'signal_type',        cls: '',         fmt: v => fmt.type(v) },
+    { label: 'Strategy',     key: 'strategy_name',      cls: 'hide-xs',  fmt: v => fmt.strat(v) },
+    { label: 'Type',         key: 'signal_type',        cls: 'hide-sm',  fmt: v => fmt.type(v) },
     { label: 'Status',       key: 'status',             cls: '',         fmt: v => v === 'open'
         ? '<span class="badge badge-green">Open</span>'
         : v === 'closed' ? '<span class="badge badge-red">Closed</span>' : '<span class="muted">—</span>' },
-    { label: 'Exit Date',    key: 'exit_date',          cls: 'mono',     fmt: v => v ? fmt.date(v) : '—' },
-    { label: 'Signal Price', key: 'price',              cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'Exit/CMP',     key: 'cmp',                cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Exit Date',    key: 'exit_date',          cls: 'mono hide-sm', fmt: v => v ? fmt.date(v) : '—' },
+    { label: 'Signal Price', key: 'price',              cls: 'num r hide-sm', fmt: v => fmt.price(v) },
+    { label: 'Exit/CMP',     key: 'cmp',                cls: 'num r hide-sm', fmt: v => fmt.price(v) },
     { label: 'Return%',      key: 'return_pct',         cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'EMA Diff%',    key: 'ema_difference_pct', cls: 'pct r',   fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
-    { label: 'Brk%',         key: 'breakout_pct',       cls: 'pct r',   fmt: v => v != null ? `<span class="pos">${fmt.pct(v)}</span>` : '—' },
-    { label: 'Sector',       key: 'sector',             cls: 'muted',    fmt: v => esc(v) },
+    { label: 'EMA Diff%',    key: 'ema_difference_pct', cls: 'pct r hide-xs', fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
+    { label: 'Brk%',         key: 'breakout_pct',       cls: 'pct r hide-xs', fmt: v => v != null ? `<span class="pos">${fmt.pct(v)}</span>` : '—' },
+    { label: 'Sector',       key: 'sector',             cls: 'muted hide-xs', fmt: v => esc(v) },
 ]
 const HISTORY_TEXT_COLS = new Set(['symbol', 'name', 'strategy_name', 'signal_type', 'status', 'sector'])
 
@@ -401,13 +401,13 @@ async function loadPerfTab() {
     { label: 'Status',      key: 'status',      cls: '',         fmt: v => v === 'open'
         ? '<span class="badge badge-green">Open</span>'
         : '<span class="badge badge-red">Closed</span>' },
-    { label: 'Entry Date',  key: 'signal_date', cls: 'mono',     fmt: v => fmt.date(v) },
-    { label: 'Exit Date',   key: 'exit_date',   cls: 'mono',     fmt: v => v ? fmt.date(v) : '<span class="muted">Holding</span>' },
-    { label: 'Held',        key: 'held',        cls: 'num r',    fmt: v => v == null ? '—' : v + 'd' },
-    { label: 'Buy Price',   key: 'price',       cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Entry Date',  key: 'signal_date', cls: 'mono hide-sm', fmt: v => fmt.date(v) },
+    { label: 'Exit Date',   key: 'exit_date',   cls: 'mono hide-xs', fmt: v => v ? fmt.date(v) : '<span class="muted">Holding</span>' },
+    { label: 'Held',        key: 'held',        cls: 'num r hide-sm', fmt: v => v == null ? '—' : v + 'd' },
+    { label: 'Buy Price',   key: 'price',       cls: 'num r hide-sm', fmt: v => fmt.price(v) },
     { label: 'Exit/CMP',    key: 'cmp',         cls: 'num r',    fmt: v => fmt.price(v) },
     { label: 'Return%',     key: 'return_pct',  cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'Sector',      key: 'sector',      cls: 'muted',    fmt: v => esc(v) },
+    { label: 'Sector',      key: 'sector',      cls: 'muted hide-xs', fmt: v => esc(v) },
   ]
   renderTable(el('perf-table-wrap'), 'perf', cols, d.trades.map(r => ({ ...r, _star: r.symbol })))
   window.NSECharts?.renderReturnsCharts(d.trades)
@@ -432,15 +432,15 @@ async function loadWatchlistTab() {
     { label: '★',            key: '_star',              cls: 'star-col', fmt: v => starCell(v) },
     { label: 'Symbol',       key: 'symbol',             cls: 'sym',      fmt: v => esc(v) },
     { label: 'Name',         key: 'name',               cls: 'name',     fmt: v => esc(v) },
-    { label: 'Strategy',     key: 'strategy_name',      cls: '',         fmt: v => v ? fmt.strat(v) : '—' },
-    { label: 'Signal Date',  key: 'signal_date',        cls: 'mono',     fmt: v => fmt.date(v) },
-    { label: 'Signal Price', key: 'signal_price',       cls: 'num r',    fmt: v => fmt.price(v) },
+    { label: 'Strategy',     key: 'strategy_name',      cls: 'hide-sm',  fmt: v => v ? fmt.strat(v) : '—' },
+    { label: 'Signal Date',  key: 'signal_date',        cls: 'mono hide-sm', fmt: v => fmt.date(v) },
+    { label: 'Signal Price', key: 'signal_price',       cls: 'num r hide-sm', fmt: v => fmt.price(v) },
     { label: 'CMP',          key: 'cmp',                cls: 'num r',    fmt: v => fmt.price(v) },
     { label: 'Return%',      key: 'return_pct',         cls: 'pct r',    fmt: v => v == null ? '—' : `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` },
-    { label: 'EMA9',         key: 'ema9',               cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'EMA20',        key: 'ema20',              cls: 'num r',    fmt: v => fmt.price(v) },
-    { label: 'EMA Diff%',    key: 'ema_difference_pct', cls: 'pct r',   fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
-    { label: 'Sector',       key: 'sector',             cls: 'muted',    fmt: v => esc(v) },
+    { label: 'EMA9',         key: 'ema9',               cls: 'num r hide-xs', fmt: v => fmt.price(v) },
+    { label: 'EMA20',        key: 'ema20',              cls: 'num r hide-xs', fmt: v => fmt.price(v) },
+    { label: 'EMA Diff%',    key: 'ema_difference_pct', cls: 'pct r hide-xs', fmt: v => v != null ? `<span class="${v >= 0 ? 'pos' : 'neg'}">${fmt.pct(v)}</span>` : '—' },
+    { label: 'Sector',       key: 'sector',             cls: 'muted hide-xs', fmt: v => esc(v) },
   ]
   renderTable(container, 'watchlist', cols, (d.rows || []).map(r => ({ ...r, _star: r.symbol })))
 }
@@ -485,7 +485,12 @@ function renderTable(container, tabId, cols, rows, opts = {}) {
     }).join('') + '</tr>'
   ).join('')
 
+  // Re-rendering destroys the scroll container, so a sort would throw you back
+  // to the far left — after scrolling 600px right to reach the column you just
+  // tapped. Carry the offset across the rebuild.
+  const keepLeft = container.querySelector('.table-wrap')?.scrollLeft || 0
   container.innerHTML = `<div class="table-wrap"><table id="table-${tabId}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`
+  if (keepLeft) container.querySelector('.table-wrap').scrollLeft = keepLeft
 
   container.querySelectorAll('th[data-col]').forEach(th => {
     if (th.classList.contains('star-col')) return
@@ -541,6 +546,7 @@ const TAB_BODY = { crossovers: 'body-crossovers', active: 'body-active', history
 async function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`))
+  syncNavLabel(tab)
   if (!loaded[tab]) {
     // Marked before the await so a double click doesn't start two loads, and
     // cleared on failure so the tab can't stay stuck on its spinner.
@@ -608,8 +614,61 @@ function jumpHistoryPage(input) {
 })
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab))
+  btn.addEventListener('click', () => {
+    closeNav()
+    switchTab(btn.dataset.tab)
+  })
 })
+
+// ── Nav drawer (phones) ───────────────────────────────────────────
+// Below 640px the tab strip is a slide-in drawer: seven full tab names need
+// roughly 1080px of bar, so on a phone they became a hidden sideways scroll.
+// The same .tab-btn elements are reused, so there is one source of truth for
+// which tab is active and nothing to keep in sync.
+const navBar      = el('tab-bar')
+const navToggle   = el('nav-toggle')
+const navBackdrop = el('nav-backdrop')
+
+function navIsOpen() { return navBar?.classList.contains('open') }
+
+function openNav() {
+  if (!navBar) return
+  navBar.classList.add('open')
+  navBackdrop.hidden = false
+  // Next frame, so the backdrop transitions in rather than appearing at once.
+  requestAnimationFrame(() => navBackdrop.classList.add('open'))
+  navToggle.setAttribute('aria-expanded', 'true')
+  document.body.classList.add('nav-open')
+  navBar.querySelector('.tab-btn.active')?.focus()
+}
+
+function closeNav() {
+  if (!navBar || !navIsOpen()) return
+  navBar.classList.remove('open')
+  navBackdrop.classList.remove('open')
+  navBackdrop.hidden = true
+  navToggle.setAttribute('aria-expanded', 'false')
+  document.body.classList.remove('nav-open')
+}
+
+// The collapsed bar shows which section you are in, so the name must follow
+// every route into switchTab — a tab button, a deep link, or a redirect.
+function syncNavLabel(tab) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tab}"] .tab-full`)
+  const out = el('nav-current')
+  if (btn && out) out.textContent = btn.textContent
+  // Between the drawer and full labels the strip can still scroll; keep the
+  // selected tab in view so it is never stranded off the right edge.
+  if (!navIsOpen()) btn?.closest('.tab-btn')?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+}
+
+navToggle?.addEventListener('click', () => (navIsOpen() ? closeNav() : openNav()))
+el('nav-close')?.addEventListener('click', closeNav)
+navBackdrop?.addEventListener('click', closeNav)
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav() })
+// Rotating to landscape or resizing past the breakpoint leaves the drawer open
+// over a bar that is back in the flow; close it so the page isn't locked.
+window.addEventListener('resize', () => { if (window.innerWidth > 640) closeNav() })
 
 // ── Star click (event delegation) ────────────────────────────────
 document.addEventListener('click', e => {

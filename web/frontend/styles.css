@@ -118,11 +118,20 @@
   --viz-muted: #64748B;
 }
 
+/* Height of the fixed chrome: 60px header + 48px tab bar. On phones the tab
+   bar is replaced by the 52px drawer toggle, so in-page sticky bars that park
+   below it (.formula-nav, .rx-timeline) must follow this, not a literal 108. */
+:root { --shell-top: 108px; }
+@media (max-width: 768px) { :root { --shell-top: 112px; } }
+
 /* ── Reset ───────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
 body { font-family: var(--font-ui); background: var(--page); color: var(--text); min-height: 100vh; }
 button { cursor: pointer; font-family: inherit; border: none; background: none; color: inherit; }
+/* Author display rules (grid/flex) outrank the UA [hidden] rule, so hiding an
+   element from JS silently failed on any element that declared a display. */
+[hidden] { display: none !important; }
 
 /* ── Header ──────────────────────────────────────────────────────── */
 /* Brand centred between two equal side columns, so it stays optically centred
@@ -139,14 +148,14 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 .header-side  { display: flex; align-items: center; min-width: 0; }
 .header-right { justify-content: flex-end; }
 
-.brand { display: flex; align-items: center; gap: 10px; font-size: inherit; font-weight: inherit; white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: inherit; font-weight: inherit; white-space: nowrap; min-width: 0; }
 .brand-mark {
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
   display: grid; place-items: center; color: #fff;
   background: linear-gradient(140deg, #3B82F6 0%, #1D4ED8 100%);
   box-shadow: 0 2px 8px rgba(29, 78, 216, .3), inset 0 1px 0 rgba(255, 255, 255, .22);
 }
-.brand-name { font-size: 18px; font-weight: 700; letter-spacing: -.015em; color: var(--text); }
+.brand-name { font-size: 18px; font-weight: 700; letter-spacing: -.015em; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
 .brand-nse  { color: var(--blue); }
 .brand-tag {
   font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; letter-spacing: .05em; line-height: 1.5;
@@ -312,6 +321,105 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 .tab-btn:hover { color: var(--text-2); }
 .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
 
+/* Two labels per tab: the full name on wide screens, a short one when the bar
+   starts to crowd. Seven full labels measure ~1080px of text and padding, so
+   they only fit above ~1100px; below 640px the bar becomes a drawer instead. */
+.tab-short { display: none; }
+.nav-shell { position: relative; }
+.nav-toggle, .nav-drawer-head, .nav-backdrop { display: none; }
+
+/* Measured: the seven full labels need ~1090px of bar plus 40px of padding,
+   so they only fit above ~1180px. Below that the short names take over. */
+@media (max-width: 1180px) {
+  .tab-full  { display: none; }
+  .tab-short { display: inline; }
+}
+
+/* ── Nav drawer (phones and small tablets) ───────────────────────── */
+@media (max-width: 768px) {
+  /* The bar leaves the flow and becomes a slide-in panel */
+  .nav-toggle {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    position: sticky; top: 60px; z-index: 90;
+    padding: 10px 14px; min-height: 52px;
+    background: var(--card); border: 0; border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 var(--border);
+    text-align: left; cursor: pointer;
+  }
+  .nav-toggle-bars { display: grid; gap: 4px; flex-shrink: 0; }
+  .nav-toggle-bars span {
+    display: block; width: 20px; height: 2px; border-radius: 2px;
+    background: var(--text-2);
+  }
+  .nav-toggle-label {
+    display: flex; flex-direction: column; min-width: 0;
+    font-size: 11px; line-height: 1.25; color: var(--text-4);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .nav-toggle-label b {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    text-transform: none; letter-spacing: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .tab-bar {
+    position: fixed; inset: 0 auto 0 0; top: 0; z-index: 210;
+    width: min(82vw, 300px); max-width: 100%;
+    flex-direction: column; align-items: stretch;
+    gap: 0; padding: 0 0 24px;
+    overflow-y: auto; overflow-x: hidden;
+    border-right: 1px solid var(--border); border-bottom: 0;
+    box-shadow: 2px 0 24px rgba(0, 0, 0, .18);
+    transform: translateX(-100%);
+    transition: transform .22s ease, visibility 0s linear .22s;
+    visibility: hidden;
+  }
+  .tab-bar.open { transform: translateX(0); visibility: visible; transition: transform .22s ease; }
+
+  .nav-drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-4);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-close {
+    font-size: 26px; line-height: 1; color: var(--text-3);
+    padding: 4px 8px; background: none; border: 0; cursor: pointer;
+  }
+
+  /* Drawer items read as a list, not a strip of tabs */
+  .tab-btn {
+    height: auto; min-height: 48px; padding: 12px 18px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; text-align: left; white-space: normal;
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid transparent;
+  }
+  .tab-btn.active {
+    border-bottom-color: var(--border);
+    border-left-color: var(--blue);
+    background: var(--hover-bg);
+  }
+  /* Inside the drawer there is room for the real names */
+  .tab-full  { display: inline; }
+  .tab-short { display: none; }
+
+  /* :not([hidden]) so the display here cannot beat the hidden attribute and
+     leave the backdrop permanently over the page. */
+  .nav-backdrop:not([hidden]) {
+    display: block; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0, 0, 0, .42);
+    opacity: 0; transition: opacity .22s ease;
+  }
+  .nav-backdrop.open { opacity: 1; }
+  body.nav-open { overflow: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar, .nav-backdrop { transition: none; }
+}
+
 /* ── Panels ──────────────────────────────────────────────────────── */
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
@@ -330,6 +438,15 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
   padding: 12px 22px; border-bottom: 1px solid var(--border);
   background: var(--muted-bg);
+}
+#filter-symbol { width: 110px; }
+#filter-sector { width: 130px; }
+#filter-from, #filter-to { width: 138px; }
+/* The date inputs sit inside a label now; the label is the flex item. */
+.filter-field { display: inline-flex; align-items: center; gap: 6px; }
+.filter-field > span {
+  font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--text-4); white-space: nowrap;
 }
 .filter-input, .filter-select {
   font-family: var(--font-ui); font-size: 14px; color: var(--text);
@@ -436,7 +553,7 @@ td.muted { color: var(--text-4); font-size: 13px; }
 .pager[hidden] { display: none; }
 .pager-top { border-top: 0; border-bottom: 1px solid var(--border); padding: 8px 22px; }
 .pager-info { font-size: 13.5px; color: var(--text-3); }
-.pager-info b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pager-info b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pager-pages { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .pager-btn {
   min-width: 36px; height: 36px; padding: 0 10px;
@@ -458,7 +575,9 @@ td.muted { color: var(--text-4); font-size: 13px; }
 /* ── Star / Watchlist ────────────────────────────────────────────── */
 .star-btn {
   background: none; border: none; cursor: pointer;
-  font-size: 17px; line-height: 1; padding: 2px 4px;
+  font-size: 17px; line-height: 1; padding: 0;
+  min-width: 40px; min-height: 40px; margin: -8px 0;
+  display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-4); border-radius: var(--radius-sm);
   transition: color .15s, transform .1s;
 }
@@ -493,6 +612,7 @@ th.star-col:hover { color: var(--text-3) !important; }
   font-size: 13px; color: var(--blue); cursor: pointer;
   text-decoration: none; padding: 4px 8px;
   border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; min-height: 40px;
 }
 .gf-reset:hover { background: var(--blue-bg); }
 .btn-wl-active { background: var(--amber-bg) !important; color: var(--amber) !important; border-color: var(--amber-bd) !important; }
@@ -510,7 +630,8 @@ th.star-col:hover { color: var(--text-3) !important; }
   text-transform: uppercase; color: var(--text-3); margin-right: 4px;
 }
 .perf-period-btn {
-  padding: 5px 16px;
+  padding: 5px 16px; min-height: 40px;
+  display: inline-flex; align-items: center;
   border-radius: 20px;
   border: 1px solid var(--border-md);
   background: var(--muted-bg);
@@ -533,7 +654,7 @@ th.star-col:hover { color: var(--text-3) !important; }
   border-bottom: 1px solid var(--border);
 }
 .perf-kpi {
-  flex: 1 1 140px;
+  flex: 1 1 140px; min-width: 0;
   background: var(--card); padding: 20px 22px;
   display: flex; flex-direction: column; gap: 6px;
 }
@@ -565,13 +686,15 @@ th.star-col:hover { color: var(--text-3) !important; }
   .status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   .kpi-bar     { grid-template-columns: repeat(2, 1fr); }
+  .kpi-chip:last-child { grid-column: 1 / -1; }
   .kpi-chip    { padding: 14px 16px; }
   .kpi-value   { font-size: 24px; }
 
-  .tab-bar     { padding: 0 12px; }
-  .tab-btn     { padding: 0 14px; font-size: 13px; }
+  .panel-header, .filters, .global-filter-bar { padding: 10px 16px; }
 
-  .panel-header, .filters { padding: 10px 16px; }
+  /* 144px of vertical padding on a 568px screen, and wrapped copy read
+     left-aligned inside a centred box. */
+  .state-box { padding: 40px 20px; text-align: center; }
   .pager, .pager-top { padding: 10px 16px; justify-content: center; }
   .pager-word  { display: none; }
 
@@ -586,7 +709,6 @@ th.star-col:hover { color: var(--text-3) !important; }
   .brand-name  { font-size: 15px; }
   .kpi-value   { font-size: 20px; }
   .kpi-label   { font-size: 11px; }
-  .tab-btn     { padding: 0 10px; font-size: 12px; }
 }
 
 /* ── Research Tab ────────────────────────────────────────────────── */
@@ -650,7 +772,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 
 /* Feature grid */
 .feature-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
   gap: 12px; margin-bottom: 22px;
 }
 .feature-card {
@@ -892,10 +1014,11 @@ th.star-col:hover { color: var(--text-3) !important; }
 }
 
 .formula-nav {
-  position: sticky; top: 108px; z-index: 80;
-  display: flex; flex-wrap: wrap; gap: 8px;
+  position: sticky; top: var(--shell-top); z-index: 80;
+  display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto;
   margin: 0 -26px 22px; padding: 10px 26px;
   background: var(--page); border-bottom: 1px solid var(--border);
+  --scroll-bg: var(--page);
 }
 .formula-nav::-webkit-scrollbar { display: none; }
 .formula-nav-btn {
@@ -966,10 +1089,12 @@ th.star-col:hover { color: var(--text-3) !important; }
 /* Returns tab: two charts side by side on wide screens */
 .chart-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  /* min() so the track can collapse below 420px instead of overflowing */
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
   gap: 16px;
-  margin-bottom: 22px;
+  margin: 0 22px 22px;
 }
+@media (max-width: 640px) { .chart-grid { margin: 0 16px 22px; } }
 .chart-grid .chart-box { margin-bottom: 0; }
 
 @media (max-width: 720px) {
@@ -1025,9 +1150,9 @@ th.star-col:hover { color: var(--text-3) !important; }
   .rx-callout, .rx-fig-sub, .rx-diverge, .rx-takeaways, .rx-quiz, .research-lead, .chart-note) { max-width: none; }
 
 .rx-timeline {
-  position: sticky; top: 108px; z-index: 5;
+  position: sticky; top: var(--shell-top); z-index: 5;
   display: flex; flex-direction: column; gap: 14px;
-  height: calc(100vh - 108px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  height: calc(100vh - var(--shell-top)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
   padding: 22px 18px 16px 22px;
 }
 .rx-tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -1130,11 +1255,11 @@ th.star-col:hover { color: var(--text-3) !important; }
   .rx-tl-item.is-active .rx-tl-node { transform: none; box-shadow: none; }
   .rx-tl-item.is-active .rx-tl-node::after { display: none; }
   .rx-tl-bar { height: 3px; border-radius: 0; }
-  .rx-main .rx-chapter, #rx-start { scroll-margin-top: 176px; }
+  .rx-main .rx-chapter, #rx-start { scroll-margin-top: calc(var(--shell-top) + 64px); }
 }
 
-.rx-chapter { padding: 40px 26px 44px; background: var(--card); border-bottom: 1px solid var(--border); scroll-margin-top: 124px; }
-#rx-start { scroll-margin-top: 124px; }
+.rx-chapter { padding: 40px 26px 44px; background: var(--card); border-bottom: 1px solid var(--border); scroll-margin-top: calc(var(--shell-top) + 16px); }
+#rx-start { scroll-margin-top: calc(var(--shell-top) + 16px); }
 .rx-chapter > * { max-width: 1060px; }
 .rx-chapter-deep { border-bottom-width: 2px; padding-bottom: 22px; }
 .rx-chapter-num { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
@@ -1233,7 +1358,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 .rx-table .r { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* The six rules */
-.rx-rules { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin: 8px 0 20px; }
+.rx-rules { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 12px; margin: 8px 0 20px; }
 .rx-rule { display: flex; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--muted-bg); }
 .rx-rule-num {
   flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
@@ -1348,7 +1473,7 @@ th.star-col:hover { color: var(--text-3) !important; }
 .rx-year-n { font-size: 11px; color: var(--text-4); white-space: nowrap; }
 
 /* Risks, comparisons, takeaways */
-.rx-risks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin: 20px 0; }
+.rx-risks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 12px; margin: 20px 0; }
 .rx-risk { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--muted-bg); font-size: 13.5px; line-height: 1.65; color: var(--text-2); }
 .rx-risk-icon { font-size: 22px; line-height: 1; margin-bottom: 6px; }
 .rx-risk-title { font-weight: 700; color: var(--text); font-size: 15px; margin-bottom: 4px; }
@@ -1560,9 +1685,120 @@ details.rx-deep > summary:focus-visible { outline: 2px solid var(--blue); outlin
 @media (max-width: 640px) {
   .formula-wrap { padding: 4px 16px 36px; }
   /* one swipeable row on phones, so the sticky bar stays short */
-  .formula-nav  { margin: 0 -16px 18px; padding: 8px 16px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .formula-nav  { margin: 0 -16px 18px; padding: 8px 16px; scrollbar-width: none; }
   .formula-nav::-webkit-scrollbar { display: none; }
   .fx-card { padding: 14px 12px; }
   .fx-w-row { grid-template-columns: 78px minmax(0, 1fr); }
   .fx-volbars { gap: 2px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Small-screen refinements
+   Added after the responsive audit, so these deliberately sit last and
+   win on equal specificity.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* A percentage cell renders "—" when null. Without a rule of its own it fell
+   back to proportional Inter while its neighbours were tabular mono, so the
+   column visibly wobbled. */
+td.pct { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Glossary bubbles competed with the header (100) and tab bar (90) from 50,
+   so a term near the top of the screen opened underneath them. */
+.rx-term::after { z-index: 120; }
+
+/* Second column tier: dropped at phone width, kept on small tablets. */
+@media (max-width: 640px) { .hide-sm { display: none; } }
+
+/* ── Frozen identity columns ─────────────────────────────────────── */
+/* Even trimmed, these tables are wider than a phone. Pinning the star and the
+   symbol keeps every row identifiable while the numbers scroll past; without
+   it you scroll 600px right and read percentages belonging to nobody.
+   Widths are pinned because td.sym's offset has to match the star column. */
+@media (max-width: 1024px) {
+  th.star-col, td.star-col {
+    position: sticky; left: 0; z-index: 2;
+    width: 56px; min-width: 56px; padding-left: 8px; padding-right: 8px;
+  }
+  th.sym, td.sym { position: sticky; left: 56px; z-index: 2; }
+  /* The cells need their own opaque background: the stripe lives on the row,
+     and a transparent sticky cell shows the columns sliding under it. */
+  thead th.star-col, thead th.sym { z-index: 3; background: var(--muted-bg); }
+  tbody tr:nth-child(odd)  td.star-col, tbody tr:nth-child(odd)  td.sym { background: var(--card); }
+  tbody tr:nth-child(even) td.star-col, tbody tr:nth-child(even) td.sym { background: var(--muted-bg); }
+  tbody tr:hover td.star-col, tbody tr:hover td.sym { background: var(--hover-bg); }
+  th.sym, td.sym { box-shadow: 1px 0 0 var(--border); }
+
+  /* A fade on the right edge is the only hint that columns continue. */
+  .table-wrap { overscroll-behavior-x: contain; }
+}
+
+@media (max-width: 768px) {
+  /* Returns KPIs: 26px mono values with 22px padding, and an unbreakable
+     "+45678.90%" that silently re-flowed the row to one card per line. */
+  .perf-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .perf-kpi     { padding: 14px 16px; }
+  .perf-kpi-val { font-size: 19px; overflow-wrap: anywhere; }
+  .perf-kpi-sub { font-size: 11px; }
+}
+
+@media (max-width: 640px) {
+  /* Tooltips were centred on the word, so one near the right margin hung ~125px
+     past the viewport and widened the document while open. Anchor to the
+     chapter instead and let it span the column. */
+  .rx-hero, .rx-chapter { position: relative; }
+  .rx-term::after {
+    left: 16px; right: 16px; width: auto; max-width: none; transform: none;
+  }
+
+  .rx-risks, .rx-glossary { grid-template-columns: minmax(0, 1fr); }
+
+  /* Table chrome: headers were the binding width on several columns, and 24px
+     of padding per cell across 12 columns is a whole viewport of padding. */
+  thead th { font-size: 11px; letter-spacing: .02em; padding-top: 14px; padding-bottom: 14px; }
+  td.num, td.sym, td.pos, td.neg, .pos, .neg { font-size: 13px; }
+  .pager-btn   { min-width: 44px; height: 44px; }
+  .pager-pages { gap: 6px; }
+
+  /* Five fixed-width inputs plus two buttons packed into four ragged rows,
+     with two unlabelled date fields among them. */
+  .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+  .filters > *, .filters input, .filters select { width: auto !important; min-width: 0; }
+  #filter-strategy { grid-column: 1 / -1; }
+  .filter-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .filter-field > span {
+    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--text-4);
+  }
+}
+
+@media (max-width: 400px) {
+  thead th, td { padding: 8px; }
+  th.star-col, td.star-col { width: 48px; min-width: 48px; padding-left: 6px; padding-right: 6px; }
+  th.sym, td.sym { left: 48px; }
+}
+
+/* ── Scroll affordance ───────────────────────────────────────────── */
+/* Overlay scrollbars stay invisible on touch devices until a gesture starts,
+   so a clipped table or formula looked like the whole content. These shadows
+   are drawn by the container itself: the two `local` layers scroll with the
+   content and mask the shadow when that edge is reached. */
+.table-wrap, .cmp-wrap, .formula-block, .formula-nav, .fx-ladder-wrap, .rx-years-wrap {
+  background-image:
+    linear-gradient(to right, var(--scroll-bg, var(--card)), transparent),
+    linear-gradient(to left,  var(--scroll-bg, var(--card)), transparent),
+    linear-gradient(to right, rgba(2, 6, 23, .22), transparent),
+    linear-gradient(to left,  rgba(2, 6, 23, .22), transparent);
+  background-position: left center, right center, left center, right center;
+  background-repeat: no-repeat;
+  background-size: 26px 100%, 26px 100%, 12px 100%, 12px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+.formula-block { --scroll-bg: var(--muted-bg); }
+
+/* A thin but always-drawn bar where the platform honours it. */
+.table-wrap, .cmp-wrap, .formula-block { scrollbar-width: thin; }
+.table-wrap::-webkit-scrollbar, .cmp-wrap::-webkit-scrollbar, .formula-block::-webkit-scrollbar { height: 7px; }
+.table-wrap::-webkit-scrollbar-thumb, .cmp-wrap::-webkit-scrollbar-thumb, .formula-block::-webkit-scrollbar-thumb {
+  background: var(--border-md); border-radius: 4px;
 }
