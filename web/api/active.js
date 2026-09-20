@@ -1,4 +1,4 @@
-const { getObsContext, getExcluded, getLatestRunStart, getFreshEmaSet, getEpisodes, fetchLatestIndicators, send, sendErr } = require('./_utils')
+const { getObsContext, getExcluded, getFreshEmaSet, getEpisodes, fetchLatestIndicators, send, sendErr } = require('./_utils')
 
 module.exports = async (req, res) => {
   try {
@@ -15,10 +15,10 @@ module.exports = async (req, res) => {
     const excluded = await getExcluded()
     const clean = inds.filter(r => !excluded.has(r.symbol))
 
-    // Exclude stocks whose cross episode began in the latest run — those belong
-    // in Fresh Crossovers. They land here on the next run and stay while EMA9 > EMA20.
-    const runStartedAt = await getLatestRunStart()
-    const freshSet = await getFreshEmaSet(runStartedAt)
+    // Exclude stocks that crossed on the latest trading day — those belong in
+    // Fresh Crossovers. They land here the next trading day and stay while
+    // EMA9 > EMA20, so a cross recorded late arrives here directly.
+    const freshSet = await getFreshEmaSet(obsDate)
 
     const activeOnly = clean.filter(r => !freshSet.has(r.symbol))
     activeOnly.sort((a, b) => (b.ema_difference_pct ?? 0) - (a.ema_difference_pct ?? 0))

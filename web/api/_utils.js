@@ -57,12 +57,9 @@ async function getObsContext() {
   return { obsDate: data?.[0]?.observation_date || null }
 }
 
-// Start time of the most recent COMPLETED scanner run.
-// Signals whose created_at is >= this were discovered for the first time by that run.
-// created_at survives upsert (upsert_signals only rewrites updated_at), so a signal
-// already known from an earlier run keeps its original timestamp and drops out of
-// "fresh" as soon as the next run finishes.
-// Anchored to status='success' so a run in flight doesn't make Fresh grow mid-scan.
+// Start time of the most recent COMPLETED scanner run. Used for the "last scan"
+// line above the Fresh tab; it no longer decides which stocks appear there.
+// Anchored to status='success' so a run in flight isn't reported as finished.
 async function getLatestRunStart() {
   const { data } = must(await db.from('scanner_runs')
     .select('started_at')
@@ -175,25 +172,28 @@ async function getEpisodes(symbols) {
   return out
 }
 
-// Symbols whose current cross EPISODE began in the latest completed run.
-// Keyed on the episode's first sighting, not on any individual row, so a stock
-// that crossed on Monday and merely re-fired today is not treated as new.
-async function getFreshEmaSet(runStartedAt) {
-  if (!runStartedAt) return new Set()
+// Symbols that crossed over on the LATEST TRADING DAY — the cross date, not the
+// day the row happened to be written. Keyed on when the market moved so that a
+// cross recorded late still isn't "fresh": when the entry rules were relaxed on
+// 20 Sep 2026, one scan inserted ten days of previously rejected crosses at once
+// and a created_at rule put all of them in Fresh, dated up to a week earlier.
+// A stock that crossed earlier in the same week is held, not new, so it belongs
+// in Active EMA; the episode's start is the first day of its cross week seen.
+async function getFreshEmaSet(obsDate) {
+  if (!obsDate) return new Set()
   const { data } = must(await db.from('signals')
     .select('symbol')
     .eq('strategy_name', 'ema_crossover')
     .eq('signal_type', 'golden_cross')
-    .gte('created_at', runStartedAt), 'signals fresh golden crosses')
+    .eq('signal_date', obsDate), 'signals golden crosses on obsDate')
 
   const candidates = [...new Set((data || []).map(r => r.symbol))]
   if (!candidates.length) return new Set()
 
+  // getEpisodes returns only OPEN positions, so a cross already closed by a
+  // death cross the same day drops out here rather than showing as fresh.
   const episodes = await getEpisodes(candidates)
-  return new Set(candidates.filter(s => {
-    const e = episodes.get(s)
-    return e && e.firstSeen >= runStartedAt
-  }))
+  return new Set(candidates.filter(s => episodes.get(s)?.start === obsDate))
 }
 
 const PAGE = 1000

@@ -1937,13 +1937,13 @@ Returns tab:    Held = Exit Date − Entry Date, or latest scan date − Entry D
       <article class="fx-card">
         <h4 class="fx-title">Fresh EMA Crossovers vs Active EMA</h4>
         <p class="fx-plain"><span class="fx-tag">💬</span>Fresh is today's news; Active is everything still being held.</p>
-        <code class="formula-block">Fresh EMA Crossovers = golden crosses first recorded in the latest successful scan
+        <code class="formula-block">Fresh EMA Crossovers = golden crosses dated the latest trading day
 
 Active EMA = EMA9 > EMA20 in the stock's latest reading
              AND its golden cross has had no death cross since
-             AND it is not Fresh (it moves to Active after the next scan)
+             AND it did not cross on that day (it moves here the next trading day)
              sorted by EMA Diff %, largest first</code>
-        <p class="fx-watch"><b>Watch out:</b> a stock can sit above EMA20 without any signal (for example after a "used-up" cross), so Active lists only stocks with an open golden cross, not every stock above.</p>
+        <p class="fx-watch"><b>Watch out:</b> Fresh is keyed on the day the stock crossed, not the day the scanner saved the row — a cross found late, after a missed scan or a rule change, goes to Active rather than showing as today's news. And a stock can sit above EMA20 without any signal (for example after a "used-up" cross), so Active lists only stocks with an open golden cross, not every stock above.</p>
       </article>
 
       <article class="fx-card">

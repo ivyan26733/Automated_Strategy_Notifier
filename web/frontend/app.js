@@ -86,20 +86,20 @@ async function loadCrossoverTab() {
     // Genuinely quiet days are normal — on a falling market nothing crosses up
     // at all. Say that plainly instead of leaving a bare empty table, which
     // reads like the scan failed.
-    el('meta-crossovers').textContent = d.runStartedAt
-      ? `Fresh Golden Crosses · last scan ${fmt.date(d.runStartedAt)}`
+    el('meta-crossovers').textContent = d.obsDate
+      ? `Fresh Golden Crosses · trading day ${fmt.date(d.obsDate)}`
       : 'Fresh Golden Crosses'
     empty(
       container,
-      'No stocks crossed over today.',
-      d.runStartedAt
-        ? `The latest scan (${fmt.date(d.runStartedAt)}) found no new golden crosses. Please check back after the next scan.`
+      'No stocks crossed over on the latest trading day.',
+      d.obsDate
+        ? `Nothing crossed above its EMA20 on ${fmt.date(d.obsDate)}. Earlier crosses that are still running are in Active EMA.`
         : 'Please check back after the next scan.'
     )
     return
   }
 
-  el('meta-crossovers').textContent = `Fresh Golden Crosses · new in the latest scan (${fmt.date(d.runStartedAt)}) · move to Active EMA on the next run`
+  el('meta-crossovers').textContent = `Fresh Golden Crosses · crossed on ${fmt.date(d.obsDate)} · move to Active EMA the next trading day`
 
   const cols = [
     { label: '★',            key: '_star',             cls: 'star-col', fmt: v => starCell(v) },
