@@ -149,9 +149,96 @@ async function loadBreakoutTab() {
 }
 
 // ── Tab 3: Active EMA ─────────────────────────────────────────────
+// Unrealised stats across the open positions on screen. Computed from the rows
+// renderTable actually displayed, so the numbers always describe the table you
+// are looking at — including when a global filter has narrowed it.
+function median(xs) {
+  if (!xs.length) return null
+  const s = [...xs].sort((a, b) => a - b)
+  const m = Math.floor(s.length / 2)
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
+}
+
+function renderActiveStats(box, rows, obsDate, totalCount) {
+  if (!box) return
+  if (!rows.length) { box.innerHTML = ''; return }
+
+  // A position with no entry price cannot have a return; count it, don't zero it.
+  const withRet = rows.filter(r => r.return_pct != null)
+  const rets    = withRet.map(r => r.return_pct)
+  const noRet   = rows.length - withRet.length
+
+  if (!rets.length) { box.innerHTML = ''; return }
+
+  const avg     = rets.reduce((a, b) => a + b, 0) / rets.length
+  const med     = median(rets)
+  const best    = withRet.reduce((a, b) => (b.return_pct > a.return_pct ? b : a))
+  const worst   = withRet.reduce((a, b) => (b.return_pct < a.return_pct ? b : a))
+  const winners = rets.filter(r => r > 0).length
+
+  // Held is measured to the scan's observation date, the same basis the Returns
+  // tab uses — not to the browser's clock, which drifts ahead between scans.
+  const asOf = obsDate ? new Date(obsDate) : new Date()
+  const held = rows.map(r => r.signal_date
+    ? Math.round((asOf - new Date(r.signal_date)) / 86400000) : null).filter(h => h != null)
+  const avgHeld = held.length ? held.reduce((a, b) => a + b, 0) / held.length : null
+
+  const retStr = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%'
+  const holdStr = v => v == null ? '—'
+    : v >= 365 ? (v / 365).toFixed(1) + 'y' : v >= 60 ? (v / 30).toFixed(1) + 'mo' : Math.round(v) + 'd'
+  const cls = v => v == null ? '' : v >= 0 ? 'pos' : 'neg'
+
+  const filtered = totalCount != null && totalCount !== rows.length
+  const scope = filtered
+    ? `${rows.length} of ${totalCount} positions match your filters`
+    : `all ${rows.length} open positions`
+
+  box.innerHTML = `<div class="perf-summary">
+    <div class="perf-kpi">
+      <div class="perf-kpi-val ${cls(avg)}">${retStr(avg)}</div>
+      <div class="perf-kpi-label">Average Return</div>
+      <div class="perf-kpi-sub">Unrealised, ${scope}</div>
+    </div>
+    <div class="perf-kpi">
+      <div class="perf-kpi-val ${cls(med)}">${retStr(med)}</div>
+      <div class="perf-kpi-label">Median Return</div>
+      <div class="perf-kpi-sub">The typical holding, not skewed by outliers</div>
+    </div>
+    <div class="perf-kpi">
+      <div class="perf-kpi-val pos">${retStr(best.return_pct)}</div>
+      <div class="perf-kpi-label">Best Position</div>
+      <div class="perf-kpi-sub">${esc(best.symbol)}${best.signal_date ? ' · held ' + holdStr(Math.round((asOf - new Date(best.signal_date)) / 86400000)) : ''}</div>
+    </div>
+    <div class="perf-kpi">
+      <div class="perf-kpi-val ${cls(worst.return_pct)}">${retStr(worst.return_pct)}</div>
+      <div class="perf-kpi-label">Worst Position</div>
+      <div class="perf-kpi-sub">${esc(worst.symbol)}${worst.signal_date ? ' · held ' + holdStr(Math.round((asOf - new Date(worst.signal_date)) / 86400000)) : ''}</div>
+    </div>
+    <div class="perf-kpi">
+      <div class="perf-kpi-val neutral">${(winners / rets.length * 100).toFixed(0)}%</div>
+      <div class="perf-kpi-label">In Profit</div>
+      <div class="perf-kpi-sub">${winners} up · ${rets.length - winners} down${noRet ? ' · ' + noRet + ' with no entry price' : ''}</div>
+    </div>
+    <div class="perf-kpi">
+      <div class="perf-kpi-val neutral">${holdStr(avgHeld)}</div>
+      <div class="perf-kpi-label">Avg Holding Period</div>
+      <div class="perf-kpi-sub">Since each cross, to ${fmt.date(obsDate)}</div>
+    </div>
+  </div>
+  <p class="perf-caveat">
+    These are <strong>open positions marked to the latest weekly close</strong> — paper
+    gains on trades still running, not a realised track record. Read them alongside the
+    Returns tab, not instead of it: a stock only stays on this list while EMA9 &gt; EMA20,
+    so losers keep dropping off at their death cross while winners stay and compound.
+    That makes the average here structurally flattering, and it is why it sits well above
+    the Returns tab's figure for the same strategy.
+  </p>`
+}
+
 async function loadActiveTab() {
   const container = el('body-active')
   loading(container)
+  if (el('stats-active')) el('stats-active').innerHTML = ''
 
   const d = await apiFetch('/api/active')
   if (!d.rows?.length) {
@@ -177,6 +264,8 @@ async function loadActiveTab() {
     { label: 'Sector',       key: 'sector',            cls: 'muted hide-xs', fmt: v => esc(v) },
   ]
   renderTable(container, 'active', cols, d.rows.map(r => ({ ...r, _star: r.symbol, _held: r.signal_date })))
+  // After renderTable, so the stats are built from the rows it actually showed.
+  renderActiveStats(el('stats-active'), tableData['active']?.rows || [], d.obsDate, d.rows.length)
 }
 
 // ── Tab 4: Signal History ─────────────────────────────────────────
