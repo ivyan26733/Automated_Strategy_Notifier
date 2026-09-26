@@ -17,6 +17,7 @@ const {
 
 const PAGE_SIZES        = [25, 50, 100]
 const DEFAULT_PAGE_SIZE = 50
+const EXPORT_PAGE_SIZE  = 5000
 const ROW_CAP           = 1000        // PostgREST's per-request row limit
 const SYMBOL_GROUP      = 25          // ~30 signals per stock → one request per group
 const GROUP_CONCURRENCY = 12
@@ -205,7 +206,10 @@ module.exports = async (req, res) => {
     const sort     = SORTS[val(q.sort)] ? val(q.sort) : 'signal_date'
     const dirParam = val(q.dir)
     const dir      = dirParam === 'asc' || dirParam === 'desc' ? dirParam : (TEXT_ASC_DEFAULT.has(sort) ? 'asc' : 'desc')
-    const pageSize = PAGE_SIZES.includes(parseInt(q.pageSize, 10)) ? parseInt(q.pageSize, 10) : DEFAULT_PAGE_SIZE
+    // The Excel export walks every page in big chunks; one response holding the
+    // whole list would overrun Vercel's response-size limit.
+    const pageSize = val(q.export) === '1' ? EXPORT_PAGE_SIZE
+      : PAGE_SIZES.includes(parseInt(q.pageSize, 10)) ? parseInt(q.pageSize, 10) : DEFAULT_PAGE_SIZE
 
     const strategy  = val(q.strategy)
     const symbol    = val(q.symbol)?.toUpperCase()

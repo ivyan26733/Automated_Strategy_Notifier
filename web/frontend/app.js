@@ -8,6 +8,7 @@ let sortState      = {}
 let loaded         = {}
 let globalFilters  = { returnPct: null, watchlistOnly: false }
 let perfPeriodDays = 365
+let tableData      = {}   // tab → { cols, rows } as last shown, for the Excel export
 
 // ── Watchlist (localStorage) ──────────────────────────────────────
 function getWatchlist() {
@@ -459,6 +460,7 @@ function renderTable(container, tabId, cols, rows, opts = {}) {
     const wl = getWatchlist()
     display = display.filter(r => wl.has(r.symbol))
   }
+  tableData[tabId] = null
   if (!display.length) {
     const msg = (globalFilters.returnPct !== null || globalFilters.watchlistOnly)
       ? 'No stocks match the active filters.' : 'No data to display.'
@@ -468,6 +470,7 @@ function renderTable(container, tabId, cols, rows, opts = {}) {
 
   const ss = server || sortState[tabId] || {}
   const sorted = server ? display : sortRows(display, ss.col, ss.dir)
+  tableData[tabId] = { cols, rows: sorted }
 
   const head = cols.map(c => {
     const on = ss.col === c.key
@@ -551,6 +554,7 @@ async function switchTab(tab) {
     // Marked before the await so a double click doesn't start two loads, and
     // cleared on failure so the tab can't stay stuck on its spinner.
     loaded[tab] = true
+    tableData[tab] = null   // a load that ends empty must not leave the old table exportable
     try {
       await loaders[tab]()
     } catch (e) {
